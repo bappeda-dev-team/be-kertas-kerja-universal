@@ -6,4 +6,5 @@ type User struct {
 	Password string
 	KodeOpd  string
 	Email    string
+	IsActive bool //default true
 }

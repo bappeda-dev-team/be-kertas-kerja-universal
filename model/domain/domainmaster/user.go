@@ -5,4 +5,5 @@ type User struct {
 	Username string
 	Password string
 	KodeOpd  string
+	Email    string
 }

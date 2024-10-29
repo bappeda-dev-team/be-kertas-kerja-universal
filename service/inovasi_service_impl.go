@@ -38,6 +38,7 @@ func (service *InovasiServiceImpl) Create(ctx context.Context, request inovasi.I
 		Id:                    uuId,
 		RekinId:               request.RekinId,
 		PegawaiId:             request.PegawaiId,
+		KodeOpd:               request.KodeOpd,
 		JudulInovasi:          request.JudulInovasi,
 		JenisInovasi:          request.JenisInovasi,
 		GambaranNilaiKebaruan: request.GambaranNilaiKebaruan,

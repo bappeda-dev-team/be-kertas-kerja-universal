@@ -14,4 +14,5 @@ type RencanaKinerja struct {
 	PegawaiId            string
 	CreatedAt            time.Time
 	Indikator            []Indikator
+	// IdPohonKinerja       string
 }

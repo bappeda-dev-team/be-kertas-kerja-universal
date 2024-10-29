@@ -15,8 +15,8 @@ func NewInovasiRepositoryImpl() *InovasiRepositoryImpl {
 }
 
 func (repository *InovasiRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, inovasi domain.Inovasi) (domain.Inovasi, error) {
-	script := "INSERT INTO tb_inovasi (id, rekin_id, pegawai_id, judul_inovasi, jenis_inovasi, gambaran_nilai_kebaruan) VALUES (?, ?, ?, ?, ?, ?)"
-	_, err := tx.ExecContext(ctx, script, inovasi.Id, inovasi.RekinId, inovasi.PegawaiId, inovasi.JudulInovasi, inovasi.JenisInovasi, inovasi.GambaranNilaiKebaruan)
+	script := "INSERT INTO tb_inovasi (id, rekin_id, kode_opd, pegawai_id, judul_inovasi, jenis_inovasi, gambaran_nilai_kebaruan) VALUES (?, ?, ?, ?, ?, ?, ?)"
+	_, err := tx.ExecContext(ctx, script, inovasi.Id, inovasi.RekinId, inovasi.KodeOpd, inovasi.PegawaiId, inovasi.JudulInovasi, inovasi.JenisInovasi, inovasi.GambaranNilaiKebaruan)
 	if err != nil {
 		return inovasi, err
 	}
@@ -24,7 +24,7 @@ func (repository *InovasiRepositoryImpl) Create(ctx context.Context, tx *sql.Tx,
 }
 
 func (repository *InovasiRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, inovasiId string) (domain.Inovasi, error) {
-	script := "SELECT id, rekin_id, pegawai_id, judul_inovasi, jenis_inovasi, gambaran_nilai_kebaruan FROM tb_inovasi WHERE id = ?"
+	script := "SELECT id, rekin_id, kode_opd, pegawai_id, judul_inovasi, jenis_inovasi, gambaran_nilai_kebaruan FROM tb_inovasi WHERE id = ?"
 	rows, err := tx.QueryContext(ctx, script, inovasiId)
 	if err != nil {
 		return domain.Inovasi{}, err
@@ -33,7 +33,7 @@ func (repository *InovasiRepositoryImpl) FindById(ctx context.Context, tx *sql.T
 
 	inovasi := domain.Inovasi{}
 	if rows.Next() {
-		err := rows.Scan(&inovasi.Id, &inovasi.RekinId, &inovasi.PegawaiId, &inovasi.JudulInovasi, &inovasi.JenisInovasi, &inovasi.GambaranNilaiKebaruan)
+		err := rows.Scan(&inovasi.Id, &inovasi.RekinId, &inovasi.KodeOpd, &inovasi.PegawaiId, &inovasi.JudulInovasi, &inovasi.JenisInovasi, &inovasi.GambaranNilaiKebaruan)
 		if err != nil {
 			return domain.Inovasi{}, err
 		}
@@ -43,7 +43,7 @@ func (repository *InovasiRepositoryImpl) FindById(ctx context.Context, tx *sql.T
 }
 
 func (repository *InovasiRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, rekinId string, pegawaiId string) ([]domain.Inovasi, error) {
-	script := "SELECT id, rekin_id, pegawai_id, judul_inovasi, jenis_inovasi, gambaran_nilai_kebaruan, created_at FROM tb_inovasi WHERE rekin_id = ? AND pegawai_id = ? ORDER BY created_at ASC"
+	script := "SELECT id, rekin_id, kode_opd, pegawai_id, judul_inovasi, jenis_inovasi, gambaran_nilai_kebaruan, created_at FROM tb_inovasi WHERE rekin_id = ? AND pegawai_id = ? ORDER BY created_at ASC"
 	rows, err := tx.QueryContext(ctx, script, rekinId, pegawaiId)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (repository *InovasiRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx
 	var inovasis []domain.Inovasi
 	for rows.Next() {
 		inovasi := domain.Inovasi{}
-		err := rows.Scan(&inovasi.Id, &inovasi.RekinId, &inovasi.PegawaiId, &inovasi.JudulInovasi, &inovasi.JenisInovasi, &inovasi.GambaranNilaiKebaruan, &inovasi.CreatedAt)
+		err := rows.Scan(&inovasi.Id, &inovasi.RekinId, &inovasi.KodeOpd, &inovasi.PegawaiId, &inovasi.JudulInovasi, &inovasi.JenisInovasi, &inovasi.GambaranNilaiKebaruan, &inovasi.CreatedAt)
 		if err != nil {
 			return nil, err
 		}

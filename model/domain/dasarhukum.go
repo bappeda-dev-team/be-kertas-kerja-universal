@@ -7,4 +7,5 @@ type DasarHukum struct {
 	PeraturanTerkait string
 	Uraian           string
 	PegawaiId        string
+	KodeOpd          string
 }

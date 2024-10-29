@@ -9,5 +9,6 @@ type Inovasi struct {
 	JenisInovasi          string
 	GambaranNilaiKebaruan string
 	PegawaiId             string
+	KodeOpd               string
 	CreatedAt             time.Time
 }

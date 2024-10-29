@@ -63,6 +63,7 @@ func (service *RencanaAksiServiceImpl) Create(ctx context.Context, request renca
 		Id:               uuId,
 		RencanaKinerjaId: request.RencanaKinerjaId,
 		PegawaiId:        request.PegawaiId,
+		KodeOpd:          request.KodeOpd,
 		Urutan:           request.Urutan,
 		NamaRencanaAksi:  request.NamaRencanaAksi,
 	}
@@ -79,6 +80,7 @@ func (service *RencanaAksiServiceImpl) Create(ctx context.Context, request renca
 		Id:               result.Id,
 		RencanaKinerjaId: result.RencanaKinerjaId,
 		PegawaiId:        result.PegawaiId,
+		KodeOpd:          result.KodeOpd,
 		Urutan:           result.Urutan,
 		NamaRencanaAksi:  result.NamaRencanaAksi,
 	}
@@ -223,6 +225,7 @@ func (service *RencanaAksiServiceImpl) FindAll(ctx context.Context, rencanaKiner
 		rencanaAksiResponses = append(rencanaAksiResponses, rencanaaksi.RencanaAksiResponse{
 			Id:                     rencanaAksi.Id,
 			RencanaKinerjaId:       rencanaAksi.RencanaKinerjaId,
+			KodeOpd:                rencanaAksi.KodeOpd,
 			PegawaiId:              rencanaAksi.PegawaiId,
 			Urutan:                 rencanaAksi.Urutan,
 			NamaRencanaAksi:        rencanaAksi.NamaRencanaAksi,
@@ -272,6 +275,7 @@ func (service *RencanaAksiServiceImpl) FindById(ctx context.Context, id string) 
 	response := rencanaaksi.RencanaAksiResponse{
 		Id:                     rencanaAksi.Id,
 		RencanaKinerjaId:       rencanaAksi.RencanaKinerjaId,
+		KodeOpd:                rencanaAksi.KodeOpd,
 		Urutan:                 rencanaAksi.Urutan,
 		NamaRencanaAksi:        rencanaAksi.NamaRencanaAksi,
 		PelaksanaanRencanaAksi: pelaksanaanResponses,

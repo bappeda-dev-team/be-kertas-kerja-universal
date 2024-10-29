@@ -14,8 +14,8 @@ func NewGambaranUmumRepositoryImpl() *GambaranUmumRepositoryImpl {
 }
 
 func (repository *GambaranUmumRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, gambaranUmum domain.GambaranUmum) (domain.GambaranUmum, error) {
-	query := "INSERT INTO tb_gambaran_umum (id, rekin_id, pegawai_id, urutan, gambaran_umum) VALUES (?, ?, ?, ?, ?)"
-	_, err := tx.ExecContext(ctx, query, gambaranUmum.Id, gambaranUmum.RekinId, gambaranUmum.PegawaiId, gambaranUmum.Urutan, gambaranUmum.GambaranUmum)
+	query := "INSERT INTO tb_gambaran_umum (id, rekin_id, pegawai_id, kode_opd, urutan, gambaran_umum) VALUES (?, ?, ?, ?, ?, ?)"
+	_, err := tx.ExecContext(ctx, query, gambaranUmum.Id, gambaranUmum.RekinId, gambaranUmum.PegawaiId, gambaranUmum.KodeOpd, gambaranUmum.Urutan, gambaranUmum.GambaranUmum)
 	if err != nil {
 		return domain.GambaranUmum{}, err
 	}
@@ -41,10 +41,10 @@ func (repository *GambaranUmumRepositoryImpl) Delete(ctx context.Context, tx *sq
 }
 
 func (repository *GambaranUmumRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, id string) (domain.GambaranUmum, error) {
-	query := "SELECT id, rekin_id, pegawai_id, urutan, gambaran_umum FROM tb_gambaran_umum WHERE id = ? ORDER BY urutan ASC"
+	query := "SELECT id, rekin_id, pegawai_id, kode_opd, urutan, gambaran_umum FROM tb_gambaran_umum WHERE id = ? ORDER BY urutan ASC"
 	row := tx.QueryRowContext(ctx, query, id)
 	var gambaranUmum domain.GambaranUmum
-	err := row.Scan(&gambaranUmum.Id, &gambaranUmum.RekinId, &gambaranUmum.PegawaiId, &gambaranUmum.Urutan, &gambaranUmum.GambaranUmum)
+	err := row.Scan(&gambaranUmum.Id, &gambaranUmum.RekinId, &gambaranUmum.PegawaiId, &gambaranUmum.KodeOpd, &gambaranUmum.Urutan, &gambaranUmum.GambaranUmum)
 	if err != nil {
 		return domain.GambaranUmum{}, err
 	}
@@ -52,7 +52,7 @@ func (repository *GambaranUmumRepositoryImpl) FindById(ctx context.Context, tx *
 }
 
 func (repository *GambaranUmumRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, rekinId string, pegawaiId string) ([]domain.GambaranUmum, error) {
-	query := "SELECT id, rekin_id, pegawai_id, urutan, gambaran_umum FROM tb_gambaran_umum WHERE rekin_id = ? AND pegawai_id = ? ORDER BY urutan ASC"
+	query := "SELECT id, rekin_id, pegawai_id, kode_opd, urutan, gambaran_umum FROM tb_gambaran_umum WHERE rekin_id = ? AND pegawai_id = ? ORDER BY urutan ASC"
 	rows, err := tx.QueryContext(ctx, query, rekinId, pegawaiId)
 	if err != nil {
 		return []domain.GambaranUmum{}, err
@@ -62,7 +62,7 @@ func (repository *GambaranUmumRepositoryImpl) FindAll(ctx context.Context, tx *s
 	var gambaranUmumList []domain.GambaranUmum
 	for rows.Next() {
 		var gambaranUmum domain.GambaranUmum
-		err := rows.Scan(&gambaranUmum.Id, &gambaranUmum.RekinId, &gambaranUmum.PegawaiId, &gambaranUmum.Urutan, &gambaranUmum.GambaranUmum)
+		err := rows.Scan(&gambaranUmum.Id, &gambaranUmum.RekinId, &gambaranUmum.PegawaiId, &gambaranUmum.KodeOpd, &gambaranUmum.Urutan, &gambaranUmum.GambaranUmum)
 		if err != nil {
 			return []domain.GambaranUmum{}, err
 		}

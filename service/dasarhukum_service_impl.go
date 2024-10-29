@@ -48,6 +48,7 @@ func (service *DasarHukumServiceImpl) Create(ctx context.Context, request dasarh
 		Id:               uuId,
 		RekinId:          request.RekinId,
 		PegawaiId:        request.PegawaiId,
+		KodeOpd:          request.KodeOpd,
 		Urutan:           newUrutan,
 		PeraturanTerkait: request.PeraturanTerkait,
 		Uraian:           request.Uraian,

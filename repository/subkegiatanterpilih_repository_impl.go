@@ -14,14 +14,38 @@ func NewSubKegiatanTerpilihRepositoryImpl() *SubKegiatanTerpilihRepositoryImpl {
 }
 
 func (repository *SubKegiatanTerpilihRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, subKegiatanTerpilih domain.SubKegiatanTerpilih) (domain.SubKegiatanTerpilih, error) {
-	// Insert ke tb_subkegiatan_terpilih
+	// Cek dan hapus data lama jika ada
+	scriptCheck := "SELECT subkegiatan_id FROM tb_subkegiatan_terpilih WHERE rekin_id = ?"
+	var oldSubKegiatanId string
+	err := tx.QueryRowContext(ctx, scriptCheck, subKegiatanTerpilih.RencanaKinerjaId).Scan(&oldSubKegiatanId)
+	if err != nil && err != sql.ErrNoRows {
+		return domain.SubKegiatanTerpilih{}, err
+	}
+
+	if oldSubKegiatanId != "" {
+		// Update tb_subkegiatan lama, set rekin_id menjadi kosong
+		scriptUpdateOld := "UPDATE tb_subkegiatan SET rekin_id = '' WHERE id = ?"
+		_, err = tx.ExecContext(ctx, scriptUpdateOld, oldSubKegiatanId)
+		if err != nil {
+			return domain.SubKegiatanTerpilih{}, err
+		}
+
+		// Hapus data lama dari tb_subkegiatan_terpilih
+		scriptDelete := "DELETE FROM tb_subkegiatan_terpilih WHERE rekin_id = ?"
+		_, err = tx.ExecContext(ctx, scriptDelete, subKegiatanTerpilih.RencanaKinerjaId)
+		if err != nil {
+			return domain.SubKegiatanTerpilih{}, err
+		}
+	}
+
+	// Insert data baru ke tb_subkegiatan_terpilih
 	script1 := "INSERT INTO tb_subkegiatan_terpilih (id, rekin_id, subkegiatan_id) VALUES (?, ?, ?)"
-	_, err := tx.ExecContext(ctx, script1, subKegiatanTerpilih.Id, subKegiatanTerpilih.RencanaKinerjaId, subKegiatanTerpilih.SubKegiatanId)
+	_, err = tx.ExecContext(ctx, script1, subKegiatanTerpilih.Id, subKegiatanTerpilih.RencanaKinerjaId, subKegiatanTerpilih.SubKegiatanId)
 	if err != nil {
 		return domain.SubKegiatanTerpilih{}, err
 	}
 
-	// Update tb_subkegiatan dengan rekin_id
+	// Update tb_subkegiatan baru dengan rekin_id
 	script2 := "UPDATE tb_subkegiatan SET rekin_id = ? WHERE id = ?"
 	_, err = tx.ExecContext(ctx, script2, subKegiatanTerpilih.RencanaKinerjaId, subKegiatanTerpilih.SubKegiatanId)
 	if err != nil {
@@ -30,6 +54,24 @@ func (repository *SubKegiatanTerpilihRepositoryImpl) Create(ctx context.Context,
 
 	return subKegiatanTerpilih, nil
 }
+
+// func (repository *SubKegiatanTerpilihRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, subKegiatanTerpilih domain.SubKegiatanTerpilih) (domain.SubKegiatanTerpilih, error) {
+// 	// Insert ke tb_subkegiatan_terpilih
+// 	script1 := "INSERT INTO tb_subkegiatan_terpilih (id, rekin_id, subkegiatan_id) VALUES (?, ?, ?)"
+// 	_, err := tx.ExecContext(ctx, script1, subKegiatanTerpilih.Id, subKegiatanTerpilih.RencanaKinerjaId, subKegiatanTerpilih.SubKegiatanId)
+// 	if err != nil {
+// 		return domain.SubKegiatanTerpilih{}, err
+// 	}
+
+// 	// Update tb_subkegiatan dengan rekin_id
+// 	script2 := "UPDATE tb_subkegiatan SET rekin_id = ? WHERE id = ?"
+// 	_, err = tx.ExecContext(ctx, script2, subKegiatanTerpilih.RencanaKinerjaId, subKegiatanTerpilih.SubKegiatanId)
+// 	if err != nil {
+// 		return domain.SubKegiatanTerpilih{}, err
+// 	}
+
+// 	return subKegiatanTerpilih, nil
+// }
 
 func (repository *SubKegiatanTerpilihRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, subKegiatanId string) error {
 	// Hapus dari tb_subkegiatan_terpilih

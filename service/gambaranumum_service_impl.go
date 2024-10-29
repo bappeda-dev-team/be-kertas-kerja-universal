@@ -48,6 +48,7 @@ func (service *GambaranUmumServiceImpl) Create(ctx context.Context, request gamb
 		Id:           uuId,
 		RekinId:      request.RekinId,
 		PegawaiId:    request.PegawaiId,
+		KodeOpd:      request.KodeOpd,
 		Urutan:       newUrutan,
 		GambaranUmum: request.GambaranUmum,
 	}

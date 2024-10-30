@@ -137,7 +137,7 @@ func NewRouter(
 	router.PUT("/pohon_kinerja_opd/update/:id", pohonKinerjaOpdController.Update)
 	router.GET("/pohon_kinerja_opd/detail/:id", pohonKinerjaOpdController.FindById)
 	router.DELETE("/pohon_kinerja_opd/delete/:id", pohonKinerjaOpdController.Delete)
-	router.GET("/pohon_kinerja_opd/findall", pohonKinerjaOpdController.FindAll)
+	router.GET("/pohon_kinerja_opd/findall/:kode_opd/:tahun", pohonKinerjaOpdController.FindAll)
 
 	router.GET("/rencana_kinerja/:rencana_kinerja_id/pegawai/:pegawai_id/input_rincian_kak", combineHandlers(
 		rencanaKinerjaController.FindAll,

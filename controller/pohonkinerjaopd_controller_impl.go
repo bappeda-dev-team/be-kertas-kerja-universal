@@ -115,8 +115,8 @@ func (controller *PohonKinerjaOpdControllerImpl) FindById(writer http.ResponseWr
 
 func (controller *PohonKinerjaOpdControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	// Get tahun and kode_opd from query params
-	kodeOpd := request.URL.Query().Get("kode_opd")
-	tahun := request.URL.Query().Get("tahun")
+	kodeOpd := params.ByName("kode_opd")
+	tahun := params.ByName("tahun")
 
 	if kodeOpd == "" || tahun == "" {
 		// Buat response error

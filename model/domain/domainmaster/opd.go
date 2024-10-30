@@ -13,6 +13,5 @@ type Opd struct {
 	NamaKepalaOpd string
 	NIPKepalaOpd  string
 	PangkatKepala string
-	NipKepalaOpd  string
 	IdLembaga     string
 }

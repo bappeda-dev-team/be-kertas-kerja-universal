@@ -2,10 +2,12 @@ package helper
 
 import (
 	"ekak_kabupaten_madiun/model/domain"
+	"ekak_kabupaten_madiun/model/domain/domainmaster"
 	"ekak_kabupaten_madiun/model/web"
 	"ekak_kabupaten_madiun/model/web/dasarhukum"
 	"ekak_kabupaten_madiun/model/web/gambaranumum"
 	"ekak_kabupaten_madiun/model/web/inovasi"
+	"ekak_kabupaten_madiun/model/web/pegawai"
 	"ekak_kabupaten_madiun/model/web/rencanakinerja"
 	"ekak_kabupaten_madiun/model/web/subkegiatan"
 	"ekak_kabupaten_madiun/model/web/usulan"
@@ -416,4 +418,19 @@ func ToSubKegiatanTerpilihResponses(subKegiatanTerpilihs []domain.SubKegiatanTer
 		subKegiatanTerpilihResponses = append(subKegiatanTerpilihResponses, ToSubKegiatanTerpilihResponse(subKegiatanTerpilih))
 	}
 	return subKegiatanTerpilihResponses
+}
+
+func ToPegawaiResponse(pegawais domainmaster.Pegawai) pegawai.PegawaiResponse {
+	return pegawai.PegawaiResponse{ // Langsung return struct PegawaiResponse
+		Id:          pegawais.Id,
+		NamaPegawai: pegawais.NamaPegawai,
+		Nip:         pegawais.Nip,
+	}
+}
+func ToPegawaiResponses(pegawais []domainmaster.Pegawai) []pegawai.PegawaiResponse {
+	var pegawaiResponses []pegawai.PegawaiResponse
+	for _, pegawai := range pegawais {
+		pegawaiResponses = append(pegawaiResponses, ToPegawaiResponse(pegawai))
+	}
+	return pegawaiResponses
 }

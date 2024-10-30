@@ -25,6 +25,8 @@ func NewRouter(
 	subKegiatanController controller.SubKegiatanController,
 	subKegiatanTerpilihController controller.SubKegiatanTerpilihController,
 	pohonKinerjaOpdController controller.PohonKinerjaOpdController,
+	pegawaiController controller.PegawaiController,
+	lembagaController controller.LembagaController,
 ) *httprouter.Router {
 	router := httprouter.New()
 
@@ -138,6 +140,21 @@ func NewRouter(
 	router.GET("/pohon_kinerja_opd/detail/:id", pohonKinerjaOpdController.FindById)
 	router.DELETE("/pohon_kinerja_opd/delete/:id", pohonKinerjaOpdController.Delete)
 	router.GET("/pohon_kinerja_opd/findall/:kode_opd/:tahun", pohonKinerjaOpdController.FindAll)
+
+	//DATA MASTER
+	//pegawai
+	router.POST("/pegawai/create", pegawaiController.Create)
+	router.PUT("/pegawai/update/:id", pegawaiController.Update)
+	router.GET("/pegawai/detail/:id", pegawaiController.FindById)
+	router.DELETE("/pegawai/delete/:id", pegawaiController.Delete)
+	router.GET("/pegawai/findall", pegawaiController.FindAll)
+
+	//lembaga
+	router.POST("/lembaga/create", lembagaController.Create)
+	router.PUT("/lembaga/update/:id", lembagaController.Update)
+	router.GET("/lembaga/detail/:id", lembagaController.FindById)
+	router.DELETE("/lembaga/delete/:id", lembagaController.Delete)
+	router.GET("/lembaga/findall", lembagaController.FindAll)
 
 	router.GET("/rencana_kinerja/:rencana_kinerja_id/pegawai/:pegawai_id/input_rincian_kak", combineHandlers(
 		rencanaKinerjaController.FindAll,

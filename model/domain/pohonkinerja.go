@@ -1,9 +1,9 @@
 package domain
 
 type PohonKinerja struct {
-	Id         string
-	Title      string
-	Parent     string
+	Id         int
+	Parent     int
+	NamaPohon  string
 	KodeOpd    string
 	Keterangan string
 	Tahun      string

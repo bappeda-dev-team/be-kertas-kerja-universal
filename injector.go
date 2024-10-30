@@ -133,6 +133,15 @@ var subKegiatanTerpilihSet = wire.NewSet(
 	wire.Bind(new(controller.SubKegiatanTerpilihController), new(*controller.SubKegiatanTerpilihControllerImpl)),
 )
 
+var pohonKinerjaOpdSet = wire.NewSet(
+	repository.NewPohonKinerjaOpdRepositoryImpl,
+	wire.Bind(new(repository.PohonKinerjaOpdRepository), new(*repository.PohonKinerjaOpdRepositoryImpl)),
+	service.NewPohonKinerjaOpdServiceImpl,
+	wire.Bind(new(service.PohonKinerjaOpdService), new(*service.PohonKinerjaOpdServiceImpl)),
+	controller.NewPohonKinerjaOpdControllerImpl,
+	wire.Bind(new(controller.PohonKinerjaOpdController), new(*controller.PohonKinerjaOpdControllerImpl)),
+)
+
 func InitializeServer() *http.Server {
 
 	wire.Build(
@@ -152,6 +161,7 @@ func InitializeServer() *http.Server {
 		inovasiSet,
 		subKegiatanSet,
 		subKegiatanTerpilihSet,
+		pohonKinerjaOpdSet,
 		app.NewRouter,
 		wire.Bind(new(http.Handler), new(*httprouter.Router)),
 		middleware.NewAuthMiddleware,

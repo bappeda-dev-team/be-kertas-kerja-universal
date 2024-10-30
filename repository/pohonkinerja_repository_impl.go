@@ -6,14 +6,14 @@ import (
 	"ekak_kabupaten_madiun/model/domain"
 )
 
-type PohonKinerjaOpdRepositoryImpl struct {
+type PohonKinerjaRepositoryImpl struct {
 }
 
-func NewPohonKinerjaOpdRepositoryImpl() *PohonKinerjaOpdRepositoryImpl {
-	return &PohonKinerjaOpdRepositoryImpl{}
+func NewPohonKinerjaRepositoryImpl() *PohonKinerjaRepositoryImpl {
+	return &PohonKinerjaRepositoryImpl{}
 }
 
-func (repository *PohonKinerjaOpdRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, pohonKinerja domain.PohonKinerja) (domain.PohonKinerja, error) {
+func (repository *PohonKinerjaRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, pohonKinerja domain.PohonKinerja) (domain.PohonKinerja, error) {
 	script := "INSERT INTO tb_pohon_kinerja (nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun) VALUES (?, ?, ?, ?, ?, ?, ?)"
 	result, err := tx.ExecContext(ctx, script, pohonKinerja.NamaPohon, pohonKinerja.Parent, pohonKinerja.JenisPohon, pohonKinerja.LevelPohon, pohonKinerja.KodeOpd, pohonKinerja.Keterangan, pohonKinerja.Tahun)
 	if err != nil {
@@ -29,7 +29,7 @@ func (repository *PohonKinerjaOpdRepositoryImpl) Create(ctx context.Context, tx 
 	return pohonKinerja, nil
 }
 
-func (repository *PohonKinerjaOpdRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, pohonKinerja domain.PohonKinerja) (domain.PohonKinerja, error) {
+func (repository *PohonKinerjaRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, pohonKinerja domain.PohonKinerja) (domain.PohonKinerja, error) {
 	script := "UPDATE tb_pohon_kinerja SET nama_pohon = ?, parent = ?, jenis_pohon = ?, level_pohon = ?, kode_opd = ?, keterangan = ?, tahun = ? WHERE id = ?"
 	result, err := tx.ExecContext(ctx, script, pohonKinerja.NamaPohon, pohonKinerja.Parent, pohonKinerja.JenisPohon, pohonKinerja.LevelPohon, pohonKinerja.KodeOpd, pohonKinerja.Keterangan, pohonKinerja.Tahun, pohonKinerja.Id)
 	if err != nil {
@@ -45,7 +45,7 @@ func (repository *PohonKinerjaOpdRepositoryImpl) Update(ctx context.Context, tx 
 	return pohonKinerja, nil
 }
 
-func (repository *PohonKinerjaOpdRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, id int) (domain.PohonKinerja, error) {
+func (repository *PohonKinerjaRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, id int) (domain.PohonKinerja, error) {
 	script := "SELECT id, parent, nama_pohon, jenis_pohon, level_pohon, kode_opd, keterangan, tahun FROM tb_pohon_kinerja WHERE id = ?"
 	rows, err := tx.QueryContext(ctx, script, id)
 	if err != nil {
@@ -60,7 +60,7 @@ func (repository *PohonKinerjaOpdRepositoryImpl) FindById(ctx context.Context, t
 	return pohonKinerja, nil
 }
 
-func (repository *PohonKinerjaOpdRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, kodeOpd, tahun string) ([]domain.PohonKinerja, error) {
+func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, kodeOpd, tahun string) ([]domain.PohonKinerja, error) {
 	script := "SELECT id, parent, nama_pohon, jenis_pohon, level_pohon, kode_opd, keterangan, tahun FROM tb_pohon_kinerja WHERE 1=1"
 	params := []interface{}{}
 	if kodeOpd != "" {
@@ -90,7 +90,7 @@ func (repository *PohonKinerjaOpdRepositoryImpl) FindAll(ctx context.Context, tx
 	return pohonKinerjas, nil
 }
 
-func (repository *PohonKinerjaOpdRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+func (repository *PohonKinerjaRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, id string) error {
 	script := "DELETE FROM tb_pohon_kinerja WHERE id = ?"
 	_, err := tx.ExecContext(ctx, script, id)
 	if err != nil {

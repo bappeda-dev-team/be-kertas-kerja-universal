@@ -134,8 +134,8 @@ var subKegiatanTerpilihSet = wire.NewSet(
 )
 
 var pohonKinerjaOpdSet = wire.NewSet(
-	repository.NewPohonKinerjaOpdRepositoryImpl,
-	wire.Bind(new(repository.PohonKinerjaOpdRepository), new(*repository.PohonKinerjaOpdRepositoryImpl)),
+	repository.NewPohonKinerjaRepositoryImpl,
+	wire.Bind(new(repository.PohonKinerjaRepository), new(*repository.PohonKinerjaRepositoryImpl)),
 	service.NewPohonKinerjaOpdServiceImpl,
 	wire.Bind(new(service.PohonKinerjaOpdService), new(*service.PohonKinerjaOpdServiceImpl)),
 	controller.NewPohonKinerjaOpdControllerImpl,

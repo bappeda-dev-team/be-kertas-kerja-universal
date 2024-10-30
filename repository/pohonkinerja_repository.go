@@ -6,7 +6,7 @@ import (
 	"ekak_kabupaten_madiun/model/domain"
 )
 
-type PohonKinerjaOpdRepository interface {
+type PohonKinerjaRepository interface {
 	Create(ctx context.Context, tx *sql.Tx, pohonKinerja domain.PohonKinerja) (domain.PohonKinerja, error)
 	Update(ctx context.Context, tx *sql.Tx, pohonKinerja domain.PohonKinerja) (domain.PohonKinerja, error)
 	Delete(ctx context.Context, tx *sql.Tx, id string) error

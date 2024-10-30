@@ -13,11 +13,11 @@ import (
 )
 
 type PohonKinerjaOpdServiceImpl struct {
-	pohonKinerjaOpdRepository repository.PohonKinerjaOpdRepository
+	pohonKinerjaOpdRepository repository.PohonKinerjaRepository
 	DB                        *sql.DB
 }
 
-func NewPohonKinerjaOpdServiceImpl(pohonKinerjaOpdRepository repository.PohonKinerjaOpdRepository, DB *sql.DB) *PohonKinerjaOpdServiceImpl {
+func NewPohonKinerjaOpdServiceImpl(pohonKinerjaOpdRepository repository.PohonKinerjaRepository, DB *sql.DB) *PohonKinerjaOpdServiceImpl {
 	return &PohonKinerjaOpdServiceImpl{
 		pohonKinerjaOpdRepository: pohonKinerjaOpdRepository,
 		DB:                        DB,
@@ -186,7 +186,7 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 		detail := pohonkinerja.PohonKinerjaOpdResponse{
 			Id:         pokin.Id,
 			Parent:     parent,
-			JenisPohon: getJenisPohon(pokin.LevelPohon),
+			JenisPohon: helper.GetJenisPohon(pokin.LevelPohon),
 			LevelPohon: pokin.LevelPohon,
 			NamaPohon:  pokin.NamaPohon,
 		}
@@ -224,18 +224,4 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 	}
 
 	return response, nil
-}
-
-// Helper function untuk menentukan jenis pohon berdasarkan level
-func getJenisPohon(level int) string {
-	switch level {
-	case 4:
-		return "Strategic"
-	case 5:
-		return "Tactical"
-	case 6:
-		return "Operational"
-	default:
-		return ""
-	}
 }

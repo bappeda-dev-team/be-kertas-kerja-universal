@@ -18,6 +18,6 @@ type IndikatorCreateRequest struct {
 
 type TargetCreateRequest struct {
 	Tahun           string `json:"tahun"`
-	Target          int    `json:"target"`
+	Target          string `json:"target"`
 	SatuanIndikator string `json:"satuan"`
 }

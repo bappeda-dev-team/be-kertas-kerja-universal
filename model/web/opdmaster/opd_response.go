@@ -17,3 +17,8 @@ type OpdResponse struct {
 	PangkatKepala string                  `json:"pangkat_kepala"`
 	IdLembaga     lembaga.LembagaResponse `json:"id_lembaga"`
 }
+
+type OpdResponseForAll struct {
+	KodeOpd string `json:"kode_opd"`
+	NamaOpd string `json:"nama_opd"`
+}

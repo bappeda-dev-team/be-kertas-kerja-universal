@@ -1,5 +1,7 @@
 package domainmaster
 
+import "ekak_kabupaten_madiun/model/domain"
+
 type ProgramKegiatan struct {
 	Id          string
 	KodeProgram string
@@ -7,5 +9,5 @@ type ProgramKegiatan struct {
 	KodeOPD     string
 	IsActive    bool //default true
 	Tahun       string
-	// urusan->bidangurusan->program->kegiatan->subkegiatan
+	Indikator   []domain.Indikator
 }

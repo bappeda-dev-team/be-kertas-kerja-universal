@@ -79,7 +79,10 @@ func InitializeServer() *http.Server {
 	opdRepositoryImpl := repository.NewOpdRepositoryImpl()
 	opdServiceImpl := service.NewOpdServiceImpl(opdRepositoryImpl, lembagaRepositoryImpl, db, validate)
 	opdControllerImpl := controller.NewOpdControllerImpl(opdServiceImpl)
-	router := app.NewRouter(rencanaKinerjaControllerImpl, rencanaAksiControllerImpl, pelaksanaanRencanaAksiControllerImpl, usulanMusrebangControllerImpl, usulanMandatoriControllerImpl, usulanPokokPikiranControllerImpl, usulanInisiatifControllerImpl, usulanTerpilihControllerImpl, gambaranUmumControllerImpl, dasarHukumControllerImpl, inovasiControllerImpl, subKegiatanControllerImpl, subKegiatanTerpilihControllerImpl, pohonKinerjaOpdControllerImpl, pegawaiControllerImpl, lembagaControllerImpl, jabatanControllerImpl, pohonKinerjaAdminControllerImpl, opdControllerImpl)
+	programRepositoryImpl := repository.NewProgramRepositoryImpl()
+	programServiceImpl := service.NewProgramServiceImpl(programRepositoryImpl, opdRepositoryImpl, db)
+	programControllerImpl := controller.NewProgramControllerImpl(programServiceImpl)
+	router := app.NewRouter(rencanaKinerjaControllerImpl, rencanaAksiControllerImpl, pelaksanaanRencanaAksiControllerImpl, usulanMusrebangControllerImpl, usulanMandatoriControllerImpl, usulanPokokPikiranControllerImpl, usulanInisiatifControllerImpl, usulanTerpilihControllerImpl, gambaranUmumControllerImpl, dasarHukumControllerImpl, inovasiControllerImpl, subKegiatanControllerImpl, subKegiatanTerpilihControllerImpl, pohonKinerjaOpdControllerImpl, pegawaiControllerImpl, lembagaControllerImpl, jabatanControllerImpl, pohonKinerjaAdminControllerImpl, opdControllerImpl, programControllerImpl)
 	authMiddleware := middleware.NewAuthMiddleware(router)
 	server := NewServer(authMiddleware)
 	return server
@@ -128,3 +131,5 @@ var jabatanSet = wire.NewSet(repository.NewJabatanRepositoryImpl, wire.Bind(new(
 var pohonKinerjaAdminSet = wire.NewSet(service.NewPohonKinerjaAdminServiceImpl, wire.Bind(new(service.PohonKinerjaAdminService), new(*service.PohonKinerjaAdminServiceImpl)), controller.NewPohonKinerjaAdminControllerImpl, wire.Bind(new(controller.PohonKinerjaAdminController), new(*controller.PohonKinerjaAdminControllerImpl)))
 
 var opdSet = wire.NewSet(repository.NewOpdRepositoryImpl, wire.Bind(new(repository.OpdRepository), new(*repository.OpdRepositoryImpl)), service.NewOpdServiceImpl, wire.Bind(new(service.OpdService), new(*service.OpdServiceImpl)), controller.NewOpdControllerImpl, wire.Bind(new(controller.OpdController), new(*controller.OpdControllerImpl)))
+
+var programSet = wire.NewSet(repository.NewProgramRepositoryImpl, wire.Bind(new(repository.ProgramRepository), new(*repository.ProgramRepositoryImpl)), service.NewProgramServiceImpl, wire.Bind(new(service.ProgramService), new(*service.ProgramServiceImpl)), controller.NewProgramControllerImpl, wire.Bind(new(controller.ProgramController), new(*controller.ProgramControllerImpl)))

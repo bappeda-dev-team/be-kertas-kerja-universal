@@ -23,6 +23,6 @@ type TargetUpdateRequest struct {
 	Id              string `json:"id_target"`
 	IndikatorId     string `json:"indikator_id"`
 	Tahun           string `json:"tahun"`
-	Target          int    `json:"target"`
+	Target          string `json:"target"`
 	SatuanIndikator string `json:"satuan"`
 }

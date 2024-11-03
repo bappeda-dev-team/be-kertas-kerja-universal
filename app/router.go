@@ -30,6 +30,7 @@ func NewRouter(
 	jabatanController controller.JabatanController,
 	pohonKinerjaAdminController controller.PohonKinerjaAdminController,
 	opdController controller.OpdController,
+	programController controller.ProgramController,
 ) *httprouter.Router {
 	router := httprouter.New()
 
@@ -179,6 +180,13 @@ func NewRouter(
 	router.GET("/opd/detail/:id", opdController.FindById)
 	router.DELETE("/opd/delete/:id", opdController.Delete)
 	router.GET("/opd/findall", opdController.FindAll)
+
+	//program
+	router.POST("/program_kegiatan/create", programController.Create)
+	router.PUT("/program_kegiatan/update/:id", programController.Update)
+	router.GET("/program_kegiatan/detail/:id", programController.FindById)
+	router.DELETE("/program_kegiatan/delete/:id", programController.Delete)
+	router.GET("/program_kegiatan/findall", programController.FindAll)
 
 	router.GET("/rencana_kinerja/:rencana_kinerja_id/pegawai/:pegawai_id/input_rincian_kak", combineHandlers(
 		rencanaKinerjaController.FindAll,

@@ -186,6 +186,15 @@ var opdSet = wire.NewSet(
 	wire.Bind(new(controller.OpdController), new(*controller.OpdControllerImpl)),
 )
 
+var programSet = wire.NewSet(
+	repository.NewProgramRepositoryImpl,
+	wire.Bind(new(repository.ProgramRepository), new(*repository.ProgramRepositoryImpl)),
+	service.NewProgramServiceImpl,
+	wire.Bind(new(service.ProgramService), new(*service.ProgramServiceImpl)),
+	controller.NewProgramControllerImpl,
+	wire.Bind(new(controller.ProgramController), new(*controller.ProgramControllerImpl)),
+)
+
 func InitializeServer() *http.Server {
 
 	wire.Build(
@@ -211,6 +220,7 @@ func InitializeServer() *http.Server {
 		jabatanSet,
 		pohonKinerjaAdminSet,
 		opdSet,
+		programSet,
 		app.NewRouter,
 		wire.Bind(new(http.Handler), new(*httprouter.Router)),
 		middleware.NewAuthMiddleware,

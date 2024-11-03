@@ -6,8 +6,8 @@ type JabatanPegawai struct {
 	IdPegawai string
 	Status    string
 	IsActive  bool //default true
-	Bulan     int
-	Tahun     int
+	Bulan     string
+	Tahun     string
 	Pangkat   string
 	Golongan  string
 }

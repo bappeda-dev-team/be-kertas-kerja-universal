@@ -7,6 +7,7 @@ import (
 	"ekak_kabupaten_madiun/model/web/dasarhukum"
 	"ekak_kabupaten_madiun/model/web/gambaranumum"
 	"ekak_kabupaten_madiun/model/web/inovasi"
+	"ekak_kabupaten_madiun/model/web/jabatan"
 	"ekak_kabupaten_madiun/model/web/pegawai"
 	"ekak_kabupaten_madiun/model/web/rencanakinerja"
 	"ekak_kabupaten_madiun/model/web/subkegiatan"
@@ -433,4 +434,26 @@ func ToPegawaiResponses(pegawais []domainmaster.Pegawai) []pegawai.PegawaiRespon
 		pegawaiResponses = append(pegawaiResponses, ToPegawaiResponse(pegawai))
 	}
 	return pegawaiResponses
+}
+
+func ToJabatanResponse(jabatans domainmaster.Jabatan) jabatan.JabatanResponse {
+	return jabatan.JabatanResponse{
+		Id:           jabatans.Id,
+		NamaJabatan:  jabatans.NamaJabatan,
+		KelasJabatan: jabatans.KelasJabatan,
+		JenisJabatan: jabatans.JenisJabatan,
+		NilaiJabatan: jabatans.NilaiJabatan,
+		KodeOpd:      jabatans.KodeOpd,
+		IndexJabatan: jabatans.IndexJabatan,
+		Tahun:        jabatans.Tahun,
+		Esselon:      jabatans.Esselon,
+	}
+}
+
+func ToJabatanResponses(jabatans []domainmaster.Jabatan) []jabatan.JabatanResponse {
+	var jabatanResponses []jabatan.JabatanResponse
+	for _, jabatan := range jabatans {
+		jabatanResponses = append(jabatanResponses, ToJabatanResponse(jabatan))
+	}
+	return jabatanResponses
 }

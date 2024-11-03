@@ -160,6 +160,23 @@ var lembagaSet = wire.NewSet(
 	wire.Bind(new(controller.LembagaController), new(*controller.LembagaControllerImpl)),
 )
 
+var jabatanSet = wire.NewSet(
+	repository.NewJabatanRepositoryImpl,
+	wire.Bind(new(repository.JabatanRepository), new(*repository.JabatanRepositoryImpl)),
+	service.NewJabatanServiceImpl,
+	wire.Bind(new(service.JabatanService), new(*service.JabatanServiceImpl)),
+	controller.NewJabatanControllerImpl,
+	wire.Bind(new(controller.JabatanController), new(*controller.JabatanControllerImpl)),
+)
+
+var pohonKinerjaAdminSet = wire.NewSet(
+
+	service.NewPohonKinerjaAdminServiceImpl,
+	wire.Bind(new(service.PohonKinerjaAdminService), new(*service.PohonKinerjaAdminServiceImpl)),
+	controller.NewPohonKinerjaAdminControllerImpl,
+	wire.Bind(new(controller.PohonKinerjaAdminController), new(*controller.PohonKinerjaAdminControllerImpl)),
+)
+
 func InitializeServer() *http.Server {
 
 	wire.Build(
@@ -182,6 +199,8 @@ func InitializeServer() *http.Server {
 		pohonKinerjaOpdSet,
 		pegawaiSet,
 		lembagaSet,
+		jabatanSet,
+		pohonKinerjaAdminSet,
 		app.NewRouter,
 		wire.Bind(new(http.Handler), new(*httprouter.Router)),
 		middleware.NewAuthMiddleware,

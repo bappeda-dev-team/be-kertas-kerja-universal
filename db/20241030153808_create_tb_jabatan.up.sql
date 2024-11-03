@@ -4,9 +4,9 @@ CREATE TABLE tb_jabatan (
     kelas_jabatan VARCHAR(255) NOT NULL,
     jenis_jabatan VARCHAR(255) NOT NULL,
     nilai_jabatan INT DEFAULT 0,
-    kode_opd VARCHAR(10) NOT NULL,
+    kode_opd VARCHAR(255) NOT NULL,
     index_jabatan INT DEFAULT 0,
-    tahun INT NOT NULL,
+    tahun VARCHAR(255) NOT NULL,
     esselon VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

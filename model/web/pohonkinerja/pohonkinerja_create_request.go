@@ -9,3 +9,26 @@ type PohonKinerjaCreateRequest struct {
 	Keterangan string `json:"keterangan"`
 	Tahun      string `json:"tahun"`
 }
+
+type PohonKinerjaAdminCreateRequest struct {
+	Parent     int                      `json:"parent"`
+	NamaPohon  string                   `json:"nama_pohon"`
+	JenisPohon string                   `json:"jenis_pohon"`
+	LevelPohon int                      `json:"level_pohon"`
+	KodeOpd    string                   `json:"kode_opd"`
+	Keterangan string                   `json:"keterangan"`
+	Tahun      string                   `json:"tahun"`
+	Indikator  []IndikatorCreateRequest `json:"indikator"`
+}
+
+type IndikatorCreateRequest struct {
+	PohonKinerjaId int                   `json:"pohon_id"`
+	NamaIndikator  string                `json:"indikator"`
+	Target         []TargetCreateRequest `json:"target"`
+}
+
+type TargetCreateRequest struct {
+	IndikatorId int    `json:"indikator_id"`
+	Target      int    `json:"target"`
+	Satuan      string `json:"satuan"`
+}

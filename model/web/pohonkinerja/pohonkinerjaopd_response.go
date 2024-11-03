@@ -17,11 +17,3 @@ type PohonKinerjaOpdAllResponse struct {
 	NamaOpd       string                    `json:"nama_opd"`
 	PohonKinerjas []PohonKinerjaOpdResponse `json:"pohon_kinerjas"`
 }
-
-type PohonKinerjaOpdHierarchyResponse struct {
-	KodeOpd     string                `json:"kode_opd"`
-	Tahun       string                `json:"tahun"`
-	Strategic   []StrategicResponse   `json:"strategic"`
-	Tactical    []TacticalResponse    `json:"tactical"`
-	Operational []OperationalResponse `json:"operational"`
-}

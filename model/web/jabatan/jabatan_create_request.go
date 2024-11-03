@@ -1,13 +1,12 @@
-package domainmaster
+package jabatan
 
-type Jabatan struct {
-	Id           string
+type JabatanCreateRequest struct {
 	NamaJabatan  string
 	KelasJabatan string
 	JenisJabatan string
-	NilaiJabatan int //default 0
+	NilaiJabatan int
 	KodeOpd      string
-	IndexJabatan int //default 0
+	IndexJabatan int
 	Tahun        string
 	Esselon      string
 }

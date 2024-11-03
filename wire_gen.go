@@ -71,7 +71,12 @@ func InitializeServer() *http.Server {
 	lembagaRepositoryImpl := repository.NewLembagaRepositoryImpl()
 	lembagaServiceImpl := service.NewLembagaServiceImpl(lembagaRepositoryImpl, db)
 	lembagaControllerImpl := controller.NewLembagaControllerImpl(lembagaServiceImpl)
-	router := app.NewRouter(rencanaKinerjaControllerImpl, rencanaAksiControllerImpl, pelaksanaanRencanaAksiControllerImpl, usulanMusrebangControllerImpl, usulanMandatoriControllerImpl, usulanPokokPikiranControllerImpl, usulanInisiatifControllerImpl, usulanTerpilihControllerImpl, gambaranUmumControllerImpl, dasarHukumControllerImpl, inovasiControllerImpl, subKegiatanControllerImpl, subKegiatanTerpilihControllerImpl, pohonKinerjaOpdControllerImpl, pegawaiControllerImpl, lembagaControllerImpl)
+	jabatanRepositoryImpl := repository.NewJabatanRepositoryImpl()
+	jabatanServiceImpl := service.NewJabatanServiceImpl(jabatanRepositoryImpl, db)
+	jabatanControllerImpl := controller.NewJabatanControllerImpl(jabatanServiceImpl)
+	pohonKinerjaAdminServiceImpl := service.NewPohonKinerjaAdminServiceImpl(pohonKinerjaRepositoryImpl, db)
+	pohonKinerjaAdminControllerImpl := controller.NewPohonKinerjaAdminControllerImpl(pohonKinerjaAdminServiceImpl)
+	router := app.NewRouter(rencanaKinerjaControllerImpl, rencanaAksiControllerImpl, pelaksanaanRencanaAksiControllerImpl, usulanMusrebangControllerImpl, usulanMandatoriControllerImpl, usulanPokokPikiranControllerImpl, usulanInisiatifControllerImpl, usulanTerpilihControllerImpl, gambaranUmumControllerImpl, dasarHukumControllerImpl, inovasiControllerImpl, subKegiatanControllerImpl, subKegiatanTerpilihControllerImpl, pohonKinerjaOpdControllerImpl, pegawaiControllerImpl, lembagaControllerImpl, jabatanControllerImpl, pohonKinerjaAdminControllerImpl)
 	authMiddleware := middleware.NewAuthMiddleware(router)
 	server := NewServer(authMiddleware)
 	return server
@@ -114,3 +119,7 @@ var pohonKinerjaOpdSet = wire.NewSet(repository.NewPohonKinerjaRepositoryImpl, w
 var pegawaiSet = wire.NewSet(repository.NewPegawaiRepositoryImpl, wire.Bind(new(repository.PegawaiRepository), new(*repository.PegawaiRepositoryImpl)), service.NewPegawaiServiceImpl, wire.Bind(new(service.PegawaiService), new(*service.PegawaiServiceImpl)), controller.NewPegawaiControllerImpl, wire.Bind(new(controller.PegawaiController), new(*controller.PegawaiControllerImpl)))
 
 var lembagaSet = wire.NewSet(repository.NewLembagaRepositoryImpl, wire.Bind(new(repository.LembagaRepository), new(*repository.LembagaRepositoryImpl)), service.NewLembagaServiceImpl, wire.Bind(new(service.LembagaService), new(*service.LembagaServiceImpl)), controller.NewLembagaControllerImpl, wire.Bind(new(controller.LembagaController), new(*controller.LembagaControllerImpl)))
+
+var jabatanSet = wire.NewSet(repository.NewJabatanRepositoryImpl, wire.Bind(new(repository.JabatanRepository), new(*repository.JabatanRepositoryImpl)), service.NewJabatanServiceImpl, wire.Bind(new(service.JabatanService), new(*service.JabatanServiceImpl)), controller.NewJabatanControllerImpl, wire.Bind(new(controller.JabatanController), new(*controller.JabatanControllerImpl)))
+
+var pohonKinerjaAdminSet = wire.NewSet(service.NewPohonKinerjaAdminServiceImpl, wire.Bind(new(service.PohonKinerjaAdminService), new(*service.PohonKinerjaAdminServiceImpl)), controller.NewPohonKinerjaAdminControllerImpl, wire.Bind(new(controller.PohonKinerjaAdminController), new(*controller.PohonKinerjaAdminControllerImpl)))

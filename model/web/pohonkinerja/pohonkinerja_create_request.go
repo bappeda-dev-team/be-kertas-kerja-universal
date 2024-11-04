@@ -29,6 +29,6 @@ type IndikatorCreateRequest struct {
 
 type TargetCreateRequest struct {
 	IndikatorId int    `json:"indikator_id"`
-	Target      int    `json:"target"`
+	Target      string `json:"target"`
 	Satuan      string `json:"satuan"`
 }

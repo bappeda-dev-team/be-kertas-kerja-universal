@@ -29,6 +29,10 @@ func NewRouter(
 	lembagaController controller.LembagaController,
 	jabatanController controller.JabatanController,
 	pohonKinerjaAdminController controller.PohonKinerjaAdminController,
+	opdController controller.OpdController,
+	programController controller.ProgramController,
+	urusanController controller.UrusanController,
+	bidangUrusanController controller.BidangUrusanController,
 ) *httprouter.Router {
 	router := httprouter.New()
 
@@ -171,6 +175,34 @@ func NewRouter(
 	router.GET("/jabatan/detail/:id", jabatanController.FindById)
 	router.DELETE("/jabatan/delete/:id", jabatanController.Delete)
 	router.GET("/jabatan/findall/:kodeOpd/:tahun", jabatanController.FindAll)
+
+	//opd
+	router.POST("/opd/create", opdController.Create)
+	router.PUT("/opd/update/:id", opdController.Update)
+	router.GET("/opd/detail/:id", opdController.FindById)
+	router.DELETE("/opd/delete/:id", opdController.Delete)
+	router.GET("/opd/findall", opdController.FindAll)
+
+	//program
+	router.POST("/program_kegiatan/create", programController.Create)
+	router.PUT("/program_kegiatan/update/:id", programController.Update)
+	router.GET("/program_kegiatan/detail/:id", programController.FindById)
+	router.DELETE("/program_kegiatan/delete/:id", programController.Delete)
+	router.GET("/program_kegiatan/findall", programController.FindAll)
+
+	//urusan
+	router.POST("/urusan/create", urusanController.Create)
+	router.PUT("/urusan/update/:id", urusanController.Update)
+	router.GET("/urusan/detail/:id", urusanController.FindById)
+	router.DELETE("/urusan/delete/:id", urusanController.Delete)
+	router.GET("/urusan/findall", urusanController.FindAll)
+
+	//bidang urusan
+	router.POST("/bidang_urusan/create", bidangUrusanController.Create)
+	router.PUT("/bidang_urusan/update/:id", bidangUrusanController.Update)
+	router.GET("/bidang_urusan/detail/:id", bidangUrusanController.FindById)
+	router.DELETE("/bidang_urusan/delete/:id", bidangUrusanController.Delete)
+	router.GET("/bidang_urusan/findall", bidangUrusanController.FindAll)
 
 	router.GET("/rencana_kinerja/:rencana_kinerja_id/pegawai/:pegawai_id/input_rincian_kak", combineHandlers(
 		rencanaKinerjaController.FindAll,

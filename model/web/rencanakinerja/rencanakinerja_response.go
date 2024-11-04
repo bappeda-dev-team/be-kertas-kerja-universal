@@ -24,6 +24,6 @@ type IndikatorResponse struct {
 type TargetResponse struct {
 	Id              string `json:"id_target"`
 	IndikatorId     string `json:"indikator_id"`
-	TargetIndikator int    `json:"target"`
+	TargetIndikator string `json:"target"`
 	SatuanIndikator string `json:"satuan"`
 }

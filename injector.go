@@ -195,6 +195,24 @@ var programSet = wire.NewSet(
 	wire.Bind(new(controller.ProgramController), new(*controller.ProgramControllerImpl)),
 )
 
+var urusanSet = wire.NewSet(
+	repository.NewUrusanRepositoryImpl,
+	wire.Bind(new(repository.UrusanRepository), new(*repository.UrusanRepositoryImpl)),
+	service.NewUrusanServiceImpl,
+	wire.Bind(new(service.UrusanService), new(*service.UrusanServiceImpl)),
+	controller.NewUrusanControllerImpl,
+	wire.Bind(new(controller.UrusanController), new(*controller.UrusanControllerImpl)),
+)
+
+var bidangUrusanSet = wire.NewSet(
+	repository.NewBidangUrusanRepositoryImpl,
+	wire.Bind(new(repository.BidangUrusanRepository), new(*repository.BidangUrusanRepositoryImpl)),
+	service.NewBidangUrusanServiceImpl,
+	wire.Bind(new(service.BidangUrusanService), new(*service.BidangUrusanServiceImpl)),
+	controller.NewBidangUrusanControllerImpl,
+	wire.Bind(new(controller.BidangUrusanController), new(*controller.BidangUrusanControllerImpl)),
+)
+
 func InitializeServer() *http.Server {
 
 	wire.Build(
@@ -221,6 +239,8 @@ func InitializeServer() *http.Server {
 		pohonKinerjaAdminSet,
 		opdSet,
 		programSet,
+		urusanSet,
+		bidangUrusanSet,
 		app.NewRouter,
 		wire.Bind(new(http.Handler), new(*httprouter.Router)),
 		middleware.NewAuthMiddleware,

@@ -213,6 +213,15 @@ var bidangUrusanSet = wire.NewSet(
 	wire.Bind(new(controller.BidangUrusanController), new(*controller.BidangUrusanControllerImpl)),
 )
 
+var kegiatanSet = wire.NewSet(
+	repository.NewKegiatanRepositoryImpl,
+	wire.Bind(new(repository.KegiatanRepository), new(*repository.KegiatanRepositoryImpl)),
+	service.NewKegiatanServiceImpl,
+	wire.Bind(new(service.KegiatanService), new(*service.KegiatanServiceImpl)),
+	controller.NewKegiatanControllerImpl,
+	wire.Bind(new(controller.KegiatanController), new(*controller.KegiatanControllerImpl)),
+)
+
 func InitializeServer() *http.Server {
 
 	wire.Build(
@@ -241,6 +250,7 @@ func InitializeServer() *http.Server {
 		programSet,
 		urusanSet,
 		bidangUrusanSet,
+		kegiatanSet,
 		app.NewRouter,
 		wire.Bind(new(http.Handler), new(*httprouter.Router)),
 		middleware.NewAuthMiddleware,

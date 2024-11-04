@@ -9,10 +9,11 @@ type KegiatanUpdateRequest struct {
 }
 
 type IndikatorUpdateRequest struct {
-	Id        string `json:"id"`
-	Indikator string `json:"indikator"`
-	Tahun     string `json:"tahun"`
-	Target    []TargetUpdateRequest
+	Id         string `json:"id"`
+	KegiatanId string `json:"kegiatan_id"`
+	Indikator  string `json:"indikator"`
+	Tahun      string `json:"tahun"`
+	Target     []TargetUpdateRequest
 }
 
 type TargetUpdateRequest struct {

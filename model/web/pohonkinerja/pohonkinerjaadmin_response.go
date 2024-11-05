@@ -19,48 +19,48 @@ type PohonKinerjaAdminResponseData struct {
 }
 
 type TematikResponse struct {
-	Id          int                       `json:"id"`
-	Parent      *int                      `json:"parent"`
-	Tema        string                    `json:"tema"`
-	Keterangan  string                    `json:"keterangan"`
-	Indikators  []IndikatorSimpleResponse `json:"indikators"`
-	SubTematiks []SubtematikResponse      `json:"sub_tematiks,omitempty"`
+	Id          int                  `json:"id"`
+	Parent      *int                 `json:"parent"`
+	Tema        string               `json:"tema"`
+	Keterangan  string               `json:"keterangan"`
+	Indikators  []IndikatorResponse  `json:"indikators"`
+	SubTematiks []SubtematikResponse `json:"sub_tematiks,omitempty"`
 }
 
 type SubtematikResponse struct {
-	Id             int                       `json:"id"`
-	Parent         int                       `json:"parent"`
-	Tema           string                    `json:"tema"`
-	Keterangan     string                    `json:"keterangan"`
-	Indikators     []IndikatorSimpleResponse `json:"indikators"`
-	SubSubTematiks []SubSubTematikResponse   `json:"sub_sub_tematiks,omitempty"`
-	Strategics     []StrategicResponse       `json:"strategics,omitempty"`
+	Id             int                     `json:"id"`
+	Parent         int                     `json:"parent"`
+	Tema           string                  `json:"tema_sub_tematik"`
+	Keterangan     string                  `json:"keterangan"`
+	Indikators     []IndikatorResponse     `json:"indikators"`
+	SubSubTematiks []SubSubTematikResponse `json:"sub_sub_tematiks,omitempty"`
+	Strategics     []StrategicResponse     `json:"strategics,omitempty"`
 }
 
 type SubSubTematikResponse struct {
 	Id               int                       `json:"id"`
 	Parent           int                       `json:"parent"`
-	Tema             string                    `json:"tema"`
+	Tema             string                    `json:"tema_sub_sub_tematik"`
 	Keterangan       string                    `json:"keterangan"`
-	Indikators       []IndikatorSimpleResponse `json:"indikators"`
+	Indikators       []IndikatorResponse       `json:"indikators"`
 	SuperSubTematiks []SuperSubTematikResponse `json:"super_sub_tematiks,omitempty"`
 	Strategics       []StrategicResponse       `json:"strategics,omitempty"`
 }
 
 type SuperSubTematikResponse struct {
-	Id         int                       `json:"id"`
-	Parent     int                       `json:"parent"`
-	Tema       string                    `json:"tema"`
-	Keterangan string                    `json:"keterangan"`
-	Indikators []IndikatorSimpleResponse `json:"indikators"`
-	Strategics []StrategicResponse       `json:"strategics,omitempty"`
+	Id         int                 `json:"id"`
+	Parent     int                 `json:"parent"`
+	Tema       string              `json:"tema_super_sub_tematik"`
+	Keterangan string              `json:"keterangan"`
+	Indikators []IndikatorResponse `json:"indikators"`
+	Strategics []StrategicResponse `json:"strategics,omitempty"`
 }
 
 type IndikatorResponse struct {
-	Id               string           `json:"id_indikator"`
-	RencanaKinerjaId string           `json:"rencana_kinerja_id"`
-	NamaIndikator    string           `json:"nama_indikator"`
-	Target           []TargetResponse `json:"targets"`
+	Id            string           `json:"id_indikator"`
+	IdPokin       string           `json:"id_pokin"`
+	NamaIndikator string           `json:"nama_indikator"`
+	Target        []TargetResponse `json:"targets"`
 }
 
 type TargetResponse struct {
@@ -71,39 +71,33 @@ type TargetResponse struct {
 }
 
 type StrategicResponse struct {
-	Id              int                       `json:"id"`
-	Parent          int                       `json:"parent"`
-	Strategi        string                    `json:"strategi"`
-	Keterangan      string                    `json:"keterangan"`
-	KodeOpd         string                    `json:"kode_perangkat_daerah"`
-	PerangkatDaerah string                    `json:"perangkat_daerah"`
-	Indikators      []IndikatorSimpleResponse `json:"indikators"`
-	Tacticals       []TacticalResponse        `json:"tacticals,omitempty"`
+	Id              int                 `json:"id"`
+	Parent          int                 `json:"parent"`
+	Strategi        string              `json:"strategi"`
+	Keterangan      string              `json:"keterangan"`
+	KodeOpd         string              `json:"kode_perangkat_daerah"`
+	PerangkatDaerah string              `json:"perangkat_daerah"`
+	Indikators      []IndikatorResponse `json:"indikators"`
+	Tacticals       []TacticalResponse  `json:"tacticals,omitempty"`
 }
 
 type TacticalResponse struct {
-	Id              int                       `json:"id"`
-	Parent          int                       `json:"parent"`
-	Strategi        string                    `json:"strategi"`
-	Keterangan      *string                   `json:"keterangan"`
-	KodeOpd         string                    `json:"kode_perangkat_daerah"`
-	PerangkatDaerah string                    `json:"perangkat_daerah"`
-	Indikators      []IndikatorSimpleResponse `json:"indikators"`
-	Operationals    []OperationalResponse     `json:"operationals"`
+	Id              int                   `json:"id"`
+	Parent          int                   `json:"parent"`
+	Strategi        string                `json:"strategi"`
+	Keterangan      *string               `json:"keterangan"`
+	KodeOpd         string                `json:"kode_perangkat_daerah"`
+	PerangkatDaerah string                `json:"perangkat_daerah"`
+	Indikators      []IndikatorResponse   `json:"indikators"`
+	Operationals    []OperationalResponse `json:"operationals"`
 }
 
 type OperationalResponse struct {
-	Id              int                       `json:"id"`
-	Parent          int                       `json:"parent"`
-	Strategi        string                    `json:"strategi"`
-	Keterangan      *string                   `json:"keterangan"`
-	KodeOpd         string                    `json:"kode_perangkat_daerah"`
-	PerangkatDaerah string                    `json:"perangkat_daerah"`
-	Indikators      []IndikatorSimpleResponse `json:"indikators"`
-}
-
-type IndikatorSimpleResponse struct {
-	Indikator string `json:"indikator"`
-	Target    string `json:"target"`
-	Satuan    string `json:"satuan"`
+	Id              int                 `json:"id"`
+	Parent          int                 `json:"parent"`
+	Strategi        string              `json:"strategi"`
+	Keterangan      *string             `json:"keterangan"`
+	KodeOpd         string              `json:"kode_perangkat_daerah"`
+	PerangkatDaerah string              `json:"perangkat_daerah"`
+	Indikators      []IndikatorResponse `json:"indikators"`
 }

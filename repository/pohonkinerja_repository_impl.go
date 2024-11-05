@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"ekak_kabupaten_madiun/model/domain"
+	"fmt"
+	"sort"
 )
 
 type PohonKinerjaRepositoryImpl struct {
@@ -239,66 +241,163 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinAdminById(ctx context.Con
 }
 
 func (repository *PohonKinerjaRepositoryImpl) FindPokinAdminAll(ctx context.Context, tx *sql.Tx, tahun string) ([]domain.PohonKinerja, error) {
-	// Query utama untuk pohon kinerja
-	script := "SELECT id, nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun FROM tb_pohon_kinerja WHERE tahun = ?"
+	// Query dasar untuk mengambil semua data pohon kinerja
+	script := `
+        SELECT 
+            pk.id,
+            pk.nama_pohon,
+            pk.parent,
+            pk.jenis_pohon,
+            pk.level_pohon,
+            pk.kode_opd,
+            pk.keterangan,
+            pk.tahun,
+            i.id as indikator_id,
+            i.indikator as nama_indikator,
+            t.id as target_id,
+            t.target as target_value,
+            t.satuan as target_satuan
+        FROM 
+            tb_pohon_kinerja pk
+        LEFT JOIN 
+            tb_indikator i ON pk.id = i.pokin_id
+        LEFT JOIN 
+            tb_target t ON i.id = t.indikator_id
+        WHERE 
+            pk.tahun = ?
+        ORDER BY 
+            pk.level_pohon, pk.id, i.id, t.id
+    `
+
 	rows, err := tx.QueryContext(ctx, script, tahun)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var pohonKinerjas []domain.PohonKinerja
+	// Map untuk menyimpan pohon kinerja yang sudah diproses
+	pokinMap := make(map[int]domain.PohonKinerja)
+	indikatorMap := make(map[string]domain.Indikator)
+
 	for rows.Next() {
-		var pohonKinerja domain.PohonKinerja
-		err := rows.Scan(&pohonKinerja.Id, &pohonKinerja.NamaPohon, &pohonKinerja.Parent, &pohonKinerja.JenisPohon,
-			&pohonKinerja.LevelPohon, &pohonKinerja.KodeOpd, &pohonKinerja.Keterangan, &pohonKinerja.Tahun)
+		var (
+			pokinId, parent, levelPohon                            int
+			namaPohon, jenisPohon, kodeOpd, keterangan, tahunPokin string
+			indikatorId, namaIndikator                             sql.NullString
+			targetId, targetValue, targetSatuan                    sql.NullString
+		)
+
+		err := rows.Scan(
+			&pokinId, &namaPohon, &parent, &jenisPohon, &levelPohon,
+			&kodeOpd, &keterangan, &tahunPokin,
+			&indikatorId, &namaIndikator,
+			&targetId, &targetValue, &targetSatuan,
+		)
 		if err != nil {
 			return nil, err
 		}
 
-		// Ambil indikator untuk pohon kinerja ini
-		scriptIndikator := "SELECT id, pokin_id, indikator, tahun FROM tb_indikator WHERE pokin_id = ?"
-		indikatorRows, err := tx.QueryContext(ctx, scriptIndikator, pohonKinerja.Id)
-		if err != nil {
-			return nil, err
+		// Proses Pohon Kinerja
+		pokin, exists := pokinMap[pokinId]
+		if !exists {
+			pokin = domain.PohonKinerja{
+				Id:         pokinId,
+				NamaPohon:  namaPohon,
+				Parent:     parent,
+				JenisPohon: jenisPohon,
+				LevelPohon: levelPohon,
+				KodeOpd:    kodeOpd,
+				Keterangan: keterangan,
+				Tahun:      tahunPokin,
+			}
+			pokinMap[pokinId] = pokin
 		}
 
-		// Proses indikator
-		for indikatorRows.Next() {
-			var indikator domain.Indikator
-			err := indikatorRows.Scan(&indikator.Id, &indikator.PokinId, &indikator.Indikator, &indikator.Tahun)
-			if err != nil {
-				indikatorRows.Close()
-				return nil, err
+		// Proses Indikator jika ada
+		if indikatorId.Valid && namaIndikator.Valid {
+			indikator, exists := indikatorMap[indikatorId.String]
+			if !exists {
+				indikator = domain.Indikator{
+					Id:        indikatorId.String,
+					PokinId:   fmt.Sprint(pokinId),
+					Indikator: namaIndikator.String,
+					Tahun:     tahunPokin,
+				}
 			}
 
-			// Ambil target untuk indikator ini
-			scriptTarget := "SELECT id, indikator_id, target, satuan, tahun FROM tb_target WHERE indikator_id = ?"
-			targetRows, err := tx.QueryContext(ctx, scriptTarget, indikator.Id)
-			if err != nil {
-				indikatorRows.Close()
-				return nil, err
-			}
-
-			// Proses target
-			for targetRows.Next() {
-				var target domain.Target
-				err := targetRows.Scan(&target.Id, &target.IndikatorId, &target.Target, &target.Satuan, &target.Tahun)
-				if err != nil {
-					targetRows.Close()
-					indikatorRows.Close()
-					return nil, err
+			// Proses Target jika ada
+			if targetId.Valid && targetValue.Valid && targetSatuan.Valid {
+				target := domain.Target{
+					Id:          targetId.String,
+					IndikatorId: indikatorId.String,
+					Target:      targetValue.String,
+					Satuan:      targetSatuan.String,
+					Tahun:       tahunPokin,
 				}
 				indikator.Target = append(indikator.Target, target)
 			}
-			targetRows.Close()
 
-			pohonKinerja.Indikator = append(pohonKinerja.Indikator, indikator)
+			indikatorMap[indikatorId.String] = indikator
+
+			// Update indikator di pokin
+			pokin.Indikator = append(pokin.Indikator, indikator)
+			pokinMap[pokinId] = pokin
 		}
-		indikatorRows.Close()
-
-		pohonKinerjas = append(pohonKinerjas, pohonKinerja)
 	}
 
-	return pohonKinerjas, nil
+	// Konversi map ke slice
+	var result []domain.PohonKinerja
+	for _, pokin := range pokinMap {
+		result = append(result, pokin)
+	}
+
+	// Urutkan berdasarkan level dan ID
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].LevelPohon == result[j].LevelPohon {
+			return result[i].Id < result[j].Id
+		}
+		return result[i].LevelPohon < result[j].LevelPohon
+	})
+
+	return result, nil
+}
+
+func (repository *PohonKinerjaRepositoryImpl) FindIndikatorByPokinId(ctx context.Context, tx *sql.Tx, pokinId string) ([]domain.Indikator, error) {
+	script := "SELECT id, pokin_id, indikator, tahun FROM tb_indikator WHERE pokin_id = ?"
+	rows, err := tx.QueryContext(ctx, script, pokinId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var indikators []domain.Indikator
+	for rows.Next() {
+		var indikator domain.Indikator
+		err := rows.Scan(&indikator.Id, &indikator.PokinId, &indikator.Indikator, &indikator.Tahun)
+		if err != nil {
+			return nil, err
+		}
+		indikators = append(indikators, indikator)
+	}
+	return indikators, nil
+}
+
+func (repository *PohonKinerjaRepositoryImpl) FindTargetByIndikatorId(ctx context.Context, tx *sql.Tx, indikatorId string) ([]domain.Target, error) {
+	script := "SELECT id, indikator_id, target, satuan, tahun FROM tb_target WHERE indikator_id = ?"
+	rows, err := tx.QueryContext(ctx, script, indikatorId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var targets []domain.Target
+	for rows.Next() {
+		var target domain.Target
+		err := rows.Scan(&target.Id, &target.IndikatorId, &target.Target, &target.Satuan, &target.Tahun)
+		if err != nil {
+			return nil, err
+		}
+		targets = append(targets, target)
+	}
+	return targets, nil
 }

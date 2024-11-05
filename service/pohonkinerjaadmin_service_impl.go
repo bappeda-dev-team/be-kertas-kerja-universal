@@ -7,7 +7,6 @@ import (
 	"ekak_kabupaten_madiun/model/domain"
 	"ekak_kabupaten_madiun/model/web/pohonkinerja"
 	"ekak_kabupaten_madiun/repository"
-	"fmt"
 
 	"github.com/google/uuid"
 )
@@ -204,238 +203,7 @@ func (service *PohonKinerjaAdminServiceImpl) Delete(ctx context.Context, id int)
 }
 
 func (service *PohonKinerjaAdminServiceImpl) FindById(ctx context.Context, id int) (pohonkinerja.PohonKinerjaAdminResponse, error) {
-	tx, err := service.DB.Begin()
-	if err != nil {
-		return pohonkinerja.PohonKinerjaAdminResponse{}, err
-	}
-	defer helper.CommitOrRollback(tx)
-
-	// Ambil data pohon kinerja berdasarkan ID
-	pokin, err := service.pohonKinerjaRepository.FindPokinAdminById(ctx, tx, id)
-	if err != nil {
-		return pohonkinerja.PohonKinerjaAdminResponse{}, err
-	}
-
-	// Ambil semua data terkait untuk membangun hierarki
-	allPokins, err := service.pohonKinerjaRepository.FindPokinAdminAll(ctx, tx, pokin.Tahun)
-	if err != nil {
-		return pohonkinerja.PohonKinerjaAdminResponse{}, err
-	}
-
-	// Buat map untuk menyimpan pohon berdasarkan level dan parent
-	pohonMap := make(map[int]map[int][]domain.PohonKinerja)
-	for i := 1; i <= 7; i++ {
-		pohonMap[i] = make(map[int][]domain.PohonKinerja)
-	}
-
-	for _, p := range allPokins {
-		pohonMap[p.LevelPohon][p.Parent] = append(pohonMap[p.LevelPohon][p.Parent], p)
-	}
-
-	var tematiks []pohonkinerja.TematikResponse
-
-	// Tentukan level dari data yang dicari
-	switch pokin.LevelPohon {
-	case 1: // Tematik
-		tematikResp := convertToTematikResponse(pokin)
-		// Cari sub-tematik
-		var subTematiks []pohonkinerja.SubtematikResponse
-		for _, subTematik := range pohonMap[2][pokin.Id] {
-			subTematikResp := convertToSubTematikResponse(subTematik)
-			// Cari sub-sub-tematik
-			subTematikResp.SubSubTematiks = findSubSubTematiks(pohonMap, subTematik.Id)
-			subTematiks = append(subTematiks, subTematikResp)
-		}
-		tematikResp.SubTematiks = subTematiks
-		tematiks = append(tematiks, tematikResp)
-
-	case 2: // Sub Tematik
-		// Cari tematik parent
-		for _, tematik := range pohonMap[1][pokin.Parent] {
-			tematikResp := convertToTematikResponse(tematik)
-			var subTematiks []pohonkinerja.SubtematikResponse
-			subTematikResp := convertToSubTematikResponse(pokin)
-			subTematikResp.SubSubTematiks = findSubSubTematiks(pohonMap, pokin.Id)
-			subTematiks = append(subTematiks, subTematikResp)
-			tematikResp.SubTematiks = subTematiks
-			tematiks = append(tematiks, tematikResp)
-		}
-
-		// ... tambahkan case untuk level lainnya ...
-
-	case 3: // Sub Sub Tematik
-		// Cari tematik dan sub-tematik parent
-		for _, subTematik := range pohonMap[2][pokin.Parent] {
-			for _, tematik := range pohonMap[1][subTematik.Parent] {
-				tematikResp := convertToTematikResponse(tematik)
-				var subTematiks []pohonkinerja.SubtematikResponse
-
-				subTematikResp := convertToSubTematikResponse(subTematik)
-				var subSubTematiks []pohonkinerja.SubSubTematikResponse
-
-				subSubTematikResp := convertToSubSubTematikResponse(pokin)
-				subSubTematikResp.SuperSubTematiks = findSuperSubTematiks(pohonMap, pokin.Id)
-
-				subSubTematiks = append(subSubTematiks, subSubTematikResp)
-				subTematikResp.SubSubTematiks = subSubTematiks
-				subTematiks = append(subTematiks, subTematikResp)
-				tematikResp.SubTematiks = subTematiks
-				tematiks = append(tematiks, tematikResp)
-			}
-		}
-
-	case 4: // Super Sub Tematik
-		for _, subSubTematik := range pohonMap[3][pokin.Parent] {
-			for _, subTematik := range pohonMap[2][subSubTematik.Parent] {
-				for _, tematik := range pohonMap[1][subTematik.Parent] {
-					tematikResp := convertToTematikResponse(tematik)
-					var subTematiks []pohonkinerja.SubtematikResponse
-
-					subTematikResp := convertToSubTematikResponse(subTematik)
-					var subSubTematiks []pohonkinerja.SubSubTematikResponse
-
-					subSubTematikResp := convertToSubSubTematikResponse(subSubTematik)
-					var superSubTematiks []pohonkinerja.SuperSubTematikResponse
-
-					superSubTematikResp := convertToSuperSubTematikResponse(pokin)
-					superSubTematikResp.Strategics = findStrategics(pohonMap, pokin.Id)
-
-					superSubTematiks = append(superSubTematiks, superSubTematikResp)
-					subSubTematikResp.SuperSubTematiks = superSubTematiks
-					subSubTematiks = append(subSubTematiks, subSubTematikResp)
-					subTematikResp.SubSubTematiks = subSubTematiks
-					subTematiks = append(subTematiks, subTematikResp)
-					tematikResp.SubTematiks = subTematiks
-					tematiks = append(tematiks, tematikResp)
-				}
-			}
-		}
-
-	case 5: // Strategic
-		for _, superSubTematik := range pohonMap[4][pokin.Parent] {
-			for _, subSubTematik := range pohonMap[3][superSubTematik.Parent] {
-				for _, subTematik := range pohonMap[2][subSubTematik.Parent] {
-					for _, tematik := range pohonMap[1][subTematik.Parent] {
-						tematikResp := buildCompleteHierarchy(tematik, subTematik, subSubTematik, superSubTematik, pokin, pohonMap)
-						tematiks = append(tematiks, tematikResp)
-					}
-				}
-			}
-		}
-
-	case 6: // Tactical
-		for _, strategic := range pohonMap[5][pokin.Parent] {
-			for _, superSubTematik := range pohonMap[4][strategic.Parent] {
-				for _, subSubTematik := range pohonMap[3][superSubTematik.Parent] {
-					for _, subTematik := range pohonMap[2][subSubTematik.Parent] {
-						for _, tematik := range pohonMap[1][subTematik.Parent] {
-							tematikResp := buildCompleteHierarchy(tematik, subTematik, subSubTematik, superSubTematik, strategic, pohonMap)
-							tematiks = append(tematiks, tematikResp)
-						}
-					}
-				}
-			}
-		}
-
-	case 7: // Operational
-		for _, tactical := range pohonMap[6][pokin.Parent] {
-			for _, strategic := range pohonMap[5][tactical.Parent] {
-				for _, superSubTematik := range pohonMap[4][strategic.Parent] {
-					for _, subSubTematik := range pohonMap[3][superSubTematik.Parent] {
-						for _, subTematik := range pohonMap[2][subSubTematik.Parent] {
-							for _, tematik := range pohonMap[1][subTematik.Parent] {
-								tematikResp := buildCompleteHierarchy(tematik, subTematik, subSubTematik, superSubTematik, strategic, pohonMap)
-								tematiks = append(tematiks, tematikResp)
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return pohonkinerja.PohonKinerjaAdminResponse{
-		Tahun:   pokin.Tahun,
-		Tematik: tematiks,
-	}, nil
-}
-
-// Helper function untuk membangun hierarki lengkap
-func buildCompleteHierarchy(tematik, subTematik, subSubTematik, superSubTematik, currentNode domain.PohonKinerja, pohonMap map[int]map[int][]domain.PohonKinerja) pohonkinerja.TematikResponse {
-	tematikResp := convertToTematikResponse(tematik)
-	subTematikResp := convertToSubTematikResponse(subTematik)
-	subSubTematikResp := convertToSubSubTematikResponse(subSubTematik)
-	superSubTematikResp := convertToSuperSubTematikResponse(superSubTematik)
-
-	// Sesuaikan dengan level dari currentNode
-	switch currentNode.LevelPohon {
-	case 5:
-		strategicResp := convertToStrategicResponse(currentNode)
-		strategicResp.Tacticals = findTacticals(pohonMap, currentNode.Id)
-		superSubTematikResp.Strategics = []pohonkinerja.StrategicResponse{strategicResp}
-	case 6:
-		tacticalResp := convertToTacticalResponse(currentNode)
-		tacticalResp.Operationals = findOperationals(pohonMap, currentNode.Id)
-		strategicResp := convertToStrategicResponse(pohonMap[5][currentNode.Parent][0])
-		strategicResp.Tacticals = []pohonkinerja.TacticalResponse{tacticalResp}
-		superSubTematikResp.Strategics = []pohonkinerja.StrategicResponse{strategicResp}
-	}
-
-	subSubTematikResp.SuperSubTematiks = []pohonkinerja.SuperSubTematikResponse{superSubTematikResp}
-	subTematikResp.SubSubTematiks = []pohonkinerja.SubSubTematikResponse{subSubTematikResp}
-	tematikResp.SubTematiks = []pohonkinerja.SubtematikResponse{subTematikResp}
-
-	return tematikResp
-}
-
-// Helper functions untuk mencari data di setiap level
-func findSubSubTematiks(pohonMap map[int]map[int][]domain.PohonKinerja, parentId int) []pohonkinerja.SubSubTematikResponse {
-	var subSubTematiks []pohonkinerja.SubSubTematikResponse
-	for _, subSubTematik := range pohonMap[3][parentId] {
-		subSubTematikResp := convertToSubSubTematikResponse(subSubTematik)
-		subSubTematikResp.SuperSubTematiks = findSuperSubTematiks(pohonMap, subSubTematik.Id)
-		subSubTematiks = append(subSubTematiks, subSubTematikResp)
-	}
-	return subSubTematiks
-}
-
-func findSuperSubTematiks(pohonMap map[int]map[int][]domain.PohonKinerja, parentId int) []pohonkinerja.SuperSubTematikResponse {
-	var superSubTematiks []pohonkinerja.SuperSubTematikResponse
-	for _, superSubTematik := range pohonMap[4][parentId] {
-		superSubTematikResp := convertToSuperSubTematikResponse(superSubTematik)
-		superSubTematikResp.Strategics = findStrategics(pohonMap, superSubTematik.Id)
-		superSubTematiks = append(superSubTematiks, superSubTematikResp)
-	}
-	return superSubTematiks
-}
-
-func findStrategics(pohonMap map[int]map[int][]domain.PohonKinerja, parentId int) []pohonkinerja.StrategicResponse {
-	var strategics []pohonkinerja.StrategicResponse
-	for _, strategic := range pohonMap[5][parentId] {
-		strategicResp := convertToStrategicResponse(strategic)
-		strategicResp.Tacticals = findTacticals(pohonMap, strategic.Id)
-		strategics = append(strategics, strategicResp)
-	}
-	return strategics
-}
-
-func findTacticals(pohonMap map[int]map[int][]domain.PohonKinerja, parentId int) []pohonkinerja.TacticalResponse {
-	var tacticals []pohonkinerja.TacticalResponse
-	for _, tactical := range pohonMap[6][parentId] {
-		tacticalResp := convertToTacticalResponse(tactical)
-		tacticalResp.Operationals = findOperationals(pohonMap, tactical.Id)
-		tacticals = append(tacticals, tacticalResp)
-	}
-	return tacticals
-}
-
-func findOperationals(pohonMap map[int]map[int][]domain.PohonKinerja, parentId int) []pohonkinerja.OperationalResponse {
-	var operationals []pohonkinerja.OperationalResponse
-	for _, operational := range pohonMap[7][parentId] {
-		operationalResp := convertToOperationalResponse(operational)
-		operationals = append(operationals, operationalResp)
-	}
-	return operationals
+	return pohonkinerja.PohonKinerjaAdminResponse{}, nil
 }
 
 func (service *PohonKinerjaAdminServiceImpl) FindAll(ctx context.Context, tahun string) (pohonkinerja.PohonKinerjaAdminResponse, error) {
@@ -445,79 +213,27 @@ func (service *PohonKinerjaAdminServiceImpl) FindAll(ctx context.Context, tahun 
 	}
 	defer helper.CommitOrRollback(tx)
 
+	// Ambil semua data pohon kinerja
 	pokins, err := service.pohonKinerjaRepository.FindPokinAdminAll(ctx, tx, tahun)
 	if err != nil {
 		return pohonkinerja.PohonKinerjaAdminResponse{}, err
 	}
 
-	// Buat map untuk menyimpan pohon berdasarkan level dan parent
+	// Buat map untuk menyimpan data berdasarkan level dan parent
 	pohonMap := make(map[int]map[int][]domain.PohonKinerja)
-	for i := 1; i <= 7; i++ {
+	for i := 0; i <= 6; i++ {
 		pohonMap[i] = make(map[int][]domain.PohonKinerja)
 	}
 
+	// Kelompokkan data berdasarkan level dan parent
 	for _, pokin := range pokins {
 		pohonMap[pokin.LevelPohon][pokin.Parent] = append(pohonMap[pokin.LevelPohon][pokin.Parent], pokin)
 	}
 
-	// Mulai dari level tematik (level 1)
+	// Bangun response dimulai dari Tematik (level 0)
 	var tematiks []pohonkinerja.TematikResponse
-	for _, tematik := range pohonMap[1][0] {
-		tematikResp := convertToTematikResponse(tematik)
-
-		// Cari sub-tematik (level 2)
-		var subTematiks []pohonkinerja.SubtematikResponse
-		for _, subTematik := range pohonMap[2][tematik.Id] {
-			subTematikResp := convertToSubTematikResponse(subTematik)
-
-			// Cari sub-sub-tematik (level 3)
-			var subSubTematiks []pohonkinerja.SubSubTematikResponse
-			for _, subSubTematik := range pohonMap[3][subTematik.Id] {
-				subSubTematikResp := convertToSubSubTematikResponse(subSubTematik)
-
-				// Cari super-sub-tematik (level 4)
-				var superSubTematiks []pohonkinerja.SuperSubTematikResponse
-				for _, superSubTematik := range pohonMap[4][subSubTematik.Id] {
-					superSubTematikResp := convertToSuperSubTematikResponse(superSubTematik)
-
-					// Cari strategic (level 5)
-					var strategics []pohonkinerja.StrategicResponse
-					for _, strategic := range pohonMap[5][superSubTematik.Id] {
-						strategicResp := convertToStrategicResponse(strategic)
-
-						// Cari tactical (level 6)
-						var tacticals []pohonkinerja.TacticalResponse
-						for _, tactical := range pohonMap[6][strategic.Id] {
-							tacticalResp := convertToTacticalResponse(tactical)
-
-							// Cari operational (level 7)
-							var operationals []pohonkinerja.OperationalResponse
-							for _, operational := range pohonMap[7][tactical.Id] {
-								operationalResp := convertToOperationalResponse(operational)
-								operationals = append(operationals, operationalResp)
-							}
-
-							tacticalResp.Operationals = operationals
-							tacticals = append(tacticals, tacticalResp)
-						}
-
-						strategicResp.Tacticals = tacticals
-						strategics = append(strategics, strategicResp)
-					}
-
-					superSubTematikResp.Strategics = strategics
-					superSubTematiks = append(superSubTematiks, superSubTematikResp)
-				}
-
-				subSubTematikResp.SuperSubTematiks = superSubTematiks
-				subSubTematiks = append(subSubTematiks, subSubTematikResp)
-			}
-
-			subTematikResp.SubSubTematiks = subSubTematiks
-			subTematiks = append(subTematiks, subTematikResp)
-		}
-
-		tematikResp.SubTematiks = subTematiks
+	for _, tematik := range pohonMap[0][0] {
+		tematikResp := service.buildTematikResponse(pohonMap, tematik)
 		tematiks = append(tematiks, tematikResp)
 	}
 
@@ -527,93 +243,187 @@ func (service *PohonKinerjaAdminServiceImpl) FindAll(ctx context.Context, tahun 
 	}, nil
 }
 
-// Helper functions untuk konversi
-func convertToTematikResponse(pokin domain.PohonKinerja) pohonkinerja.TematikResponse {
-	return pohonkinerja.TematikResponse{
-		Id:         pokin.Id,
+func (service *PohonKinerjaAdminServiceImpl) buildTematikResponse(pohonMap map[int]map[int][]domain.PohonKinerja, tematik domain.PohonKinerja) pohonkinerja.TematikResponse {
+	tematikResp := pohonkinerja.TematikResponse{
+		Id:         tematik.Id,
 		Parent:     nil,
-		Tema:       pokin.NamaPohon,
-		Keterangan: pokin.Keterangan,
-		Indikators: convertToSimpleIndikators(pokin.Indikator),
+		Tema:       tematik.NamaPohon,
+		Keterangan: tematik.Keterangan,
+		Indikators: convertToIndikatorResponses(tematik.Indikator),
 	}
+
+	// Cek dan tambahkan subtematik jika ada
+	if subTematiks := pohonMap[1][tematik.Id]; len(subTematiks) > 0 {
+		var subTematikResponses []pohonkinerja.SubtematikResponse
+		for _, subTematik := range subTematiks {
+			subTematikResp := service.buildSubTematikResponse(pohonMap, subTematik)
+			subTematikResponses = append(subTematikResponses, subTematikResp)
+		}
+		tematikResp.SubTematiks = subTematikResponses
+	}
+
+	return tematikResp
 }
 
-func convertToSubTematikResponse(pokin domain.PohonKinerja) pohonkinerja.SubtematikResponse {
-	return pohonkinerja.SubtematikResponse{
-		Id:         pokin.Id,
-		Parent:     pokin.Parent,
-		Tema:       pokin.NamaPohon,
-		Keterangan: pokin.Keterangan,
-		Indikators: convertToSimpleIndikators(pokin.Indikator),
+func (service *PohonKinerjaAdminServiceImpl) buildSubTematikResponse(pohonMap map[int]map[int][]domain.PohonKinerja, subTematik domain.PohonKinerja) pohonkinerja.SubtematikResponse {
+	subTematikResp := pohonkinerja.SubtematikResponse{
+		Id:         subTematik.Id,
+		Parent:     subTematik.Parent,
+		Tema:       subTematik.NamaPohon,
+		Keterangan: subTematik.Keterangan,
+		Indikators: convertToIndikatorResponses(subTematik.Indikator),
 	}
-}
 
-func convertToSubSubTematikResponse(pokin domain.PohonKinerja) pohonkinerja.SubSubTematikResponse {
-	return pohonkinerja.SubSubTematikResponse{
-		Id:         pokin.Id,
-		Parent:     pokin.Parent,
-		Tema:       pokin.NamaPohon,
-		Keterangan: pokin.Keterangan,
-		Indikators: convertToSimpleIndikators(pokin.Indikator),
-	}
-}
-
-func convertToSuperSubTematikResponse(pokin domain.PohonKinerja) pohonkinerja.SuperSubTematikResponse {
-	return pohonkinerja.SuperSubTematikResponse{
-		Id:         pokin.Id,
-		Parent:     pokin.Parent,
-		Tema:       pokin.NamaPohon,
-		Keterangan: pokin.Keterangan,
-		Indikators: convertToSimpleIndikators(pokin.Indikator),
-	}
-}
-
-func convertToStrategicResponse(pokin domain.PohonKinerja) pohonkinerja.StrategicResponse {
-	return pohonkinerja.StrategicResponse{
-		Id:              pokin.Id,
-		Parent:          pokin.Parent,
-		Strategi:        pokin.NamaPohon,
-		Keterangan:      pokin.Keterangan,
-		KodeOpd:         pokin.KodeOpd,
-		PerangkatDaerah: "", // Sesuaikan dengan data yang tersedia
-		Indikators:      convertToSimpleIndikators(pokin.Indikator),
-	}
-}
-
-func convertToTacticalResponse(pokin domain.PohonKinerja) pohonkinerja.TacticalResponse {
-	return pohonkinerja.TacticalResponse{
-		Id:              pokin.Id,
-		Parent:          pokin.Parent,
-		Strategi:        pokin.NamaPohon,
-		Keterangan:      &pokin.Keterangan,
-		KodeOpd:         pokin.KodeOpd,
-		PerangkatDaerah: "", // Sesuaikan dengan data yang tersedia
-		Indikators:      convertToSimpleIndikators(pokin.Indikator),
-	}
-}
-
-func convertToOperationalResponse(pokin domain.PohonKinerja) pohonkinerja.OperationalResponse {
-	return pohonkinerja.OperationalResponse{
-		Id:              pokin.Id,
-		Parent:          pokin.Parent,
-		Strategi:        pokin.NamaPohon,
-		Keterangan:      &pokin.Keterangan,
-		KodeOpd:         pokin.KodeOpd,
-		PerangkatDaerah: "", // Sesuaikan dengan data yang tersedia
-		Indikators:      convertToSimpleIndikators(pokin.Indikator),
-	}
-}
-
-func convertToSimpleIndikators(indikators []domain.Indikator) []pohonkinerja.IndikatorSimpleResponse {
-	var result []pohonkinerja.IndikatorSimpleResponse
-	for _, ind := range indikators {
-		if len(ind.Target) > 0 {
-			result = append(result, pohonkinerja.IndikatorSimpleResponse{
-				Indikator: ind.Indikator,
-				Target:    fmt.Sprintf("%d", ind.Target[0].Target),
-				Satuan:    ind.Target[0].Satuan,
-			})
+	// Cek dan tambahkan subsubtematik jika ada
+	if subSubTematiks := pohonMap[2][subTematik.Id]; len(subSubTematiks) > 0 {
+		var subSubTematikResponses []pohonkinerja.SubSubTematikResponse
+		for _, subSubTematik := range subSubTematiks {
+			subSubTematikResp := service.buildSubSubTematikResponse(pohonMap, subSubTematik)
+			subSubTematikResponses = append(subSubTematikResponses, subSubTematikResp)
+		}
+		subTematikResp.SubSubTematiks = subSubTematikResponses
+	} else {
+		// Jika tidak ada subsubtematik, cek strategic langsung
+		if strategics := pohonMap[4][subTematik.Id]; len(strategics) > 0 {
+			subTematikResp.Strategics = service.buildStrategicResponses(pohonMap, strategics)
 		}
 	}
-	return result
+
+	return subTematikResp
 }
+
+func (service *PohonKinerjaAdminServiceImpl) buildSubSubTematikResponse(pohonMap map[int]map[int][]domain.PohonKinerja, subSubTematik domain.PohonKinerja) pohonkinerja.SubSubTematikResponse {
+	subSubTematikResp := pohonkinerja.SubSubTematikResponse{
+		Id:         subSubTematik.Id,
+		Parent:     subSubTematik.Parent,
+		Tema:       subSubTematik.NamaPohon,
+		Keterangan: subSubTematik.Keterangan,
+		Indikators: convertToIndikatorResponses(subSubTematik.Indikator),
+	}
+
+	// Cek dan tambahkan supersubtematik jika ada
+	if superSubTematiks := pohonMap[3][subSubTematik.Id]; len(superSubTematiks) > 0 {
+		var superSubTematikResponses []pohonkinerja.SuperSubTematikResponse
+		for _, superSubTematik := range superSubTematiks {
+			superSubTematikResp := service.buildSuperSubTematikResponse(pohonMap, superSubTematik)
+			superSubTematikResponses = append(superSubTematikResponses, superSubTematikResp)
+		}
+		subSubTematikResp.SuperSubTematiks = superSubTematikResponses
+	} else {
+		// Jika tidak ada supersubtematik, cek strategic langsung
+		if strategics := pohonMap[4][subSubTematik.Id]; len(strategics) > 0 {
+			subSubTematikResp.Strategics = service.buildStrategicResponses(pohonMap, strategics)
+		}
+	}
+
+	return subSubTematikResp
+}
+
+func (service *PohonKinerjaAdminServiceImpl) buildSuperSubTematikResponse(pohonMap map[int]map[int][]domain.PohonKinerja, superSubTematik domain.PohonKinerja) pohonkinerja.SuperSubTematikResponse {
+	superSubTematikResp := pohonkinerja.SuperSubTematikResponse{
+		Id:         superSubTematik.Id,
+		Parent:     superSubTematik.Parent,
+		Tema:       superSubTematik.NamaPohon,
+		Keterangan: superSubTematik.Keterangan,
+		Indikators: convertToIndikatorResponses(superSubTematik.Indikator),
+	}
+
+	// Cek dan tambahkan strategic
+	if strategics := pohonMap[4][superSubTematik.Id]; len(strategics) > 0 {
+		superSubTematikResp.Strategics = service.buildStrategicResponses(pohonMap, strategics)
+	}
+
+	return superSubTematikResp
+}
+
+func (service *PohonKinerjaAdminServiceImpl) buildStrategicResponses(pohonMap map[int]map[int][]domain.PohonKinerja, strategics []domain.PohonKinerja) []pohonkinerja.StrategicResponse {
+	var responses []pohonkinerja.StrategicResponse
+	for _, strategic := range strategics {
+		strategicResp := pohonkinerja.StrategicResponse{
+			Id:              strategic.Id,
+			Parent:          strategic.Parent,
+			Strategi:        strategic.NamaPohon,
+			Keterangan:      strategic.Keterangan,
+			KodeOpd:         strategic.KodeOpd,
+			PerangkatDaerah: "", // Sesuaikan dengan data yang tersedia
+			Indikators:      convertToIndikatorResponses(strategic.Indikator),
+		}
+
+		// Cek dan tambahkan tactical
+		if tacticals := pohonMap[5][strategic.Id]; len(tacticals) > 0 {
+			strategicResp.Tacticals = service.buildTacticalResponses(pohonMap, tacticals)
+		}
+
+		responses = append(responses, strategicResp)
+	}
+	return responses
+}
+
+func (service *PohonKinerjaAdminServiceImpl) buildTacticalResponses(pohonMap map[int]map[int][]domain.PohonKinerja, tacticals []domain.PohonKinerja) []pohonkinerja.TacticalResponse {
+	var responses []pohonkinerja.TacticalResponse
+	for _, tactical := range tacticals {
+		keterangan := &tactical.Keterangan
+		tacticalResp := pohonkinerja.TacticalResponse{
+			Id:              tactical.Id,
+			Parent:          tactical.Parent,
+			Strategi:        tactical.NamaPohon,
+			Keterangan:      keterangan,
+			KodeOpd:         tactical.KodeOpd,
+			PerangkatDaerah: "", // Sesuaikan dengan data yang tersedia
+			Indikators:      convertToIndikatorResponses(tactical.Indikator),
+		}
+
+		// Cek dan tambahkan operational
+		if operationals := pohonMap[6][tactical.Id]; len(operationals) > 0 {
+			tacticalResp.Operationals = service.buildOperationalResponses(operationals)
+		}
+
+		responses = append(responses, tacticalResp)
+	}
+	return responses
+}
+
+func (service *PohonKinerjaAdminServiceImpl) buildOperationalResponses(operationals []domain.PohonKinerja) []pohonkinerja.OperationalResponse {
+	var responses []pohonkinerja.OperationalResponse
+	for _, operational := range operationals {
+		keterangan := &operational.Keterangan
+		operationalResp := pohonkinerja.OperationalResponse{
+			Id:              operational.Id,
+			Parent:          operational.Parent,
+			Strategi:        operational.NamaPohon,
+			Keterangan:      keterangan,
+			KodeOpd:         operational.KodeOpd,
+			PerangkatDaerah: "", // Sesuaikan dengan data yang tersedia
+			Indikators:      convertToIndikatorResponses(operational.Indikator),
+		}
+		responses = append(responses, operationalResp)
+	}
+	return responses
+}
+
+func convertToIndikatorResponses(indikators []domain.Indikator) []pohonkinerja.IndikatorResponse {
+	var responses []pohonkinerja.IndikatorResponse
+	for _, indikator := range indikators {
+		var targetResponses []pohonkinerja.TargetResponse
+		for _, target := range indikator.Target {
+			targetResp := pohonkinerja.TargetResponse{
+				Id:              target.Id,
+				IndikatorId:     target.IndikatorId,
+				TargetIndikator: target.Target,
+				SatuanIndikator: target.Satuan,
+			}
+			targetResponses = append(targetResponses, targetResp)
+		}
+
+		indikatorResp := pohonkinerja.IndikatorResponse{
+			Id:            indikator.Id,
+			IdPokin:       indikator.PokinId,
+			NamaIndikator: indikator.Indikator,
+			Target:        targetResponses,
+		}
+		responses = append(responses, indikatorResp)
+	}
+	return responses
+}
+
+// Fungsi helper untuk debug

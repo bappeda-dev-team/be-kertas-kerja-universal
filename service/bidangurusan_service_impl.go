@@ -7,6 +7,9 @@ import (
 	"ekak_kabupaten_madiun/model/domain/domainmaster"
 	"ekak_kabupaten_madiun/model/web/bidangurusanresponse"
 	"ekak_kabupaten_madiun/repository"
+	"fmt"
+
+	"github.com/google/uuid"
 )
 
 type BidangUrusanServiceImpl struct {
@@ -27,8 +30,11 @@ func (service *BidangUrusanServiceImpl) Create(ctx context.Context, request bida
 		return bidangurusanresponse.BidangUrusanResponse{}, err
 	}
 	defer helper.CommitOrRollback(tx)
+	randomDigits := fmt.Sprintf("%05d", uuid.New().ID()%100000)
+	uuId := fmt.Sprintf("BID-%s", randomDigits)
 
 	bidangurusan := domainmaster.BidangUrusan{
+		Id:               uuId,
 		KodeBidangUrusan: request.KodeBidangUrusan,
 		NamaBidangUrusan: request.NamaBidangUrusan,
 	}
@@ -49,7 +55,12 @@ func (service *BidangUrusanServiceImpl) Update(ctx context.Context, request bida
 	}
 	defer helper.CommitOrRollback(tx)
 
-	bidangurusan := domainmaster.BidangUrusan{
+	bidangurusan, err := service.BidangUrusanRepository.FindById(ctx, tx, request.Id)
+	if err != nil {
+		return bidangurusanresponse.BidangUrusanResponse{}, err
+	}
+
+	bidangurusan = domainmaster.BidangUrusan{
 		Id:               request.Id,
 		KodeBidangUrusan: request.KodeBidangUrusan,
 		NamaBidangUrusan: request.NamaBidangUrusan,

@@ -165,7 +165,7 @@ func (service *OpdServiceImpl) Update(ctx context.Context, request opdmaster.Opd
 	}, nil
 }
 
-func (service *OpdServiceImpl) Delete(ctx context.Context, id string) error {
+func (service *OpdServiceImpl) Delete(ctx context.Context, opdId string) error {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return err
@@ -173,22 +173,22 @@ func (service *OpdServiceImpl) Delete(ctx context.Context, id string) error {
 	defer helper.CommitOrRollback(tx)
 
 	// Validasi keberadaan ID
-	_, err = service.OpdRepository.FindById(ctx, tx, id)
+	_, err = service.OpdRepository.FindById(ctx, tx, opdId)
 	if err != nil {
 		return err // Akan mengembalikan error jika ID tidak ditemukan
 	}
 
-	return service.OpdRepository.Delete(ctx, tx, id)
+	return service.OpdRepository.Delete(ctx, tx, opdId)
 }
 
-func (service *OpdServiceImpl) FindById(ctx context.Context, id string) (opdmaster.OpdResponse, error) {
+func (service *OpdServiceImpl) FindById(ctx context.Context, opdId string) (opdmaster.OpdResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return opdmaster.OpdResponse{}, err
 	}
 	defer helper.CommitOrRollback(tx)
 
-	opd, err := service.OpdRepository.FindById(ctx, tx, id)
+	opd, err := service.OpdRepository.FindById(ctx, tx, opdId)
 	if err != nil {
 		return opdmaster.OpdResponse{}, err
 	}

@@ -138,16 +138,24 @@ func (service *ProgramServiceImpl) Update(ctx context.Context, request programke
 		return programkegiatan.ProgramKegiatanResponse{}, err
 	}
 	defer helper.CommitOrRollback(tx)
+
+	fmt.Printf("\n=== MULAI PROSES UPDATE ===\n")
+	fmt.Printf("Request ID Program: %s\n", request.Id)
+
 	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, request.KodeOPD)
 	if err != nil {
 		tx.Rollback()
+		fmt.Printf("ERROR: Gagal mencari OPD: %v\n", err)
 		return programkegiatan.ProgramKegiatanResponse{}, fmt.Errorf("kode OPD tidak valid: %v", err)
 	}
 
 	if opd.KodeOpd == "" {
 		tx.Rollback()
+		fmt.Printf("ERROR: OPD tidak ditemukan untuk kode: %s\n", request.KodeOPD)
 		return programkegiatan.ProgramKegiatanResponse{}, fmt.Errorf("kode OPD tidak ditemukan")
 	}
+
+	fmt.Printf("OPD ditemukan: %s - %s\n", opd.KodeOpd, opd.NamaOpd)
 
 	program := domainmaster.ProgramKegiatan{
 		Id:          request.Id,
@@ -158,18 +166,32 @@ func (service *ProgramServiceImpl) Update(ctx context.Context, request programke
 		IsActive:    request.IsActive,
 	}
 
+	fmt.Printf("\n=== MEMPROSES INDIKATOR ===\n")
 	var indikators []domain.Indikator
-	for _, indikator := range request.Indikator {
+	for i, indikator := range request.Indikator {
+		fmt.Printf("\nIndikator ke-%d:\n", i+1)
+		fmt.Printf("ID Indikator dari request: %s\n", indikator.Id)
+
 		indikatorId := indikator.Id
 		if indikatorId == "" {
 			indikatorId = fmt.Sprintf("IND-KGT-%s", uuid.New().String()[:5])
+			fmt.Printf("Generated new Indikator ID: %s\n", indikatorId)
+		} else {
+			fmt.Printf("Menggunakan ID Indikator existing: %s\n", indikatorId)
 		}
 
+		fmt.Printf("Memproses target untuk indikator: %s\n", indikatorId)
 		var targets []domain.Target
-		for _, target := range indikator.Target {
+		for j, target := range indikator.Target {
+			fmt.Printf("\nTarget ke-%d:\n", j+1)
+			fmt.Printf("ID Target dari request: %s\n", target.Id)
+
 			targetId := target.Id
 			if targetId == "" {
 				targetId = fmt.Sprintf("TRGT-KGT-%s", uuid.New().String()[:5])
+				fmt.Printf("Generated new Target ID: %s\n", targetId)
+			} else {
+				fmt.Printf("Menggunakan ID Target existing: %s\n", targetId)
 			}
 
 			targetDomain := domain.Target{
@@ -179,6 +201,7 @@ func (service *ProgramServiceImpl) Update(ctx context.Context, request programke
 				Satuan:      target.Satuan,
 				Tahun:       target.Tahun,
 			}
+			fmt.Printf("Target Domain: %+v\n", targetDomain)
 			targets = append(targets, targetDomain)
 		}
 
@@ -189,19 +212,28 @@ func (service *ProgramServiceImpl) Update(ctx context.Context, request programke
 			Tahun:     indikator.Tahun,
 			Target:    targets,
 		}
+		fmt.Printf("Indikator Domain: %+v\n", indikatorDomain)
 		indikators = append(indikators, indikatorDomain)
 	}
 	program.Indikator = indikators
 
+	fmt.Printf("\n=== MEMANGGIL REPOSITORY UPDATE ===\n")
+	fmt.Printf("Program yang akan diupdate: %+v\n", program)
+
 	result, err := service.programRepository.Update(ctx, tx, program)
 	if err != nil {
+		fmt.Printf("ERROR: Gagal melakukan update di repository: %v\n", err)
 		return programkegiatan.ProgramKegiatanResponse{}, err
 	}
+	fmt.Printf("Hasil update dari repository: %+v\n", result)
 
+	fmt.Printf("\n=== MEMBANGUN RESPONSE ===\n")
 	var indikatorResponses []programkegiatan.IndikatorResponse
-	for _, indikator := range result.Indikator {
+	for i, indikator := range result.Indikator {
+		fmt.Printf("\nMemproses response untuk indikator ke-%d:\n", i+1)
 		var targetResponses []programkegiatan.TargetResponse
-		for _, target := range indikator.Target {
+		for j, target := range indikator.Target {
+			fmt.Printf("Memproses response untuk target ke-%d:\n", j+1)
 			targetResponse := programkegiatan.TargetResponse{
 				Id:          target.Id,
 				IndikatorId: target.IndikatorId,
@@ -209,6 +241,7 @@ func (service *ProgramServiceImpl) Update(ctx context.Context, request programke
 				Satuan:      target.Satuan,
 				Tahun:       target.Tahun,
 			}
+			fmt.Printf("Target Response: %+v\n", targetResponse)
 			targetResponses = append(targetResponses, targetResponse)
 		}
 
@@ -219,10 +252,11 @@ func (service *ProgramServiceImpl) Update(ctx context.Context, request programke
 			Tahun:     indikator.Tahun,
 			Target:    targetResponses,
 		}
+		fmt.Printf("Indikator Response: %+v\n", indikatorResponse)
 		indikatorResponses = append(indikatorResponses, indikatorResponse)
 	}
 
-	return programkegiatan.ProgramKegiatanResponse{
+	finalResponse := programkegiatan.ProgramKegiatanResponse{
 		Id:          result.Id,
 		KodeProgram: result.KodeProgram,
 		NamaProgram: result.NamaProgram,
@@ -233,7 +267,12 @@ func (service *ProgramServiceImpl) Update(ctx context.Context, request programke
 		Tahun:     result.Tahun,
 		IsActive:  result.IsActive,
 		Indikator: indikatorResponses,
-	}, nil
+	}
+	fmt.Printf("\n=== RESPONSE FINAL ===\n")
+	fmt.Printf("%+v\n", finalResponse)
+	fmt.Printf("\n=== SELESAI PROSES UPDATE ===\n")
+
+	return finalResponse, nil
 }
 
 func (service *ProgramServiceImpl) Delete(ctx context.Context, programId string) error {

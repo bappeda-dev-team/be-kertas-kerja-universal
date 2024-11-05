@@ -47,6 +47,8 @@ func (controller *BidangUrusanControllerImpl) Update(writer http.ResponseWriter,
 	bidangUrusanUpdateRequest := bidangurusanresponse.BidangUrusanUpdateRequest{}
 	helper.ReadFromRequestBody(request, &bidangUrusanUpdateRequest)
 
+	bidangUrusanUpdateRequest.Id = params.ByName("id")
+
 	bidangUrusanUpdateResponse, err := controller.BidangUrusanService.Update(request.Context(), bidangUrusanUpdateRequest)
 	if err != nil {
 		webResponse := web.WebResponse{

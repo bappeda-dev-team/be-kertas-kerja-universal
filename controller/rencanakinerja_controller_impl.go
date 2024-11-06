@@ -29,7 +29,7 @@ func (controller *RencanaKinerjaControllerImpl) Create(writer http.ResponseWrite
 		webResponse := web.WebRencanaKinerjaResponse{
 			Code:   400,
 			Status: "failed create rencana kinerja",
-			Data:   nil,
+			Data:   err.Error(),
 		}
 		helper.WriteToResponseBody(writer, webResponse)
 		return

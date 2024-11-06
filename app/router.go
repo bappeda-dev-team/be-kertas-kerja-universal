@@ -175,7 +175,8 @@ func NewRouter(
 	router.PUT("/jabatan/update/:id", jabatanController.Update)
 	router.GET("/jabatan/detail/:id", jabatanController.FindById)
 	router.DELETE("/jabatan/delete/:id", jabatanController.Delete)
-	router.GET("/jabatan/findall/:kodeOpd/:tahun", jabatanController.FindAll)
+	router.GET("/jabatan/findall/:kode_opd", jabatanController.FindAll)
+	router.GET("/jabatan/findall/:kode_opd/:tahun", jabatanController.FindAll)
 
 	//opd
 	router.POST("/opd/create", opdController.Create)

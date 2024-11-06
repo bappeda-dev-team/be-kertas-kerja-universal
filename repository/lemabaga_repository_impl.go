@@ -14,8 +14,8 @@ func NewLembagaRepositoryImpl() *LembagaRepositoryImpl {
 }
 
 func (repository *LembagaRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, lembaga domainmaster.Lembaga) domainmaster.Lembaga {
-	script := "INSERT INTO tb_lembaga (id, nama_lembaga) VALUES (?, ?)"
-	_, err := tx.ExecContext(ctx, script, lembaga.Id, lembaga.NamaLembaga)
+	script := "INSERT INTO tb_lembaga (id, kode_lembaga, nama_lembaga) VALUES (?, ?, ?)"
+	_, err := tx.ExecContext(ctx, script, lembaga.Id, lembaga.KodeLembaga, lembaga.NamaLembaga)
 	if err != nil {
 		return lembaga
 	}
@@ -23,8 +23,8 @@ func (repository *LembagaRepositoryImpl) Create(ctx context.Context, tx *sql.Tx,
 }
 
 func (repository *LembagaRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, lembaga domainmaster.Lembaga) domainmaster.Lembaga {
-	script := "UPDATE tb_lembaga SET nama_lembaga = ?, is_active = ? WHERE id = ?"
-	_, err := tx.ExecContext(ctx, script, lembaga.NamaLembaga, lembaga.IsActive, lembaga.Id)
+	script := "UPDATE tb_lembaga SET kode_lembaga = ?, nama_lembaga = ?, is_active = ? WHERE id = ?"
+	_, err := tx.ExecContext(ctx, script, lembaga.KodeLembaga, lembaga.NamaLembaga, lembaga.IsActive, lembaga.Id)
 	if err != nil {
 		return lembaga
 	}
@@ -41,9 +41,9 @@ func (repository *LembagaRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx,
 }
 
 func (repository *LembagaRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, id string) (domainmaster.Lembaga, error) {
-	script := "SELECT id, nama_lembaga, is_active FROM tb_lembaga WHERE id = ?"
+	script := "SELECT id, kode_lembaga, nama_lembaga, is_active FROM tb_lembaga WHERE id = ?"
 	var lembaga domainmaster.Lembaga
-	err := tx.QueryRowContext(ctx, script, id).Scan(&lembaga.Id, &lembaga.NamaLembaga, &lembaga.IsActive)
+	err := tx.QueryRowContext(ctx, script, id).Scan(&lembaga.Id, &lembaga.KodeLembaga, &lembaga.NamaLembaga, &lembaga.IsActive)
 	if err != nil {
 		return domainmaster.Lembaga{}, err
 	}
@@ -51,7 +51,7 @@ func (repository *LembagaRepositoryImpl) FindById(ctx context.Context, tx *sql.T
 }
 
 func (repository *LembagaRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]domainmaster.Lembaga, error) {
-	script := "SELECT id, nama_lembaga, is_active FROM tb_lembaga"
+	script := "SELECT id, kode_lembaga, nama_lembaga, is_active FROM tb_lembaga"
 	rows, err := tx.QueryContext(ctx, script)
 	if err != nil {
 		return []domainmaster.Lembaga{}, err

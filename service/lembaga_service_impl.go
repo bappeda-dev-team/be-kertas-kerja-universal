@@ -9,18 +9,21 @@ import (
 	"ekak_kabupaten_madiun/repository"
 	"fmt"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 )
 
 type LembagaServiceImpl struct {
 	LembagaRepository repository.LembagaRepository
 	DB                *sql.DB
+	Validator         *validator.Validate
 }
 
-func NewLembagaServiceImpl(lembagaRepository repository.LembagaRepository, DB *sql.DB) *LembagaServiceImpl {
+func NewLembagaServiceImpl(lembagaRepository repository.LembagaRepository, DB *sql.DB, validator *validator.Validate) *LembagaServiceImpl {
 	return &LembagaServiceImpl{
 		LembagaRepository: lembagaRepository,
 		DB:                DB,
+		Validator:         validator,
 	}
 }
 
@@ -31,6 +34,11 @@ func (service *LembagaServiceImpl) Create(ctx context.Context, request lembaga.L
 	}
 	defer helper.CommitOrRollback(tx)
 
+	err = service.Validator.Struct(request)
+	if err != nil {
+		return lembaga.LembagaResponse{}, err
+	}
+
 	// Generate ID unik dengan prefix
 	uuid := uuid.New().String()
 	lembagaId := fmt.Sprintf("LMBG-%v", uuid[:4])
@@ -38,6 +46,7 @@ func (service *LembagaServiceImpl) Create(ctx context.Context, request lembaga.L
 	// Buat objek domain lembaga
 	lembagaDomain := domainmaster.Lembaga{
 		Id:          lembagaId,
+		KodeLembaga: request.KodeLembaga,
 		NamaLembaga: request.NamaLembaga,
 		IsActive:    true, // Tambahkan respons isactive true
 	}
@@ -46,6 +55,7 @@ func (service *LembagaServiceImpl) Create(ctx context.Context, request lembaga.L
 
 	response := lembaga.LembagaResponse{
 		Id:          result.Id,
+		KodeLembaga: result.KodeLembaga,
 		NamaLembaga: result.NamaLembaga,
 		IsActive:    result.IsActive, // Tambahkan respons isactive true
 	}
@@ -60,6 +70,11 @@ func (service *LembagaServiceImpl) Update(ctx context.Context, request lembaga.L
 	}
 	defer helper.CommitOrRollback(tx)
 
+	err = service.Validator.Struct(request)
+	if err != nil {
+		return lembaga.LembagaResponse{}, err
+	}
+
 	// Cek apakah data exists
 	_, err = service.LembagaRepository.FindById(ctx, tx, request.Id)
 	if err != nil {
@@ -68,6 +83,7 @@ func (service *LembagaServiceImpl) Update(ctx context.Context, request lembaga.L
 
 	lembagaDomain := domainmaster.Lembaga{
 		Id:          request.Id,
+		KodeLembaga: request.KodeLembaga,
 		NamaLembaga: request.NamaLembaga,
 		IsActive:    request.IsActive,
 	}
@@ -76,6 +92,7 @@ func (service *LembagaServiceImpl) Update(ctx context.Context, request lembaga.L
 
 	response := lembaga.LembagaResponse{
 		Id:          result.Id,
+		KodeLembaga: result.KodeLembaga,
 		NamaLembaga: result.NamaLembaga,
 		IsActive:    result.IsActive,
 	}
@@ -97,6 +114,7 @@ func (service *LembagaServiceImpl) FindById(ctx context.Context, id string) (lem
 
 	response := lembaga.LembagaResponse{
 		Id:          result.Id,
+		KodeLembaga: result.KodeLembaga,
 		NamaLembaga: result.NamaLembaga,
 		IsActive:    result.IsActive,
 	}
@@ -120,6 +138,7 @@ func (service *LembagaServiceImpl) FindAll(ctx context.Context) ([]lembaga.Lemba
 	for _, value := range result {
 		response = append(response, lembaga.LembagaResponse{
 			Id:          value.Id,
+			KodeLembaga: value.KodeLembaga,
 			NamaLembaga: value.NamaLembaga,
 			IsActive:    value.IsActive,
 		})

@@ -11,8 +11,9 @@ type RencanaKinerja struct {
 	StatusRencanaKinerja string
 	Catatan              string
 	KodeOpd              string
+	NamaOpd              string
 	PegawaiId            string
 	CreatedAt            time.Time
 	Indikator            []Indikator
-	// IdPohonKinerja       string
+	KodeSubKegiatan      string
 }

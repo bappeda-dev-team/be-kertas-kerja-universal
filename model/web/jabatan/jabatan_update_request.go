@@ -2,6 +2,7 @@ package jabatan
 
 type JabatanUpdateRequest struct {
 	Id           string `json:"id"`
+	KodeJabatan  string `json:"kode_jabatan"`
 	NamaJabatan  string `json:"nama_jabatan"`
 	KelasJabatan string `json:"kelas_jabatan"`
 	JenisJabatan string `json:"jenis_jabatan"`

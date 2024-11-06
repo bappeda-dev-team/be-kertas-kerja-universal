@@ -15,8 +15,8 @@ func NewRencanaKinerjaRepositoryImpl() *RencanaKinerjaRepositoryImpl {
 }
 
 func (repository *RencanaKinerjaRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, rencanaKinerja domain.RencanaKinerja) (domain.RencanaKinerja, error) {
-	script := "INSERT INTO tb_rencana_kinerja (id, nama_rencana_kinerja, tahun, status_rencana_kinerja, catatan, kode_opd, pegawai_id) VALUES (?, ?, ?, ?, ?, ?, ?)"
-	_, err := tx.ExecContext(ctx, script, rencanaKinerja.Id, rencanaKinerja.NamaRencanaKinerja, rencanaKinerja.Tahun, rencanaKinerja.StatusRencanaKinerja, rencanaKinerja.Catatan, rencanaKinerja.KodeOpd, rencanaKinerja.PegawaiId)
+	script := "INSERT INTO tb_rencana_kinerja (id, nama_rencana_kinerja, tahun, status_rencana_kinerja, catatan, kode_opd, pegawai_id, kode_subkegiatan) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+	_, err := tx.ExecContext(ctx, script, rencanaKinerja.Id, rencanaKinerja.NamaRencanaKinerja, rencanaKinerja.Tahun, rencanaKinerja.StatusRencanaKinerja, rencanaKinerja.Catatan, rencanaKinerja.KodeOpd, rencanaKinerja.PegawaiId, rencanaKinerja.KodeSubKegiatan)
 	if err != nil {
 		return domain.RencanaKinerja{}, fmt.Errorf("error saat menyimpan rencana kinerja: %v", err)
 	}
@@ -94,7 +94,7 @@ func (repository *RencanaKinerjaRepositoryImpl) FindAll(ctx context.Context, tx 
 		params = append(params, tahun)
 	}
 
-	script += " ORDER BY created_at DESC"
+	script += " ORDER BY created_at ASC"
 
 	rows, err := tx.QueryContext(ctx, script, params...)
 	if err != nil {

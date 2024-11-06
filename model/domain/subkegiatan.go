@@ -4,7 +4,7 @@ import "time"
 
 type SubKegiatan struct {
 	Id                   string
-	RekinId              string
+	KodeSubKegiatan      string
 	NamaSubKegiatan      string
 	KodeOpd              string
 	Tahun                string

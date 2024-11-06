@@ -8,6 +8,7 @@ import (
 	"ekak_kabupaten_madiun/model/web/gambaranumum"
 	"ekak_kabupaten_madiun/model/web/inovasi"
 	"ekak_kabupaten_madiun/model/web/jabatan"
+	"ekak_kabupaten_madiun/model/web/opdmaster"
 	"ekak_kabupaten_madiun/model/web/pegawai"
 	"ekak_kabupaten_madiun/model/web/rencanakinerja"
 	"ekak_kabupaten_madiun/model/web/subkegiatan"
@@ -35,13 +36,18 @@ func ToRencanaKinerjaResponse(rencanaKinerja domain.RencanaKinerja) rencanakiner
 		})
 	}
 
+	opdResponse := opdmaster.OpdResponseForAll{
+		KodeOpd: rencanaKinerja.KodeOpd,
+		NamaOpd: rencanaKinerja.NamaOpd,
+	}
+
 	return rencanakinerja.RencanaKinerjaResponse{
 		Id:                   rencanaKinerja.Id,
 		NamaRencanaKinerja:   rencanaKinerja.NamaRencanaKinerja,
 		Tahun:                rencanaKinerja.Tahun,
 		StatusRencanaKinerja: rencanaKinerja.StatusRencanaKinerja,
 		Catatan:              rencanaKinerja.Catatan,
-		KodeOpd:              rencanaKinerja.KodeOpd,
+		KodeOpd:              opdResponse,
 		PegawaiId:            rencanaKinerja.PegawaiId,
 		Indikator:            indikatorResponses,
 	}
@@ -386,7 +392,6 @@ func ToSubKegiatanResponse(subKegiatan domain.SubKegiatan) subkegiatan.SubKegiat
 
 	return subkegiatan.SubKegiatanResponse{
 		Id:                   subKegiatan.Id,
-		RekinId:              subKegiatan.RekinId,
 		PegawaiId:            subKegiatan.PegawaiId,
 		NamaSubKegiatan:      subKegiatan.NamaSubKegiatan,
 		KodeOpd:              subKegiatan.KodeOpd,
@@ -437,13 +442,18 @@ func ToPegawaiResponses(pegawais []domainmaster.Pegawai) []pegawai.PegawaiRespon
 }
 
 func ToJabatanResponse(jabatans domainmaster.Jabatan) jabatan.JabatanResponse {
+	opd := opdmaster.OpdResponseForAll{
+		KodeOpd: jabatans.KodeOpd,
+		NamaOpd: jabatans.NamaOpd,
+	}
 	return jabatan.JabatanResponse{
 		Id:           jabatans.Id,
+		KodeJabatan:  jabatans.KodeJabatan,
 		NamaJabatan:  jabatans.NamaJabatan,
 		KelasJabatan: jabatans.KelasJabatan,
 		JenisJabatan: jabatans.JenisJabatan,
 		NilaiJabatan: jabatans.NilaiJabatan,
-		KodeOpd:      jabatans.KodeOpd,
+		KodeOpd:      opd,
 		IndexJabatan: jabatans.IndexJabatan,
 		Tahun:        jabatans.Tahun,
 		Esselon:      jabatans.Esselon,

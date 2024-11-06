@@ -60,7 +60,7 @@ func (repository *LembagaRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx
 	var lembagas []domainmaster.Lembaga
 	for rows.Next() {
 		lembaga := domainmaster.Lembaga{}
-		err := rows.Scan(&lembaga.Id, &lembaga.NamaLembaga, &lembaga.IsActive)
+		err := rows.Scan(&lembaga.Id, &lembaga.KodeLembaga, &lembaga.NamaLembaga, &lembaga.IsActive)
 		if err != nil {
 			return []domainmaster.Lembaga{}, err
 		}

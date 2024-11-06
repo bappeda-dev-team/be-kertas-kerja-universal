@@ -13,6 +13,6 @@ jobs:
       - name: Build the Docker image
         run: |
           docker login --username bappeda-dev-team --password ${{ secrets.GH_PASS }} ghcr.io
-          docker build . --file Dockerfile --tag ghcr.io/bappeda-dev-team/api-ekak-kab-madiun:latest
-          docker push ghcr.io/bappeda-dev-team/api-ekak-kab-madiun:latest
+          docker build . --file Dockerfile --tag ghcr.io/bappeda-dev-team/kertas-kerja-backend:latest
+          docker push ghcr.io/bappeda-dev-team/kertas-kerja-backend:latest
           docker logout

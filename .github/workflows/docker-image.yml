@@ -15,3 +15,4 @@ jobs:
           docker login --username bappeda-dev-team --password ${{ secrets.GH_PASS }} ghcr.io
           docker build . --file Dockerfile --tag ghcr.io/bappeda-dev-team/api-ekak-kab-madiun:latest
           docker push ghcr.io/bappeda-dev-team/api-ekak-kab-madiun:latest
+          docker logout

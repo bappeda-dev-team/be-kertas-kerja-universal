@@ -15,8 +15,6 @@ RUN apk update -qq && \
 
 COPY . .
 
-RUN go mod tidy
-
 RUN go build -o api main.go wire_gen.go
 
 ENTRYPOINT ["/app/api"]

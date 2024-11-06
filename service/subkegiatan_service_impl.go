@@ -47,7 +47,6 @@ func (service *SubKegiatanServiceImpl) Create(ctx context.Context, request subke
 
 	subKegiatan := domain.SubKegiatan{
 		Id:              uuId,
-		RekinId:         "",
 		PegawaiId:       request.PegawaiId,
 		NamaSubKegiatan: request.NamaSubKegiatan,
 		KodeOpd:         request.KodeOpd,
@@ -110,7 +109,7 @@ func (service *SubKegiatanServiceImpl) FindById(ctx context.Context, subKegiatan
 	return helper.ToSubKegiatanResponse(result), nil
 }
 
-func (service *SubKegiatanServiceImpl) FindAll(ctx context.Context, rekinId, kodeOpd, pegawaiId string) ([]subkegiatan.SubKegiatanResponse, error) {
+func (service *SubKegiatanServiceImpl) FindAll(ctx context.Context, kodeOpd, pegawaiId string) ([]subkegiatan.SubKegiatanResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		log.Println("Gagal memulai transaksi:", err)
@@ -118,7 +117,7 @@ func (service *SubKegiatanServiceImpl) FindAll(ctx context.Context, rekinId, kod
 	}
 	defer helper.CommitOrRollback(tx)
 
-	result, err := service.subKegiatanRepository.FindAll(ctx, tx, rekinId, kodeOpd, pegawaiId)
+	result, err := service.subKegiatanRepository.FindAll(ctx, tx, kodeOpd, pegawaiId)
 	if err != nil {
 		log.Println("Gagal mencari data sub kegiatan:", err)
 		return []subkegiatan.SubKegiatanResponse{}, err

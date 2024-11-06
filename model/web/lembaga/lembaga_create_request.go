@@ -1,5 +1,6 @@
 package lembaga
 
 type LembagaCreateRequest struct {
-	NamaLembaga string `json:"nama_lembaga"`
+	KodeLembaga string `json:"kode_lembaga" validate:"required"`
+	NamaLembaga string `json:"nama_lembaga" validate:"required"`
 }

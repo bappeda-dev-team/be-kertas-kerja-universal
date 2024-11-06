@@ -6,6 +6,7 @@ import (
 	"ekak_kabupaten_madiun/helper"
 	"ekak_kabupaten_madiun/model/domain"
 	"ekak_kabupaten_madiun/model/web"
+	"ekak_kabupaten_madiun/model/web/opdmaster"
 	"ekak_kabupaten_madiun/model/web/rencanakinerja"
 	"ekak_kabupaten_madiun/repository"
 	"fmt"
@@ -19,13 +20,15 @@ type RencanaKinerjaServiceImpl struct {
 	rencanaKinerjaRepository repository.RencanaKinerjaRepository
 	DB                       *sql.DB
 	Validate                 *validator.Validate
+	opdRepository            repository.OpdRepository
 }
 
-func NewRencanaKinerjaServiceImpl(rencanaKinerjaRepository repository.RencanaKinerjaRepository, DB *sql.DB, validate *validator.Validate) *RencanaKinerjaServiceImpl {
+func NewRencanaKinerjaServiceImpl(rencanaKinerjaRepository repository.RencanaKinerjaRepository, DB *sql.DB, validate *validator.Validate, opdRepository repository.OpdRepository) *RencanaKinerjaServiceImpl {
 	return &RencanaKinerjaServiceImpl{
 		rencanaKinerjaRepository: rencanaKinerjaRepository,
 		DB:                       DB,
 		Validate:                 validate,
+		opdRepository:            opdRepository,
 	}
 }
 
@@ -45,6 +48,22 @@ func (service *RencanaKinerjaServiceImpl) Create(ctx context.Context, request re
 	}
 	defer helper.CommitOrRollback(tx)
 
+	// Perbaikan pengecekan kode OPD
+	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, request.KodeOpd)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("Kode OPD %s tidak ditemukan", request.KodeOpd)
+			return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("kode OPD %s tidak ditemukan", request.KodeOpd)
+		}
+		log.Printf("Gagal memeriksa kode OPD: %v", err)
+		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("gagal memeriksa kode OPD: %v", err)
+	}
+
+	if opd.KodeOpd == "" {
+		log.Printf("Kode OPD %s tidak valid", request.KodeOpd)
+		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("kode OPD %s tidak valid", request.KodeOpd)
+	}
+
 	randomDigits := fmt.Sprintf("%05d", uuid.New().ID()%100000)
 	customId := fmt.Sprintf("REKIN-PEG-%s", randomDigits)
 
@@ -56,6 +75,7 @@ func (service *RencanaKinerjaServiceImpl) Create(ctx context.Context, request re
 		Catatan:              request.Catatan,
 		KodeOpd:              request.KodeOpd,
 		PegawaiId:            request.PegawaiId,
+		KodeSubKegiatan:      "",
 		Indikator:            make([]domain.Indikator, len(request.Indikator)),
 	}
 
@@ -101,6 +121,8 @@ func (service *RencanaKinerjaServiceImpl) Create(ctx context.Context, request re
 		log.Printf("Gagal menyimpan RencanaKinerja: %v", err)
 		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("gagal menyimpan RencanaKinerja: %v", err)
 	}
+
+	rencanaKinerja.NamaOpd = opd.NamaOpd
 
 	log.Println("RencanaKinerja berhasil disimpan")
 	response := helper.ToRencanaKinerjaResponse(rencanaKinerja)
@@ -194,6 +216,14 @@ func (service *RencanaKinerjaServiceImpl) Update(ctx context.Context, request re
 		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("gagal memperbarui RencanaKinerja: %v", err)
 	}
 
+	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, rencanaKinerja.KodeOpd)
+	if err != nil {
+		log.Printf("Gagal mengambil data OPD: %v", err)
+		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("gagal mengambil data OPD: %v", err)
+	}
+
+	// Set nama OPD ke dalam rencanaKinerja
+	rencanaKinerja.NamaOpd = opd.NamaOpd
 	log.Println("RencanaKinerja berhasil diperbarui")
 	response := helper.ToRencanaKinerjaResponse(rencanaKinerja)
 	log.Printf("Response: %+v", response)
@@ -273,16 +303,25 @@ func (service *RencanaKinerjaServiceImpl) FindAll(ctx context.Context, pegawaiId
 			},
 		}
 
+		opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, rencana.KodeOpd)
+		if err != nil {
+			log.Printf("Gagal mencari OPD: %v", err)
+			return nil, fmt.Errorf("gagal mencari OPD: %v", err)
+		}
+
 		responses = append(responses, rencanakinerja.RencanaKinerjaResponse{
 			Id:                   rencana.Id,
 			NamaRencanaKinerja:   rencana.NamaRencanaKinerja,
 			Tahun:                rencana.Tahun,
 			StatusRencanaKinerja: rencana.StatusRencanaKinerja,
 			Catatan:              rencana.Catatan,
-			KodeOpd:              rencana.KodeOpd,
-			PegawaiId:            rencana.PegawaiId,
-			Indikator:            indikatorResponses,
-			Action:               ActionButton,
+			KodeOpd: opdmaster.OpdResponseForAll{
+				KodeOpd: opd.KodeOpd,
+				NamaOpd: opd.NamaOpd,
+			},
+			PegawaiId: rencana.PegawaiId,
+			Indikator: indikatorResponses,
+			Action:    ActionButton,
 		})
 		log.Printf("RencanaKinerja Response ditambahkan untuk ID: %s", rencana.Id)
 	}
@@ -330,6 +369,15 @@ func (service *RencanaKinerjaServiceImpl) FindById(ctx context.Context, id strin
 		rencanaKinerja.Indikator[i].Target = targets
 		log.Printf("Jumlah target ditemukan untuk indikator %s: %d", indikator.Id, len(targets))
 	}
+
+	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, rencanaKinerja.KodeOpd)
+	if err != nil {
+		log.Printf("Gagal mengambil data OPD: %v", err)
+		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("gagal mengambil data OPD: %v", err)
+	}
+
+	// Set nama OPD ke dalam rencanaKinerja
+	rencanaKinerja.NamaOpd = opd.NamaOpd
 
 	response := helper.ToRencanaKinerjaResponse(rencanaKinerja)
 	log.Printf("Response: %+v", response)

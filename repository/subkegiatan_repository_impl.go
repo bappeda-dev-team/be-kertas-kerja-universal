@@ -15,9 +15,9 @@ func NewSubKegiatanRepositoryImpl() *SubKegiatanRepositoryImpl {
 }
 
 func (repository *SubKegiatanRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, subKegiatan domain.SubKegiatan) (domain.SubKegiatan, error) {
-	script := `INSERT INTO tb_subkegiatan (id, rekin_id, pegawai_id, nama_subkegiatan, kode_opd, tahun) VALUES (?, ?, ?, ?, ?, ?)`
+	script := `INSERT INTO tb_subkegiatan (id, kode_subkegiatan, nama_subkegiatan, kode_opd, tahun) VALUES (?, ?, ?, ?, ?)`
 
-	_, err := tx.ExecContext(ctx, script, subKegiatan.Id, subKegiatan.RekinId, subKegiatan.PegawaiId, subKegiatan.NamaSubKegiatan, subKegiatan.KodeOpd, subKegiatan.Tahun)
+	_, err := tx.ExecContext(ctx, script, subKegiatan.Id, subKegiatan.KodeSubKegiatan, subKegiatan.NamaSubKegiatan, subKegiatan.KodeOpd, subKegiatan.Tahun)
 	if err != nil {
 		return domain.SubKegiatan{}, err
 	}
@@ -37,14 +37,10 @@ func (repository *SubKegiatanRepositoryImpl) Update(ctx context.Context, tx *sql
 	return subKegiatan, nil
 }
 
-func (repository *SubKegiatanRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, rekinId, kodeOpd string, pegawaiId string) ([]domain.SubKegiatan, error) {
-	script := `SELECT id, rekin_id, pegawai_id, nama_subkegiatan, kode_opd, tahun, created_at FROM tb_subkegiatan WHERE 1=1`
+func (repository *SubKegiatanRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, kodeOpd string, pegawaiId string) ([]domain.SubKegiatan, error) {
+	script := `SELECT id, kode_subkegiatan, nama_subkegiatan, kode_opd, tahun, created_at FROM tb_subkegiatan WHERE 1=1`
 	var params []interface{}
 
-	if rekinId != "" {
-		script += ` AND rekin_id = ?`
-		params = append(params, rekinId)
-	}
 	if kodeOpd != "" {
 		script += ` AND kode_opd = ?`
 		params = append(params, kodeOpd)
@@ -64,7 +60,7 @@ func (repository *SubKegiatanRepositoryImpl) FindAll(ctx context.Context, tx *sq
 	var subKegiatans []domain.SubKegiatan
 	for rows.Next() {
 		subKegiatan := domain.SubKegiatan{}
-		err := rows.Scan(&subKegiatan.Id, &subKegiatan.RekinId, &subKegiatan.NamaSubKegiatan, &subKegiatan.KodeOpd, &subKegiatan.Tahun, &subKegiatan.CreatedAt)
+		err := rows.Scan(&subKegiatan.Id, &subKegiatan.KodeSubKegiatan, &subKegiatan.NamaSubKegiatan, &subKegiatan.KodeOpd, &subKegiatan.Tahun, &subKegiatan.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -75,7 +71,7 @@ func (repository *SubKegiatanRepositoryImpl) FindAll(ctx context.Context, tx *sq
 }
 
 func (repository *SubKegiatanRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, subKegiatanId string) (domain.SubKegiatan, error) {
-	script := `SELECT id, rekin_id, pegawai_id, nama_subkegiatan, kode_opd, tahun FROM tb_subkegiatan WHERE id = ?`
+	script := `SELECT id, kode_subkegiatan, pegawai_id, nama_subkegiatan, kode_opd, tahun FROM tb_subkegiatan WHERE id = ?`
 
 	rows, err := tx.QueryContext(ctx, script, subKegiatanId)
 	if err != nil {
@@ -84,7 +80,7 @@ func (repository *SubKegiatanRepositoryImpl) FindById(ctx context.Context, tx *s
 
 	subKegiatan := domain.SubKegiatan{}
 	if rows.Next() {
-		rows.Scan(&subKegiatan.Id, &subKegiatan.RekinId, &subKegiatan.NamaSubKegiatan, &subKegiatan.KodeOpd, &subKegiatan.Tahun)
+		rows.Scan(&subKegiatan.Id, &subKegiatan.KodeSubKegiatan, &subKegiatan.PegawaiId, &subKegiatan.NamaSubKegiatan, &subKegiatan.KodeOpd, &subKegiatan.Tahun)
 	}
 
 	return subKegiatan, nil

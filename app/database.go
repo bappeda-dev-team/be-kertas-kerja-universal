@@ -22,12 +22,17 @@ func GetConnection() *sql.DB {
 	dbName := os.Getenv("DB_NAME")
 	dbHost := os.Getenv("DB_HOST")
 
-	// if dbHost == "" {
-	// 	dbHost = "localhost"
-	// }
+	if dbHost == "" {
+		dbHost = "localhost"
+	}
 
 	connStr := fmt.Sprintf("%s@tcp(%s:%s)/%s?parseTime=true", dbUser, dbHost, dbPort, dbName)
-	// connStr := os.Getenv("DB_URL")
+
+	dbUrl := os.Getenv("DB_URL")
+
+	if dbUrl != "" {
+		connStr = dbUrl
+	}
 
 	db, err := sql.Open("mysql", connStr)
 	if err != nil {

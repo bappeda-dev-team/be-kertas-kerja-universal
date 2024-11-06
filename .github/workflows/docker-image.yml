@@ -12,6 +12,6 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build the Docker image
         run: |
-          docker login --username bappeda-dev-team --password ${{ secrets.GH_TOKEN }} ghcr.io
+          docker login --username bappeda-dev-team --password-stdin ${{ secrets.GH_TOKEN }} ghcr.io
           docker build . --file Dockerfile --tag ghcr.io/bappeda-dev-team/api-ekak-kab-madiun:latest
           docker push ghcr.io/bappeda-dev-team/api-ekak-kab-madiun:latest

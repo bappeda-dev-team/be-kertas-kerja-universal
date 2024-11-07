@@ -180,7 +180,7 @@ func NewRouter(
 
 	//opd
 	router.POST("/opd/create", opdController.Create)
-	router.PUT("/opd/update/:id", opdController.Update)
+	router.PUT("/opd/update/:opdId", opdController.Update)
 	router.GET("/opd/detail/:opdId", opdController.FindById)
 	router.DELETE("/opd/delete/:opdId", opdController.Delete)
 	router.GET("/opd/findall", opdController.FindAll)

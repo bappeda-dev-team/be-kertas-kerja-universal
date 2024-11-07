@@ -47,6 +47,19 @@ func (controller *PohonKinerjaOpdControllerImpl) Update(writer http.ResponseWrit
 	pohonKinerjaUpdateRequest := pohonkinerja.PohonKinerjaUpdateRequest{}
 	helper.ReadFromRequestBody(request, &pohonKinerjaUpdateRequest)
 
+	id, err := strconv.Atoi(params.ByName("id"))
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   400,
+			Status: "Bad Request",
+			Data:   "ID harus berupa angka",
+		}
+		writer.WriteHeader(http.StatusBadRequest)
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+	pohonKinerjaUpdateRequest.Id = id
+
 	// Panggil service Update
 	pohonKinerjaResponse, err := controller.PohonKinerjaOpdService.Update(request.Context(), pohonKinerjaUpdateRequest)
 	if err != nil {

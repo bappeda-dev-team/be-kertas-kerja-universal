@@ -151,9 +151,10 @@ func NewRouter(
 	//pohon kinerja admin
 	router.POST("/pohon_kinerja_admin/create", pohonKinerjaAdminController.Create)
 	router.PUT("/pohon_kinerja_admin/update/:id", pohonKinerjaAdminController.Update)
-	router.GET("/pohon_kinerja_admin/detail/:id", pohonKinerjaOpdController.FindById)
+	router.GET("/pohon_kinerja_admin/detail/:id", pohonKinerjaAdminController.FindById)
 	router.DELETE("/pohon_kinerja_admin/delete/:id", pohonKinerjaAdminController.Delete)
 	router.GET("/pohon_kinerja_admin/findall/:tahun", pohonKinerjaAdminController.FindAll)
+	router.GET("/pohon_kinerja_admin/subtematik/:tahun", pohonKinerjaAdminController.FindSubTematik)
 
 	//DATA MASTER
 	//pegawai

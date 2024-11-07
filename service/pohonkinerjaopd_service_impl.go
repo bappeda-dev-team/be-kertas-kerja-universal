@@ -14,12 +14,14 @@ import (
 
 type PohonKinerjaOpdServiceImpl struct {
 	pohonKinerjaOpdRepository repository.PohonKinerjaRepository
+	opdRepository             repository.OpdRepository
 	DB                        *sql.DB
 }
 
-func NewPohonKinerjaOpdServiceImpl(pohonKinerjaOpdRepository repository.PohonKinerjaRepository, DB *sql.DB) *PohonKinerjaOpdServiceImpl {
+func NewPohonKinerjaOpdServiceImpl(pohonKinerjaOpdRepository repository.PohonKinerjaRepository, opdRepository repository.OpdRepository, DB *sql.DB) *PohonKinerjaOpdServiceImpl {
 	return &PohonKinerjaOpdServiceImpl{
 		pohonKinerjaOpdRepository: pohonKinerjaOpdRepository,
+		opdRepository:             opdRepository,
 		DB:                        DB,
 	}
 }
@@ -34,6 +36,15 @@ func (service *PohonKinerjaOpdServiceImpl) Create(ctx context.Context, request p
 	// Validasi request
 	if request.NamaPohon == "" {
 		return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("nama program tidak boleh kosong")
+	}
+
+	// Validasi kode OPD
+	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, request.KodeOpd)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("kode opd tidak ditemukan")
+	}
+	if opd.KodeOpd == "" {
+		return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("kode opd tidak valid")
 	}
 
 	pohonKinerja := domain.PohonKinerja{
@@ -78,6 +89,26 @@ func (service *PohonKinerjaOpdServiceImpl) Update(ctx context.Context, request p
 	}
 	defer helper.CommitOrRollback(tx)
 
+	// Validasi request
+	if request.NamaPohon == "" {
+		return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("nama program tidak boleh kosong")
+	}
+
+	// Validasi kode OPD
+	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, request.KodeOpd)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("kode opd tidak ditemukan")
+	}
+	if opd.KodeOpd == "" {
+		return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("kode opd tidak valid")
+	}
+
+	// Validasi data yang akan diupdate
+	_, err = service.pohonKinerjaOpdRepository.FindById(ctx, tx, request.Id)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("data pohon kinerja tidak ditemukan")
+	}
+
 	pohonKinerja := domain.PohonKinerja{
 		Id:         request.Id,
 		NamaPohon:  request.NamaPohon,
@@ -95,6 +126,7 @@ func (service *PohonKinerjaOpdServiceImpl) Update(ctx context.Context, request p
 
 	return pohonkinerja.PohonKinerjaOpdResponse{
 		Id:         pokin.Id,
+		Parent:     strconv.Itoa(pokin.Parent),
 		NamaPohon:  pokin.NamaPohon,
 		JenisPohon: pokin.JenisPohon,
 		LevelPohon: pokin.LevelPohon,
@@ -110,6 +142,18 @@ func (service *PohonKinerjaOpdServiceImpl) Delete(ctx context.Context, id string
 		return err
 	}
 	defer helper.CommitOrRollback(tx)
+
+	// Konversi id string ke int
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		return errors.New("id tidak valid")
+	}
+
+	// Cek apakah data exists
+	_, err = service.pohonKinerjaOpdRepository.FindById(ctx, tx, idInt)
+	if err != nil {
+		return errors.New("data pohon kinerja tidak ditemukan")
+	}
 
 	err = service.pohonKinerjaOpdRepository.Delete(ctx, tx, id)
 	if err != nil {
@@ -136,6 +180,12 @@ func (service *PohonKinerjaOpdServiceImpl) FindById(ctx context.Context, id int)
 		return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("data tidak ditemukan")
 	}
 
+	// Ambil data OPD berdasarkan kode OPD
+	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, pokin.KodeOpd)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("data opd tidak ditemukan")
+	}
+
 	return pohonkinerja.PohonKinerjaOpdResponse{
 		Id:         pokin.Id,
 		Parent:     strconv.Itoa(pokin.Parent),
@@ -143,6 +193,7 @@ func (service *PohonKinerjaOpdServiceImpl) FindById(ctx context.Context, id int)
 		JenisPohon: pokin.JenisPohon,
 		LevelPohon: pokin.LevelPohon,
 		KodeOpd:    pokin.KodeOpd,
+		NamaOpd:    opd.NamaOpd,
 		Keterangan: pokin.Keterangan,
 		Tahun:      pokin.Tahun,
 	}, nil
@@ -154,6 +205,15 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 		return pohonkinerja.PohonKinerjaOpdAllResponse{}, err
 	}
 	defer helper.CommitOrRollback(tx)
+
+	// Validasi kode OPD
+	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, kodeOpd)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaOpdAllResponse{}, errors.New("kode opd tidak ditemukan")
+	}
+	if opd.KodeOpd == "" {
+		return pohonkinerja.PohonKinerjaOpdAllResponse{}, errors.New("kode opd tidak valid")
+	}
 
 	// Ambil semua pohon kinerja
 	pokins, err := service.pohonKinerjaOpdRepository.FindAll(ctx, tx, kodeOpd, tahun)
@@ -170,6 +230,7 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 	response := pohonkinerja.PohonKinerjaOpdAllResponse{
 		Tahun:         tahun,
 		KodeOpd:       kodeOpd,
+		NamaOpd:       opd.NamaOpd,
 		PohonKinerjas: []pohonkinerja.PohonKinerjaOpdResponse{},
 	}
 

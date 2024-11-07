@@ -10,6 +10,7 @@ import (
 	"ekak_kabupaten_madiun/model/web/jabatan"
 	"ekak_kabupaten_madiun/model/web/opdmaster"
 	"ekak_kabupaten_madiun/model/web/pegawai"
+	"ekak_kabupaten_madiun/model/web/pohonkinerja"
 	"ekak_kabupaten_madiun/model/web/rencanakinerja"
 	"ekak_kabupaten_madiun/model/web/subkegiatan"
 	"ekak_kabupaten_madiun/model/web/usulan"
@@ -466,4 +467,29 @@ func ToJabatanResponses(jabatans []domainmaster.Jabatan) []jabatan.JabatanRespon
 		jabatanResponses = append(jabatanResponses, ToJabatanResponse(jabatan))
 	}
 	return jabatanResponses
+}
+
+func ConvertToIndikatorResponses(indikators []domain.Indikator) []pohonkinerja.IndikatorResponse {
+	var responses []pohonkinerja.IndikatorResponse
+	for _, indikator := range indikators {
+		var targetResponses []pohonkinerja.TargetResponse
+		for _, target := range indikator.Target {
+			targetResp := pohonkinerja.TargetResponse{
+				Id:              target.Id,
+				IndikatorId:     target.IndikatorId,
+				TargetIndikator: target.Target,
+				SatuanIndikator: target.Satuan,
+			}
+			targetResponses = append(targetResponses, targetResp)
+		}
+
+		indikatorResp := pohonkinerja.IndikatorResponse{
+			Id:            indikator.Id,
+			IdPokin:       indikator.PokinId,
+			NamaIndikator: indikator.Indikator,
+			Target:        targetResponses,
+		}
+		responses = append(responses, indikatorResp)
+	}
+	return responses
 }

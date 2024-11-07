@@ -1,5 +1,7 @@
 package pohonkinerja
 
+import "ekak_kabupaten_madiun/model/web/opdmaster"
+
 type PohonKinerjaAdminResponse struct {
 	Tahun   string            `json:"tahun"`
 	Tematik []TematikResponse `json:"tematiks"`
@@ -9,7 +11,8 @@ type PohonKinerjaAdminResponseData struct {
 	Id          int                  `json:"id"`
 	Parent      int                  `json:"parent"`
 	NamaPohon   string               `json:"nama_pohon"`
-	KodeOpd     string               `json:"kode_opd"`
+	KodeOpd     string               `json:"kode_opd,omitempty"`
+	NamaOpd     string               `json:"nama_opd,omitempty"`
 	Keterangan  string               `json:"keterangan"`
 	Tahun       string               `json:"tahun"`
 	JenisPohon  string               `json:"jenis_pohon"`
@@ -25,6 +28,7 @@ type TematikResponse struct {
 	Keterangan  string               `json:"keterangan"`
 	Indikators  []IndikatorResponse  `json:"indikators"`
 	SubTematiks []SubtematikResponse `json:"sub_tematiks,omitempty"`
+	Strategics  []StrategicResponse  `json:"strategics,omitempty"`
 }
 
 type SubtematikResponse struct {
@@ -71,33 +75,30 @@ type TargetResponse struct {
 }
 
 type StrategicResponse struct {
-	Id              int                 `json:"id"`
-	Parent          int                 `json:"parent"`
-	Strategi        string              `json:"strategi"`
-	Keterangan      string              `json:"keterangan"`
-	KodeOpd         string              `json:"kode_perangkat_daerah"`
-	PerangkatDaerah string              `json:"perangkat_daerah"`
-	Indikators      []IndikatorResponse `json:"indikators"`
-	Tacticals       []TacticalResponse  `json:"tacticals,omitempty"`
+	Id         int                         `json:"id"`
+	Parent     int                         `json:"parent"`
+	Strategi   string                      `json:"strategi"`
+	Keterangan string                      `json:"keterangan"`
+	KodeOpd    opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
+	Indikators []IndikatorResponse         `json:"indikators"`
+	Tacticals  []TacticalResponse          `json:"tacticals,omitempty"`
 }
 
 type TacticalResponse struct {
-	Id              int                   `json:"id"`
-	Parent          int                   `json:"parent"`
-	Strategi        string                `json:"strategi"`
-	Keterangan      *string               `json:"keterangan"`
-	KodeOpd         string                `json:"kode_perangkat_daerah"`
-	PerangkatDaerah string                `json:"perangkat_daerah"`
-	Indikators      []IndikatorResponse   `json:"indikators"`
-	Operationals    []OperationalResponse `json:"operationals"`
+	Id           int                         `json:"id"`
+	Parent       int                         `json:"parent"`
+	Strategi     string                      `json:"strategi"`
+	Keterangan   *string                     `json:"keterangan"`
+	KodeOpd      opdmaster.OpdResponseForAll `json:"kode_perangkat_daerah"`
+	Indikators   []IndikatorResponse         `json:"indikators"`
+	Operationals []OperationalResponse       `json:"operationals"`
 }
 
 type OperationalResponse struct {
-	Id              int                 `json:"id"`
-	Parent          int                 `json:"parent"`
-	Strategi        string              `json:"strategi"`
-	Keterangan      *string             `json:"keterangan"`
-	KodeOpd         string              `json:"kode_perangkat_daerah"`
-	PerangkatDaerah string              `json:"perangkat_daerah"`
-	Indikators      []IndikatorResponse `json:"indikators"`
+	Id         int                         `json:"id"`
+	Parent     int                         `json:"parent"`
+	Strategi   string                      `json:"strategi"`
+	Keterangan *string                     `json:"keterangan"`
+	KodeOpd    opdmaster.OpdResponseForAll `json:"kode_perangkat_daerah"`
+	Indikators []IndikatorResponse         `json:"indikators"`
 }

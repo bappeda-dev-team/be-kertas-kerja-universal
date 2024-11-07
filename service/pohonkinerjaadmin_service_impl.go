@@ -8,6 +8,8 @@ import (
 	"ekak_kabupaten_madiun/model/web/pohonkinerja"
 	"ekak_kabupaten_madiun/repository"
 
+	"log"
+
 	"github.com/google/uuid"
 )
 
@@ -24,9 +26,17 @@ func NewPohonKinerjaAdminServiceImpl(pohonKinerjaRepository repository.PohonKine
 }
 
 func (service *PohonKinerjaAdminServiceImpl) Create(ctx context.Context, request pohonkinerja.PohonKinerjaAdminCreateRequest) (pohonkinerja.PohonKinerjaAdminResponseData, error) {
+	log.Printf("Memulai proses pembuatan PohonKinerja untuk tahun: %s", request.Tahun)
+
 	tx, err := service.DB.Begin()
-	helper.PanicIfError(err)
+	if err != nil {
+		log.Printf("Error memulai transaksi: %v", err)
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
 	defer helper.CommitOrRollback(tx)
+
+	// Logging persiapan indikator
+	log.Printf("Mempersiapkan %d indikator", len(request.Indikator))
 
 	// Persiapkan data indikator dan target
 	var indikators []domain.Indikator
@@ -66,10 +76,14 @@ func (service *PohonKinerjaAdminServiceImpl) Create(ctx context.Context, request
 		Indikator:  indikators,
 	}
 
+	log.Printf("Menyimpan PohonKinerja dengan NamaPohon: %s, LevelPohon: %d", request.NamaPohon, request.LevelPohon)
 	result, err := service.pohonKinerjaRepository.CreatePokinAdmin(ctx, tx, pohonKinerja)
 	if err != nil {
+		log.Printf("Error saat menyimpan PohonKinerja: %v", err)
 		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
 	}
+
+	log.Printf("Berhasil membuat PohonKinerja dengan ID: %d", result.Id)
 
 	// Konversi indikator domain ke IndikatorResponse
 	var indikatorResponses []pohonkinerja.IndikatorResponse
@@ -105,6 +119,7 @@ func (service *PohonKinerjaAdminServiceImpl) Create(ctx context.Context, request
 		Indikators: indikatorResponses,
 	}
 
+	log.Printf("Proses pembuatan PohonKinerja selesai")
 	return response, nil
 }
 

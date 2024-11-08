@@ -7,6 +7,7 @@ import (
 	"ekak_kabupaten_madiun/model/domain"
 	"ekak_kabupaten_madiun/model/web/subkegiatan"
 	"ekak_kabupaten_madiun/repository"
+	"errors"
 	"fmt"
 	"log"
 
@@ -250,15 +251,35 @@ func (service *SubKegiatanServiceImpl) FindAll(ctx context.Context, kodeOpd, peg
 }
 
 func (service *SubKegiatanServiceImpl) Delete(ctx context.Context, subKegiatanId string) error {
+	// Validasi ID
+	if subKegiatanId == "" {
+		return errors.New("subkegiatan id tidak boleh kosong")
+	}
+
+	// Mulai transaksi
 	tx, err := service.DB.Begin()
 	if err != nil {
-		return fmt.Errorf("gagal memulai transaksi: %v", err)
+		log.Println("Gagal memulai transaksi:", err)
+		return err
 	}
 	defer helper.CommitOrRollback(tx)
 
+	// Cek apakah data exists
+	existingSubKegiatan, err := service.subKegiatanRepository.FindById(ctx, tx, subKegiatanId)
+	if err != nil {
+		log.Println("Gagal mencari data sub kegiatan:", err)
+		return err
+	}
+	if existingSubKegiatan.Id == "" {
+		return errors.New("sub kegiatan tidak ditemukan")
+	}
+
+	// Proses delete
 	err = service.subKegiatanRepository.Delete(ctx, tx, subKegiatanId)
 	if err != nil {
-		return fmt.Errorf("gagal menghapus data sub kegiatan: %v", err)
+		log.Printf("Gagal menghapus sub kegiatan dengan id %s: %v", subKegiatanId, err)
+		return err
 	}
+
 	return nil
 }

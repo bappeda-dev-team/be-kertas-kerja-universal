@@ -184,9 +184,35 @@ func (repository *SubKegiatanRepositoryImpl) FindById(ctx context.Context, tx *s
 }
 
 func (repository *SubKegiatanRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, subKegiatanId string) error {
-	script := `DELETE FROM tb_subkegiatan WHERE id = ?`
-	_, err := tx.ExecContext(ctx, script, subKegiatanId)
-	return err
+	// Hapus target terlebih dahulu
+	scriptDeleteTarget := `DELETE FROM tb_target 
+                          WHERE indikator_id IN (
+                              SELECT id FROM tb_indikator 
+                              WHERE subkegiatan_id = ?
+                          )`
+	_, err := tx.ExecContext(ctx, scriptDeleteTarget, subKegiatanId)
+	if err != nil {
+		log.Printf("Error deleting targets: %v", err)
+		return err
+	}
+
+	// Hapus indikator
+	scriptDeleteIndikator := `DELETE FROM tb_indikator WHERE subkegiatan_id = ?`
+	_, err = tx.ExecContext(ctx, scriptDeleteIndikator, subKegiatanId)
+	if err != nil {
+		log.Printf("Error deleting indicators: %v", err)
+		return err
+	}
+
+	// Hapus subkegiatan
+	scriptDeleteSubKegiatan := `DELETE FROM tb_subkegiatan WHERE id = ?`
+	_, err = tx.ExecContext(ctx, scriptDeleteSubKegiatan, subKegiatanId)
+	if err != nil {
+		log.Printf("Error deleting subkegiatan: %v", err)
+		return err
+	}
+
+	return nil
 }
 
 func (repository *SubKegiatanRepositoryImpl) FindIndikatorBySubKegiatanId(ctx context.Context, tx *sql.Tx, subKegiatanId string) ([]domain.Indikator, error) {

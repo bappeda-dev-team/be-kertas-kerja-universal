@@ -56,16 +56,16 @@ func (controller *PohonKinerjaAdminControllerImpl) Update(writer http.ResponseWr
 	pohonKinerjaUpdateRequest.Id, _ = strconv.Atoi(pohonKinerjaId)
 
 	// Panggil service update
-	pohonKinerjaResponse := controller.pohonKinerjaAdminService.Update(request.Context(), pohonKinerjaUpdateRequest)
-	// if err != nil {
-	// 	webResponse := web.WebResponse{
-	// 		Code:   http.StatusBadRequest,
-	// 		Status: "BAD REQUEST",
-	// 		Data:   err.Error(),
-	// 	}
-	// 	helper.WriteToResponseBody(writer, webResponse)
-	// 	return
-	// }
+	pohonKinerjaResponse, err := controller.pohonKinerjaAdminService.Update(request.Context(), pohonKinerjaUpdateRequest)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
 
 	// Buat response sukses
 	webResponse := web.WebResponse{
@@ -115,7 +115,7 @@ func (controller *PohonKinerjaAdminControllerImpl) Delete(writer http.ResponseWr
 
 func (controller *PohonKinerjaAdminControllerImpl) FindById(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	// Ambil ID dari parameter URL
-	pohonKinerjaId := params.ByName("pohonKinerjaId")
+	pohonKinerjaId := params.ByName("id")
 	id, err := strconv.Atoi(pohonKinerjaId)
 	if err != nil {
 		webResponse := web.WebResponse{
@@ -154,6 +154,67 @@ func (controller *PohonKinerjaAdminControllerImpl) FindAll(writer http.ResponseW
 
 	// Panggil service findAll
 	result, err := controller.pohonKinerjaAdminService.FindAll(request.Context(), tahun)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusInternalServerError,
+			Status: "INTERNAL SERVER ERROR",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	// Buat response sukses
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "OK",
+		Data:   result,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *PohonKinerjaAdminControllerImpl) FindSubTematik(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	tahun := params.ByName("tahun")
+
+	// Panggil service findAll
+	result, err := controller.pohonKinerjaAdminService.FindSubTematik(request.Context(), tahun)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusInternalServerError,
+			Status: "INTERNAL SERVER ERROR",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	// Buat response sukses
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "OK",
+		Data:   result,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+
+}
+
+func (controller *PohonKinerjaAdminControllerImpl) FindPokinAdminByIdHierarki(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	idPokin := params.ByName("idPokin")
+	id, err := strconv.Atoi(idPokin)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	// Panggil service findAll
+	result, err := controller.pohonKinerjaAdminService.FindPokinAdminByIdHierarki(request.Context(), id)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   http.StatusInternalServerError,

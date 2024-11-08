@@ -7,6 +7,7 @@ import (
 	"ekak_kabupaten_madiun/model/domain"
 	"ekak_kabupaten_madiun/model/web/subkegiatan"
 	"ekak_kabupaten_madiun/repository"
+	"errors"
 	"fmt"
 	"log"
 
@@ -45,12 +46,52 @@ func (service *SubKegiatanServiceImpl) Create(ctx context.Context, request subke
 	randomDigits := fmt.Sprintf("%05d", uuid.New().ID()%100000)
 	uuId := fmt.Sprintf("SUB-%s", randomDigits)
 
+	var indikators []domain.Indikator
+
+	for _, indikatorReq := range request.Indikator {
+		indikatorId := indikatorReq.Id
+		if indikatorId == "" {
+			randomDigits := fmt.Sprintf("%05d", uuid.New().ID()%100000)
+			indikatorId = fmt.Sprintf("IND-SUB-%s", randomDigits)
+		}
+
+		var targets []domain.Target
+
+		for _, targetReq := range indikatorReq.Target {
+			targetId := targetReq.Id
+			if targetId == "" {
+				randomDigits := fmt.Sprintf("%05d", uuid.New().ID()%100000)
+				targetId = fmt.Sprintf("TRG-SUB-%s", randomDigits)
+			}
+
+			target := domain.Target{
+				Id:          targetId,
+				IndikatorId: indikatorId,
+				Target:      targetReq.TargetIndikator,
+				Satuan:      targetReq.SatuanIndikator,
+				Tahun:       request.Tahun,
+			}
+			targets = append(targets, target)
+		}
+
+		indikator := domain.Indikator{
+			Id:               indikatorId,
+			SubKegiatanId:    uuId,
+			RencanaKinerjaId: indikatorReq.RencanaKinerjaId,
+			Indikator:        indikatorReq.NamaIndikator,
+			Tahun:            request.Tahun,
+			Target:           targets,
+		}
+		indikators = append(indikators, indikator)
+	}
+
 	subKegiatan := domain.SubKegiatan{
 		Id:              uuId,
 		PegawaiId:       request.PegawaiId,
 		NamaSubKegiatan: request.NamaSubKegiatan,
 		KodeOpd:         request.KodeOpd,
 		Tahun:           request.Tahun,
+		Indikator:       indikators,
 	}
 
 	result, err := service.subKegiatanRepository.Create(ctx, tx, subKegiatan)
@@ -68,31 +109,70 @@ func (service *SubKegiatanServiceImpl) Update(ctx context.Context, request subke
 		log.Println("Validasi gagal:", err)
 		return subkegiatan.SubKegiatanResponse{}, err
 	}
+
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return subkegiatan.SubKegiatanResponse{}, fmt.Errorf("gagal memulai transaksi: %v", err)
 	}
 	defer helper.CommitOrRollback(tx)
 
+	var indikators []domain.Indikator
+
+	for _, indikatorReq := range request.Indikator {
+		indikatorId := indikatorReq.Id
+		if indikatorId == "" {
+			randomDigits := fmt.Sprintf("%05d", uuid.New().ID()%100000)
+			indikatorId = fmt.Sprintf("IND-%s", randomDigits)
+		}
+
+		var targets []domain.Target
+
+		for _, targetReq := range indikatorReq.Target {
+			targetId := targetReq.Id
+			if targetId == "" {
+				randomDigits := fmt.Sprintf("%05d", uuid.New().ID()%100000)
+				targetId = fmt.Sprintf("TRG-%s", randomDigits)
+			}
+
+			target := domain.Target{
+				Id:          targetId,
+				IndikatorId: indikatorId,
+				Target:      targetReq.TargetIndikator,
+				Satuan:      targetReq.SatuanIndikator,
+				Tahun:       request.Tahun,
+			}
+			targets = append(targets, target)
+		}
+
+		indikator := domain.Indikator{
+			Id:               indikatorId,
+			SubKegiatanId:    request.Id,
+			RencanaKinerjaId: indikatorReq.RencanaKinerjaId,
+			Indikator:        indikatorReq.NamaIndikator,
+			Tahun:            request.Tahun,
+			Target:           targets,
+		}
+		indikators = append(indikators, indikator)
+	}
+
 	domainSubKegiatan := domain.SubKegiatan{
 		Id:              request.Id,
 		NamaSubKegiatan: request.NamaSubKegiatan,
 		KodeOpd:         request.KodeOpd,
 		Tahun:           request.Tahun,
+		Indikator:       indikators,
 	}
 
-	subkegiatans, err := service.subKegiatanRepository.Update(ctx, tx, domainSubKegiatan)
+	result, err := service.subKegiatanRepository.Update(ctx, tx, domainSubKegiatan)
 	if err != nil {
-		return subkegiatan.SubKegiatanResponse{}, err
+		return subkegiatan.SubKegiatanResponse{}, fmt.Errorf("gagal mengupdate sub kegiatan: %v", err)
 	}
 
-	response := helper.ToSubKegiatanResponse(subkegiatans)
+	response := helper.ToSubKegiatanResponse(result)
 	return response, nil
-
 }
 
 func (service *SubKegiatanServiceImpl) FindById(ctx context.Context, subKegiatanId string) (subkegiatan.SubKegiatanResponse, error) {
-
 	tx, err := service.DB.Begin()
 	if err != nil {
 		log.Println("Gagal memulai transaksi:", err)
@@ -100,13 +180,34 @@ func (service *SubKegiatanServiceImpl) FindById(ctx context.Context, subKegiatan
 	}
 	defer helper.CommitOrRollback(tx)
 
-	result, err := service.subKegiatanRepository.FindById(ctx, tx, subKegiatanId)
+	// Ambil data SubKegiatan
+	subKegiatan, err := service.subKegiatanRepository.FindById(ctx, tx, subKegiatanId)
 	if err != nil {
 		log.Println("Gagal mencari data sub kegiatan:", err)
 		return subkegiatan.SubKegiatanResponse{}, err
 	}
 
-	return helper.ToSubKegiatanResponse(result), nil
+	// Ambil data Indikator
+	indikators, err := service.subKegiatanRepository.FindIndikatorBySubKegiatanId(ctx, tx, subKegiatanId)
+	if err != nil {
+		log.Printf("Gagal mengambil indikator untuk subkegiatan %s: %v", subKegiatanId, err)
+		return subkegiatan.SubKegiatanResponse{}, err
+	}
+
+	// Untuk setiap Indikator, ambil Target
+	for i, indikator := range indikators {
+		targets, err := service.subKegiatanRepository.FindTargetByIndikatorId(ctx, tx, indikator.Id)
+		if err != nil {
+			log.Printf("Gagal mengambil target untuk indikator %s: %v", indikator.Id, err)
+			return subkegiatan.SubKegiatanResponse{}, err
+		}
+		indikators[i].Target = targets
+	}
+
+	// Gabungkan data
+	subKegiatan.Indikator = indikators
+
+	return helper.ToSubKegiatanResponse(subKegiatan), nil
 }
 
 func (service *SubKegiatanServiceImpl) FindAll(ctx context.Context, kodeOpd, pegawaiId string) ([]subkegiatan.SubKegiatanResponse, error) {
@@ -117,25 +218,68 @@ func (service *SubKegiatanServiceImpl) FindAll(ctx context.Context, kodeOpd, peg
 	}
 	defer helper.CommitOrRollback(tx)
 
-	result, err := service.subKegiatanRepository.FindAll(ctx, tx, kodeOpd, pegawaiId)
+	// Ambil data SubKegiatan
+	subKegiatans, err := service.subKegiatanRepository.FindAll(ctx, tx, kodeOpd, pegawaiId)
 	if err != nil {
 		log.Println("Gagal mencari data sub kegiatan:", err)
 		return []subkegiatan.SubKegiatanResponse{}, err
 	}
 
-	return helper.ToSubKegiatanResponses(result), nil
+	// Untuk setiap SubKegiatan, ambil data Indikator dan Target
+	for i, subKegiatan := range subKegiatans {
+		// Ambil Indikator
+		indikators, err := service.subKegiatanRepository.FindIndikatorBySubKegiatanId(ctx, tx, subKegiatan.Id)
+		if err != nil {
+			log.Printf("Gagal mengambil indikator untuk subkegiatan %s: %v", subKegiatan.Id, err)
+			return []subkegiatan.SubKegiatanResponse{}, err
+		}
+
+		// Untuk setiap Indikator, ambil Target
+		for j, indikator := range indikators {
+			targets, err := service.subKegiatanRepository.FindTargetByIndikatorId(ctx, tx, indikator.Id)
+			if err != nil {
+				log.Printf("Gagal mengambil target untuk indikator %s: %v", indikator.Id, err)
+				return []subkegiatan.SubKegiatanResponse{}, err
+			}
+			indikators[j].Target = targets
+		}
+
+		subKegiatans[i].Indikator = indikators
+	}
+
+	return helper.ToSubKegiatanResponses(subKegiatans), nil
 }
 
 func (service *SubKegiatanServiceImpl) Delete(ctx context.Context, subKegiatanId string) error {
+	// Validasi ID
+	if subKegiatanId == "" {
+		return errors.New("subkegiatan id tidak boleh kosong")
+	}
+
+	// Mulai transaksi
 	tx, err := service.DB.Begin()
 	if err != nil {
-		return fmt.Errorf("gagal memulai transaksi: %v", err)
+		log.Println("Gagal memulai transaksi:", err)
+		return err
 	}
 	defer helper.CommitOrRollback(tx)
 
+	// Cek apakah data exists
+	existingSubKegiatan, err := service.subKegiatanRepository.FindById(ctx, tx, subKegiatanId)
+	if err != nil {
+		log.Println("Gagal mencari data sub kegiatan:", err)
+		return err
+	}
+	if existingSubKegiatan.Id == "" {
+		return errors.New("sub kegiatan tidak ditemukan")
+	}
+
+	// Proses delete
 	err = service.subKegiatanRepository.Delete(ctx, tx, subKegiatanId)
 	if err != nil {
-		return fmt.Errorf("gagal menghapus data sub kegiatan: %v", err)
+		log.Printf("Gagal menghapus sub kegiatan dengan id %s: %v", subKegiatanId, err)
+		return err
 	}
+
 	return nil
 }

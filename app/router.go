@@ -150,10 +150,12 @@ func NewRouter(
 
 	//pohon kinerja admin
 	router.POST("/pohon_kinerja_admin/create", pohonKinerjaAdminController.Create)
-	router.PUT("/pohon_kinerja_admin/update/:id", pohonKinerjaAdminController.Update)
-	router.GET("/pohon_kinerja_admin/detail/:id", pohonKinerjaOpdController.FindById)
-	router.DELETE("/pohon_kinerja_admin/delete/:id", pohonKinerjaAdminController.Delete)
+	router.PUT("/pohon_kinerja_admin/update/:pohonKinerjaId", pohonKinerjaAdminController.Update)
+	router.GET("/pohon_kinerja_admin/detail/:id", pohonKinerjaAdminController.FindById)
+	router.DELETE("/pohon_kinerja_admin/delete/:pohonKinerjaId", pohonKinerjaAdminController.Delete)
 	router.GET("/pohon_kinerja_admin/findall/:tahun", pohonKinerjaAdminController.FindAll)
+	router.GET("/pohon_kinerja_admin/subtematik/:tahun", pohonKinerjaAdminController.FindSubTematik)
+	router.GET("/pohon_kinerja_admin/tematik/:idPokin", pohonKinerjaAdminController.FindPokinAdminByIdHierarki)
 
 	//DATA MASTER
 	//pegawai
@@ -180,7 +182,7 @@ func NewRouter(
 
 	//opd
 	router.POST("/opd/create", opdController.Create)
-	router.PUT("/opd/update/:id", opdController.Update)
+	router.PUT("/opd/update/:opdId", opdController.Update)
 	router.GET("/opd/detail/:opdId", opdController.FindById)
 	router.DELETE("/opd/delete/:opdId", opdController.Delete)
 	router.GET("/opd/findall", opdController.FindAll)

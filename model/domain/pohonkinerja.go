@@ -5,6 +5,7 @@ type PohonKinerja struct {
 	Parent     int
 	NamaPohon  string
 	KodeOpd    string
+	NamaOpd    string
 	Keterangan string
 	Tahun      string
 	JenisPohon string

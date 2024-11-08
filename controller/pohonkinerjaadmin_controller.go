@@ -12,4 +12,6 @@ type PohonKinerjaAdminController interface {
 	Delete(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindById(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	FindSubTematik(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	FindPokinAdminByIdHierarki(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 }

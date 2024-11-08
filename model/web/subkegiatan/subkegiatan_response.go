@@ -8,9 +8,24 @@ type SubKegiatanResponse struct {
 	NamaSubKegiatan      string                         `json:"nama_sub_kegiatan"`
 	KodeOpd              string                         `json:"kode_opd"`
 	Tahun                string                         `json:"tahun"`
-	IndikatorSubkegiatan []IndikatorSubKegiatanResponse `json:"indikator_subkegiatan"`
-	PaguSubKegiatan      []PaguSubKegiatanResponse      `json:"pagu"`
+	Indikator            []IndikatorResponse            `json:"indikator,omitempty"`
+	IndikatorSubkegiatan []IndikatorSubKegiatanResponse `json:"indikator_subkegiatan,omitempty"`
+	PaguSubKegiatan      []PaguSubKegiatanResponse      `json:"pagu,omitempty"`
 	Action               []web.ActionButton             `json:"action,omitempty"`
+}
+
+type IndikatorResponse struct {
+	Id               string           `json:"id_indikator"`
+	RencanaKinerjaId string           `json:"rencana_kinerja_id"`
+	NamaIndikator    string           `json:"nama_indikator"`
+	Target           []TargetResponse `json:"targets"`
+}
+
+type TargetResponse struct {
+	Id              string `json:"id_target"`
+	IndikatorId     string `json:"indikator_id"`
+	TargetIndikator string `json:"target"`
+	SatuanIndikator string `json:"satuan"`
 }
 
 type IndikatorSubKegiatanResponse struct {

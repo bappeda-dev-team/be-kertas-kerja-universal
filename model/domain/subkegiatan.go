@@ -10,6 +10,7 @@ type SubKegiatan struct {
 	Tahun                string
 	PegawaiId            string
 	CreatedAt            time.Time
+	Indikator            []Indikator
 	IndikatorSubKegiatan []IndikatorSubKegiatan
 	PaguSubKegiatan      []PaguSubKegiatan
 }

@@ -356,15 +356,39 @@ func ToInovasiResponses(Inovasis []domain.Inovasi) []inovasi.InovasiResponse {
 }
 
 func ToSubKegiatanResponse(subKegiatan domain.SubKegiatan) subkegiatan.SubKegiatanResponse {
-	indikatorResponses := make([]subkegiatan.IndikatorSubKegiatanResponse, 0)
-	for _, indikator := range subKegiatan.IndikatorSubKegiatan {
-		indikatorResponses = append(indikatorResponses, subkegiatan.IndikatorSubKegiatanResponse{
-			Id:            indikator.Id,
-			SubKegiatanId: indikator.SubKegiatanId,
-			NamaIndikator: indikator.NamaIndikator,
+	// Konversi Indikator
+	indikatorResponses := make([]subkegiatan.IndikatorResponse, 0)
+	for _, indikator := range subKegiatan.Indikator {
+		// Konversi Target untuk setiap Indikator
+		targetResponses := make([]subkegiatan.TargetResponse, 0)
+		for _, target := range indikator.Target {
+			targetResponses = append(targetResponses, subkegiatan.TargetResponse{
+				Id:              target.Id,
+				IndikatorId:     target.IndikatorId,
+				TargetIndikator: target.Target,
+				SatuanIndikator: target.Satuan,
+			})
+		}
+
+		indikatorResponses = append(indikatorResponses, subkegiatan.IndikatorResponse{
+			Id:               indikator.Id,
+			RencanaKinerjaId: indikator.RencanaKinerjaId,
+			NamaIndikator:    indikator.Indikator,
+			Target:           targetResponses,
 		})
 	}
 
+	// Konversi IndikatorSubKegiatan
+	indikatorSubKegiatanResponses := make([]subkegiatan.IndikatorSubKegiatanResponse, 0)
+	for _, indikatorSub := range subKegiatan.IndikatorSubKegiatan {
+		indikatorSubKegiatanResponses = append(indikatorSubKegiatanResponses, subkegiatan.IndikatorSubKegiatanResponse{
+			Id:            indikatorSub.Id,
+			SubKegiatanId: indikatorSub.SubKegiatanId,
+			NamaIndikator: indikatorSub.NamaIndikator,
+		})
+	}
+
+	// Konversi PaguSubKegiatan
 	paguResponses := make([]subkegiatan.PaguSubKegiatanResponse, 0)
 	for _, pagu := range subKegiatan.PaguSubKegiatan {
 		paguResponses = append(paguResponses, subkegiatan.PaguSubKegiatanResponse{
@@ -376,6 +400,7 @@ func ToSubKegiatanResponse(subKegiatan domain.SubKegiatan) subkegiatan.SubKegiat
 		})
 	}
 
+	// Set Action Buttons
 	host := os.Getenv("host")
 	port := os.Getenv("port")
 	buttonActions := []web.ActionButton{
@@ -397,7 +422,8 @@ func ToSubKegiatanResponse(subKegiatan domain.SubKegiatan) subkegiatan.SubKegiat
 		NamaSubKegiatan:      subKegiatan.NamaSubKegiatan,
 		KodeOpd:              subKegiatan.KodeOpd,
 		Tahun:                subKegiatan.Tahun,
-		IndikatorSubkegiatan: indikatorResponses,
+		Indikator:            indikatorResponses,
+		IndikatorSubkegiatan: indikatorSubKegiatanResponses,
 		PaguSubKegiatan:      paguResponses,
 		Action:               buttonActions,
 	}

@@ -6,6 +6,7 @@ import (
 	"ekak_kabupaten_madiun/model/domain"
 	"fmt"
 	"sort"
+	"strings"
 )
 
 type PohonKinerjaRepositoryImpl struct {
@@ -194,25 +195,70 @@ func (repository *PohonKinerjaRepositoryImpl) UpdatePokinAdmin(ctx context.Conte
 }
 
 func (repository *PohonKinerjaRepositoryImpl) DeletePokinAdmin(ctx context.Context, tx *sql.Tx, id int) error {
-	// Hapus target terlebih dahulu
-	scriptDeleteTarget := "DELETE FROM tb_target WHERE indikator_id IN (SELECT id FROM tb_indikator WHERE pokin_id = ?)"
-	_, err := tx.ExecContext(ctx, scriptDeleteTarget, id)
+	// Pertama, dapatkan semua ID yang akan dihapus menggunakan CTE (Common Table Expression)
+	findIdsScript := `
+        WITH RECURSIVE pohon_hierarki AS (
+            -- Base case: node yang akan dihapus
+            SELECT id 
+            FROM tb_pohon_kinerja 
+            WHERE id = ?
+            
+            UNION ALL
+            
+            -- Recursive case: semua child nodes
+            SELECT pk.id
+            FROM tb_pohon_kinerja pk
+            INNER JOIN pohon_hierarki ph ON pk.parent = ph.id
+        )
+        SELECT id FROM pohon_hierarki;
+    `
+
+	rows, err := tx.QueryContext(ctx, findIdsScript, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("gagal mengambil hierarki ID: %v", err)
+	}
+	defer rows.Close()
+
+	// Kumpulkan semua ID yang akan dihapus
+	var idsToDelete []interface{}
+	for rows.Next() {
+		var idToDelete int
+		if err := rows.Scan(&idToDelete); err != nil {
+			return fmt.Errorf("gagal scan ID: %v", err)
+		}
+		idsToDelete = append(idsToDelete, idToDelete)
+	}
+
+	if len(idsToDelete) == 0 {
+		return fmt.Errorf("tidak ada data yang akan dihapus")
+	}
+
+	// Buat placeholder untuk query IN clause
+	placeholders := make([]string, len(idsToDelete))
+	for i := range placeholders {
+		placeholders[i] = "?"
+	}
+	inClause := strings.Join(placeholders, ",")
+
+	// Hapus target terlebih dahulu
+	scriptDeleteTarget := fmt.Sprintf("DELETE FROM tb_target WHERE indikator_id IN (SELECT id FROM tb_indikator WHERE pokin_id IN (%s))", inClause)
+	_, err = tx.ExecContext(ctx, scriptDeleteTarget, idsToDelete...)
+	if err != nil {
+		return fmt.Errorf("gagal menghapus target: %v", err)
 	}
 
 	// Hapus indikator
-	scriptDeleteIndikator := "DELETE FROM tb_indikator WHERE pokin_id = ?"
-	_, err = tx.ExecContext(ctx, scriptDeleteIndikator, id)
+	scriptDeleteIndikator := fmt.Sprintf("DELETE FROM tb_indikator WHERE pokin_id IN (%s)", inClause)
+	_, err = tx.ExecContext(ctx, scriptDeleteIndikator, idsToDelete...)
 	if err != nil {
-		return err
+		return fmt.Errorf("gagal menghapus indikator: %v", err)
 	}
 
 	// Hapus pohon kinerja
-	scriptDeletePokin := "DELETE FROM tb_pohon_kinerja WHERE id = ?"
-	_, err = tx.ExecContext(ctx, scriptDeletePokin, id)
+	scriptDeletePokin := fmt.Sprintf("DELETE FROM tb_pohon_kinerja WHERE id IN (%s)", inClause)
+	_, err = tx.ExecContext(ctx, scriptDeletePokin, idsToDelete...)
 	if err != nil {
-		return err
+		return fmt.Errorf("gagal menghapus pohon kinerja: %v", err)
 	}
 
 	return nil

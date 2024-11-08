@@ -3,7 +3,7 @@ package pohonkinerja
 import "ekak_kabupaten_madiun/model/web/opdmaster"
 
 type PohonKinerjaAdminResponse struct {
-	Tahun   string            `json:"tahun"`
+	Tahun   string            `json:"tahun,omitempty"`
 	Tematik []TematikResponse `json:"tematiks"`
 }
 

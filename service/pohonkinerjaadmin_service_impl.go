@@ -127,17 +127,17 @@ func (service *PohonKinerjaAdminServiceImpl) Create(ctx context.Context, request
 	return response, nil
 }
 
-func (service *PohonKinerjaAdminServiceImpl) Update(ctx context.Context, request pohonkinerja.PohonKinerjaAdminUpdateRequest) error {
+func (service *PohonKinerjaAdminServiceImpl) Update(ctx context.Context, request pohonkinerja.PohonKinerjaAdminUpdateRequest) (pohonkinerja.PohonKinerjaAdminResponseData, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
-		return err
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
 	}
 	defer helper.CommitOrRollback(tx)
 
 	// Cek apakah data exists
 	_, err = service.pohonKinerjaRepository.FindPokinAdminById(ctx, tx, request.Id)
 	if err != nil {
-		return err
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
 	}
 
 	// Persiapkan data indikator dan target
@@ -190,12 +190,46 @@ func (service *PohonKinerjaAdminServiceImpl) Update(ctx context.Context, request
 		Indikator:  indikators,
 	}
 
-	_, err = service.pohonKinerjaRepository.UpdatePokinAdmin(ctx, tx, pohonKinerja)
+	result, err := service.pohonKinerjaRepository.UpdatePokinAdmin(ctx, tx, pohonKinerja)
 	if err != nil {
-		return err
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
 	}
 
-	return nil
+	// Konversi indikator domain ke IndikatorResponse
+	var indikatorResponses []pohonkinerja.IndikatorResponse
+	for _, ind := range result.Indikator {
+		var targetResponses []pohonkinerja.TargetResponse
+		for _, t := range ind.Target {
+			targetResponse := pohonkinerja.TargetResponse{
+				Id:              t.Id,
+				IndikatorId:     t.IndikatorId,
+				TargetIndikator: t.Target,
+				SatuanIndikator: t.Satuan,
+			}
+			targetResponses = append(targetResponses, targetResponse)
+		}
+
+		indikatorResponse := pohonkinerja.IndikatorResponse{
+			Id:            ind.Id,
+			NamaIndikator: ind.Indikator,
+			Target:        targetResponses,
+		}
+		indikatorResponses = append(indikatorResponses, indikatorResponse)
+	}
+
+	response := pohonkinerja.PohonKinerjaAdminResponseData{
+		Id:         result.Id,
+		Parent:     result.Parent,
+		NamaPohon:  result.NamaPohon,
+		JenisPohon: result.JenisPohon,
+		LevelPohon: result.LevelPohon,
+		KodeOpd:    result.KodeOpd,
+		Keterangan: result.Keterangan,
+		Tahun:      result.Tahun,
+		Indikators: indikatorResponses,
+	}
+
+	return response, nil
 }
 
 func (service *PohonKinerjaAdminServiceImpl) Delete(ctx context.Context, id int) error {
@@ -380,6 +414,62 @@ func (service *PohonKinerjaAdminServiceImpl) FindSubTematik(ctx context.Context,
 
 	return pohonkinerja.PohonKinerjaAdminResponse{
 		Tahun:   tahun,
+		Tematik: tematiks,
+	}, nil
+}
+
+func (service *PohonKinerjaAdminServiceImpl) FindPokinAdminByIdHierarki(ctx context.Context, idPokin int) (pohonkinerja.PohonKinerjaAdminResponse, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponse{}, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	// Validasi level_pohon
+	pokin, err := service.pohonKinerjaRepository.FindPokinAdminById(ctx, tx, idPokin)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponse{}, err
+	}
+
+	if pokin.LevelPohon != 0 {
+		return pohonkinerja.PohonKinerjaAdminResponse{}, fmt.Errorf("ID yang diberikan bukan merupakan Tematik (level 0)")
+	}
+
+	// Ambil semua data pohon kinerja
+	pokins, err := service.pohonKinerjaRepository.FindPokinAdminByIdHierarki(ctx, tx, idPokin)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponse{}, err
+	}
+
+	// Buat map untuk menyimpan data berdasarkan level dan parent
+	pohonMap := make(map[int]map[int][]domain.PohonKinerja)
+	for i := 0; i <= 6; i++ {
+		pohonMap[i] = make(map[int][]domain.PohonKinerja)
+	}
+
+	// Kelompokkan data dan ambil data OPD untuk setiap pohon kinerja
+	for i := range pokins {
+		if pokins[i].KodeOpd != "" {
+			opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, pokins[i].KodeOpd)
+			if err == nil {
+				// Update data pohon kinerja dengan nama OPD
+				pokins[i].NamaOpd = opd.NamaOpd
+			}
+		}
+		pohonMap[pokins[i].LevelPohon][pokins[i].Parent] = append(
+			pohonMap[pokins[i].LevelPohon][pokins[i].Parent],
+			pokins[i],
+		)
+	}
+
+	// Bangun response dimulai dari Tematik (level 0)
+	var tematiks []pohonkinerja.TematikResponse
+	for _, tematik := range pohonMap[0][0] {
+		tematikResp := helper.BuildTematikResponse(pohonMap, tematik)
+		tematiks = append(tematiks, tematikResp)
+	}
+
+	return pohonkinerja.PohonKinerjaAdminResponse{
 		Tematik: tematiks,
 	}, nil
 }

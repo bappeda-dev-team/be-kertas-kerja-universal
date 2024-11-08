@@ -19,6 +19,7 @@ type PohonKinerjaRepository interface {
 	DeletePokinAdmin(ctx context.Context, tx *sql.Tx, id int) error
 	FindPokinAdminById(ctx context.Context, tx *sql.Tx, id int) (domain.PohonKinerja, error)
 	FindPokinAdminAll(ctx context.Context, tx *sql.Tx, tahun string) ([]domain.PohonKinerja, error)
+	FindPokinAdminByIdHierarki(ctx context.Context, tx *sql.Tx, idPokin int) ([]domain.PohonKinerja, error)
 	FindIndikatorByPokinId(ctx context.Context, tx *sql.Tx, pokinId string) ([]domain.Indikator, error)
 	FindTargetByIndikatorId(ctx context.Context, tx *sql.Tx, indikatorId string) ([]domain.Target, error)
 }

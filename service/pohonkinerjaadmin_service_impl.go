@@ -236,20 +236,26 @@ func (service *PohonKinerjaAdminServiceImpl) Delete(ctx context.Context, id int)
 	// Mulai transaksi
 	tx, err := service.DB.Begin()
 	if err != nil {
-		return err
+		return fmt.Errorf("gagal memulai transaksi: %v", err)
 	}
 	defer helper.CommitOrRollback(tx)
 
 	// Cek apakah data exists sebelum dihapus
-	_, err = service.pohonKinerjaRepository.FindPokinAdminById(ctx, tx, id)
+	pokin, err := service.pohonKinerjaRepository.FindPokinAdminById(ctx, tx, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("data tidak ditemukan: %v", err)
 	}
 
-	// Lakukan penghapusan
+	// Validasi tambahan: pastikan data yang akan dihapus memiliki level yang sesuai
+	// Ini opsional, tergantung kebutuhan bisnis
+	if pokin.LevelPohon < 0 || pokin.LevelPohon > 6 {
+		return fmt.Errorf("level pohon kinerja tidak valid")
+	}
+
+	// Lakukan penghapusan secara hierarki
 	err = service.pohonKinerjaRepository.DeletePokinAdmin(ctx, tx, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("gagal menghapus data: %v", err)
 	}
 
 	return nil

@@ -244,6 +244,7 @@ func (service *OpdServiceImpl) FindAll(ctx context.Context) ([]opdmaster.OpdResp
 		lembagaResponse := lembaga.LembagaResponse{
 			Id:          lembagaDomain.Id,
 			NamaLembaga: lembagaDomain.NamaLembaga,
+			IsActive:    lembagaDomain.IsActive,
 		}
 
 		opdResponses = append(opdResponses, opdmaster.OpdResponse{

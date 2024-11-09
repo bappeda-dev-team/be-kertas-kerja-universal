@@ -7,6 +7,7 @@ type SubKegiatan struct {
 	KodeSubKegiatan      string
 	NamaSubKegiatan      string
 	KodeOpd              string
+	NamaOpd              string
 	Tahun                string
 	PegawaiId            string
 	CreatedAt            time.Time

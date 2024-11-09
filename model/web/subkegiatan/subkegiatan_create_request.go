@@ -9,10 +9,9 @@ type SubKegiatanCreateRequest struct {
 }
 
 type IndikatorCreateRequest struct {
-	Id               string                `json:"id_indikator"`
-	RencanaKinerjaId string                `json:"rencana_kinerja_id"`
-	NamaIndikator    string                `json:"nama_indikator"`
-	Target           []TargetCreateRequest `json:"targets"`
+	Id            string                `json:"id_indikator"`
+	NamaIndikator string                `json:"indikator"`
+	Target        []TargetCreateRequest `json:"targets"`
 }
 
 type TargetCreateRequest struct {

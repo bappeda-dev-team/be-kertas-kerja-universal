@@ -421,6 +421,7 @@ func ToSubKegiatanResponse(subKegiatan domain.SubKegiatan) subkegiatan.SubKegiat
 		PegawaiId:            subKegiatan.PegawaiId,
 		NamaSubKegiatan:      subKegiatan.NamaSubKegiatan,
 		KodeOpd:              subKegiatan.KodeOpd,
+		NamaOpd:              subKegiatan.NamaOpd,
 		Tahun:                subKegiatan.Tahun,
 		Indikator:            indikatorResponses,
 		IndikatorSubkegiatan: indikatorSubKegiatanResponses,

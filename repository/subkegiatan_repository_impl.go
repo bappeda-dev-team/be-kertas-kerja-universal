@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"ekak_kabupaten_madiun/model/domain"
+	"fmt"
 	"log"
 )
 
@@ -135,7 +136,7 @@ func (repository *SubKegiatanRepositoryImpl) Update(ctx context.Context, tx *sql
 }
 
 func (repository *SubKegiatanRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, kodeOpd string, pegawaiId string) ([]domain.SubKegiatan, error) {
-	script := `SELECT id, kode_subkegiatan, nama_subkegiatan, kode_opd, tahun, created_at FROM tb_subkegiatan WHERE 1=1`
+	script := `SELECT id, kode_subkegiatan, nama_subkegiatan, kode_opd, pegawai_id, tahun, created_at FROM tb_subkegiatan WHERE 1=1`
 	var params []interface{}
 
 	if kodeOpd != "" {
@@ -157,7 +158,7 @@ func (repository *SubKegiatanRepositoryImpl) FindAll(ctx context.Context, tx *sq
 	var subKegiatans []domain.SubKegiatan
 	for rows.Next() {
 		subKegiatan := domain.SubKegiatan{}
-		err := rows.Scan(&subKegiatan.Id, &subKegiatan.KodeSubKegiatan, &subKegiatan.NamaSubKegiatan, &subKegiatan.KodeOpd, &subKegiatan.Tahun, &subKegiatan.CreatedAt)
+		err := rows.Scan(&subKegiatan.Id, &subKegiatan.KodeSubKegiatan, &subKegiatan.NamaSubKegiatan, &subKegiatan.KodeOpd, &subKegiatan.PegawaiId, &subKegiatan.Tahun, &subKegiatan.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -174,42 +175,38 @@ func (repository *SubKegiatanRepositoryImpl) FindById(ctx context.Context, tx *s
 	if err != nil {
 		return domain.SubKegiatan{}, err
 	}
+	defer rows.Close()
 
 	subKegiatan := domain.SubKegiatan{}
 	if rows.Next() {
-		rows.Scan(&subKegiatan.Id, &subKegiatan.KodeSubKegiatan, &subKegiatan.PegawaiId, &subKegiatan.NamaSubKegiatan, &subKegiatan.KodeOpd, &subKegiatan.Tahun)
+		err := rows.Scan(&subKegiatan.Id, &subKegiatan.KodeSubKegiatan, &subKegiatan.PegawaiId, &subKegiatan.NamaSubKegiatan, &subKegiatan.KodeOpd, &subKegiatan.Tahun)
+		if err != nil {
+			return domain.SubKegiatan{}, err
+		}
+		return subKegiatan, nil
 	}
 
-	return subKegiatan, nil
+	return domain.SubKegiatan{}, fmt.Errorf("subkegiatan dengan id %s tidak ditemukan", subKegiatanId)
 }
 
 func (repository *SubKegiatanRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, subKegiatanId string) error {
-	// Hapus target terlebih dahulu
-	scriptDeleteTarget := `DELETE FROM tb_target 
-                          WHERE indikator_id IN (
-                              SELECT id FROM tb_indikator 
-                              WHERE subkegiatan_id = ?
-                          )`
-	_, err := tx.ExecContext(ctx, scriptDeleteTarget, subKegiatanId)
-	if err != nil {
-		log.Printf("Error deleting targets: %v", err)
-		return err
+	// Urutan query untuk menghapus data secara berurutan
+	deleteQueries := []string{
+		`DELETE FROM tb_target 
+		 WHERE indikator_id IN (
+			 SELECT id FROM tb_indikator 
+			 WHERE subkegiatan_id = ?
+		 )`,
+		`DELETE FROM tb_indikator WHERE subkegiatan_id = ?`,
+		`DELETE FROM tb_subkegiatan WHERE id = ?`,
 	}
 
-	// Hapus indikator
-	scriptDeleteIndikator := `DELETE FROM tb_indikator WHERE subkegiatan_id = ?`
-	_, err = tx.ExecContext(ctx, scriptDeleteIndikator, subKegiatanId)
-	if err != nil {
-		log.Printf("Error deleting indicators: %v", err)
-		return err
-	}
-
-	// Hapus subkegiatan
-	scriptDeleteSubKegiatan := `DELETE FROM tb_subkegiatan WHERE id = ?`
-	_, err = tx.ExecContext(ctx, scriptDeleteSubKegiatan, subKegiatanId)
-	if err != nil {
-		log.Printf("Error deleting subkegiatan: %v", err)
-		return err
+	// Eksekusi setiap query secara berurutan
+	for _, query := range deleteQueries {
+		_, err := tx.ExecContext(ctx, query, subKegiatanId)
+		if err != nil {
+			return fmt.Errorf("gagal menghapus data: %v", err)
+		}
 	}
 
 	return nil

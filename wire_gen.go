@@ -58,7 +58,7 @@ func InitializeServer() *http.Server {
 	inovasiServiceImpl := service.NewInovasiServiceImpl(inovasiRepositoryImpl, db)
 	inovasiControllerImpl := controller.NewInovasiControllerImpl(inovasiServiceImpl)
 	subKegiatanRepositoryImpl := repository.NewSubKegiatanRepositoryImpl()
-	subKegiatanServiceImpl := service.NewSubKegiatanServiceImpl(subKegiatanRepositoryImpl, db, validate)
+	subKegiatanServiceImpl := service.NewSubKegiatanServiceImpl(subKegiatanRepositoryImpl, opdRepositoryImpl, db, validate)
 	subKegiatanControllerImpl := controller.NewSubKegiatanControllerImpl(subKegiatanServiceImpl)
 	subKegiatanTerpilihRepositoryImpl := repository.NewSubKegiatanTerpilihRepositoryImpl()
 	subKegiatanTerpilihServiceImpl := service.NewSubKegiatanTerpilihServiceImpl(subKegiatanTerpilihRepositoryImpl, db)

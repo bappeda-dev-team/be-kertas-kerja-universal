@@ -196,3 +196,74 @@ func BuildTematikResponseLimited(pohonMap map[int]map[int][]domain.PohonKinerja,
 
 	return tematikResp
 }
+
+//build pohonkinerja response for opd
+
+func BuildStrategicOpdResponses(pohonMap map[int]map[int][]domain.PohonKinerja, strategics []domain.PohonKinerja) []pohonkinerja.StrategicOpdResponse {
+	var responses []pohonkinerja.StrategicOpdResponse
+	for _, strategic := range strategics {
+		var parentId *int
+		if strategic.Parent != 0 {
+			parentId = &strategic.Parent
+		}
+
+		strategicResp := pohonkinerja.StrategicOpdResponse{
+			Id:         strategic.Id,
+			Parent:     parentId,
+			Strategi:   strategic.NamaPohon,
+			Keterangan: strategic.Keterangan,
+			KodeOpd: opdmaster.OpdResponseForAll{
+				KodeOpd: strategic.KodeOpd,
+				NamaOpd: strategic.NamaOpd,
+			},
+		}
+
+		if tacticals := pohonMap[5][strategic.Id]; len(tacticals) > 0 {
+			strategicResp.Tacticals = BuildTacticalOpdResponses(pohonMap, tacticals)
+		}
+
+		responses = append(responses, strategicResp)
+	}
+	return responses
+}
+
+func BuildTacticalOpdResponses(pohonMap map[int]map[int][]domain.PohonKinerja, tacticals []domain.PohonKinerja) []pohonkinerja.TacticalOpdResponse {
+	var responses []pohonkinerja.TacticalOpdResponse
+	for _, tactical := range tacticals {
+		tacticalResp := pohonkinerja.TacticalOpdResponse{
+			Id:         tactical.Id,
+			Parent:     tactical.Parent,
+			Strategi:   tactical.NamaPohon,
+			Keterangan: tactical.Keterangan,
+			KodeOpd: opdmaster.OpdResponseForAll{
+				KodeOpd: tactical.KodeOpd,
+				NamaOpd: tactical.NamaOpd,
+			},
+		}
+
+		if operationals := pohonMap[6][tactical.Id]; len(operationals) > 0 {
+			tacticalResp.Operationals = BuildOperationalOpdResponses(operationals)
+		}
+
+		responses = append(responses, tacticalResp)
+	}
+	return responses
+}
+
+func BuildOperationalOpdResponses(operationals []domain.PohonKinerja) []pohonkinerja.OperationalOpdResponse {
+	var responses []pohonkinerja.OperationalOpdResponse
+	for _, operational := range operationals {
+		operationalResp := pohonkinerja.OperationalOpdResponse{ // Menggunakan OperationalOpdResponse
+			Id:         operational.Id,
+			Parent:     operational.Parent,
+			Strategi:   operational.NamaPohon,
+			Keterangan: operational.Keterangan,
+			KodeOpd: opdmaster.OpdResponseForAll{
+				KodeOpd: operational.KodeOpd,
+				NamaOpd: operational.NamaOpd,
+			},
+		}
+		responses = append(responses, operationalResp)
+	}
+	return responses
+}

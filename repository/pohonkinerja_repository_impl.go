@@ -57,33 +57,81 @@ func (repository *PohonKinerjaRepositoryImpl) FindById(ctx context.Context, tx *
 }
 
 func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, kodeOpd, tahun string) ([]domain.PohonKinerja, error) {
-	script := "SELECT id, parent, nama_pohon, jenis_pohon, level_pohon, kode_opd, keterangan, tahun FROM tb_pohon_kinerja WHERE 1=1"
-	params := []interface{}{}
-	if kodeOpd != "" {
-		script += " AND kode_opd = ?"
-		params = append(params, kodeOpd)
-	}
-	if tahun != "" {
-		script += " AND tahun = ?"
-		params = append(params, tahun)
-	}
+	script := `
+        SELECT 
+            pk.id,
+            pk.nama_pohon,
+            pk.parent,
+            pk.jenis_pohon,
+            pk.level_pohon,
+            pk.kode_opd,
+            pk.keterangan,
+            pk.tahun,
+            pk.created_at
+        FROM 
+            tb_pohon_kinerja pk
+        WHERE 
+            pk.kode_opd = ? 
+            AND pk.tahun = ?
+        ORDER BY 
+            pk.level_pohon, pk.id, pk.created_at asc
+    `
 
-	rows, err := tx.QueryContext(ctx, script, params...)
+	rows, err := tx.QueryContext(ctx, script, kodeOpd, tahun)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var pohonKinerjas []domain.PohonKinerja
+	var result []domain.PohonKinerja
 	for rows.Next() {
-		pohonKinerja := domain.PohonKinerja{}
-		err := rows.Scan(&pohonKinerja.Id, &pohonKinerja.Parent, &pohonKinerja.NamaPohon, &pohonKinerja.JenisPohon, &pohonKinerja.LevelPohon, &pohonKinerja.KodeOpd, &pohonKinerja.Keterangan, &pohonKinerja.Tahun)
+		var pokin domain.PohonKinerja
+		err := rows.Scan(
+			&pokin.Id,
+			&pokin.NamaPohon,
+			&pokin.Parent,
+			&pokin.JenisPohon,
+			&pokin.LevelPohon,
+			&pokin.KodeOpd,
+			&pokin.Keterangan,
+			&pokin.Tahun,
+			&pokin.CreatedAt,
+		)
 		if err != nil {
 			return nil, err
 		}
-		pohonKinerjas = append(pohonKinerjas, pohonKinerja)
+		result = append(result, pokin)
 	}
-	return pohonKinerjas, nil
+
+	return result, nil
+
+	// script := "SELECT id, parent, nama_pohon, jenis_pohon, level_pohon, kode_opd, keterangan, tahun FROM tb_pohon_kinerja WHERE 1=1"
+	// params := []interface{}{}
+	// if kodeOpd != "" {
+	// 	script += " AND kode_opd = ?"
+	// 	params = append(params, kodeOpd)
+	// }
+	// if tahun != "" {
+	// 	script += " AND tahun = ?"
+	// 	params = append(params, tahun)
+	// }
+
+	// rows, err := tx.QueryContext(ctx, script, params...)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// defer rows.Close()
+
+	// var pohonKinerjas []domain.PohonKinerja
+	// for rows.Next() {
+	// 	pohonKinerja := domain.PohonKinerja{}
+	// 	err := rows.Scan(&pohonKinerja.Id, &pohonKinerja.Parent, &pohonKinerja.NamaPohon, &pohonKinerja.JenisPohon, &pohonKinerja.LevelPohon, &pohonKinerja.KodeOpd, &pohonKinerja.Keterangan, &pohonKinerja.Tahun)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	pohonKinerjas = append(pohonKinerjas, pohonKinerja)
+	// }
+	// return pohonKinerjas, nil
 }
 
 func (repository *PohonKinerjaRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, id string) error {

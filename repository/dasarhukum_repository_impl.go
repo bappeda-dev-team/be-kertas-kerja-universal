@@ -33,13 +33,16 @@ func (repository *DasarHukumRepositoryImpl) Update(ctx context.Context, tx *sql.
 	return dasarHukum, nil
 }
 func (repository *DasarHukumRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, rekinId string, pegawaiId string) ([]domain.DasarHukum, error) {
-	script := "SELECT id, rekin_id, pegawai_id, kode_opd, urutan, peraturan_terkait, uraian FROM tb_dasar_hukum WHERE LIMIT 1=1"
+	script := "SELECT id, rekin_id, pegawai_id, kode_opd, urutan, peraturan_terkait, uraian FROM tb_dasar_hukum WHERE 1=1"
 	var params []interface{}
+
 	if rekinId != "" {
 		script += " AND rekin_id = ?"
+		params = append(params, rekinId)
 	}
 	if pegawaiId != "" {
 		script += " AND pegawai_id = ?"
+		params = append(params, pegawaiId)
 	}
 	script += " ORDER BY urutan ASC"
 	rows, err := tx.QueryContext(ctx, script, params...)

@@ -13,115 +13,29 @@ func NewSubKegiatanTerpilihRepositoryImpl() *SubKegiatanTerpilihRepositoryImpl {
 	return &SubKegiatanTerpilihRepositoryImpl{}
 }
 
-func (repository *SubKegiatanTerpilihRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, subKegiatanTerpilih domain.SubKegiatanTerpilih) (domain.SubKegiatanTerpilih, error) {
-	// Cek dan hapus data lama jika ada
-	scriptCheck := "SELECT subkegiatan_id FROM tb_subkegiatan_terpilih WHERE rekin_id = ?"
-	var oldSubKegiatanId string
-	err := tx.QueryRowContext(ctx, scriptCheck, subKegiatanTerpilih.RencanaKinerjaId).Scan(&oldSubKegiatanId)
-	if err != nil && err != sql.ErrNoRows {
-		return domain.SubKegiatanTerpilih{}, err
-	}
-
-	if oldSubKegiatanId != "" {
-		// Update tb_subkegiatan lama, set rekin_id menjadi kosong
-		scriptUpdateOld := "UPDATE tb_subkegiatan SET rekin_id = '' WHERE id = ?"
-		_, err = tx.ExecContext(ctx, scriptUpdateOld, oldSubKegiatanId)
-		if err != nil {
-			return domain.SubKegiatanTerpilih{}, err
-		}
-
-		// Hapus data lama dari tb_subkegiatan_terpilih
-		scriptDelete := "DELETE FROM tb_subkegiatan_terpilih WHERE rekin_id = ?"
-		_, err = tx.ExecContext(ctx, scriptDelete, subKegiatanTerpilih.RencanaKinerjaId)
-		if err != nil {
-			return domain.SubKegiatanTerpilih{}, err
-		}
-	}
-
-	// Insert data baru ke tb_subkegiatan_terpilih
-	script1 := "INSERT INTO tb_subkegiatan_terpilih (id, rekin_id, subkegiatan_id) VALUES (?, ?, ?)"
-	_, err = tx.ExecContext(ctx, script1, subKegiatanTerpilih.Id, subKegiatanTerpilih.RencanaKinerjaId, subKegiatanTerpilih.SubKegiatanId)
+func (repository *SubKegiatanTerpilihRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, subKegiatanTerpilih domain.SubKegiatanTerpilih) (domain.SubKegiatanTerpilih, error) {
+	script := "UPDATE tb_rencana_kinerja SET kode_subkegiatan = ? WHERE id = ?"
+	_, err := tx.ExecContext(ctx, script, subKegiatanTerpilih.KodeSubKegiatan, subKegiatanTerpilih.Id)
 	if err != nil {
-		return domain.SubKegiatanTerpilih{}, err
-	}
-
-	// Update tb_subkegiatan baru dengan rekin_id
-	script2 := "UPDATE tb_subkegiatan SET rekin_id = ? WHERE id = ?"
-	_, err = tx.ExecContext(ctx, script2, subKegiatanTerpilih.RencanaKinerjaId, subKegiatanTerpilih.SubKegiatanId)
-	if err != nil {
-		return domain.SubKegiatanTerpilih{}, err
+		return subKegiatanTerpilih, err
 	}
 
 	return subKegiatanTerpilih, nil
 }
 
-// func (repository *SubKegiatanTerpilihRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, subKegiatanTerpilih domain.SubKegiatanTerpilih) (domain.SubKegiatanTerpilih, error) {
-// 	// Insert ke tb_subkegiatan_terpilih
-// 	script1 := "INSERT INTO tb_subkegiatan_terpilih (id, rekin_id, subkegiatan_id) VALUES (?, ?, ?)"
-// 	_, err := tx.ExecContext(ctx, script1, subKegiatanTerpilih.Id, subKegiatanTerpilih.RencanaKinerjaId, subKegiatanTerpilih.SubKegiatanId)
-// 	if err != nil {
-// 		return domain.SubKegiatanTerpilih{}, err
-// 	}
-
-// 	// Update tb_subkegiatan dengan rekin_id
-// 	script2 := "UPDATE tb_subkegiatan SET rekin_id = ? WHERE id = ?"
-// 	_, err = tx.ExecContext(ctx, script2, subKegiatanTerpilih.RencanaKinerjaId, subKegiatanTerpilih.SubKegiatanId)
-// 	if err != nil {
-// 		return domain.SubKegiatanTerpilih{}, err
-// 	}
-
-// 	return subKegiatanTerpilih, nil
-// }
-
-func (repository *SubKegiatanTerpilihRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, subKegiatanId string) error {
-	// Hapus dari tb_subkegiatan_terpilih
-	scriptDelete := "DELETE FROM tb_subkegiatan_terpilih WHERE subkegiatan_id = ?"
-	_, err := tx.ExecContext(ctx, scriptDelete, subKegiatanId)
+func (repository *SubKegiatanTerpilihRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, id string, kodeSubKegiatan string) error {
+	scriptDelete := "UPDATE tb_rencana_kinerja SET kode_subkegiatan = '' WHERE id = ? AND kode_subkegiatan = ?"
+	_, err := tx.ExecContext(ctx, scriptDelete, id, kodeSubKegiatan)
 	if err != nil {
 		return err
 	}
 
-	// Update tb_subkegiatan, set rekin_id menjadi NULL
-	scriptUpdate := "UPDATE tb_subkegiatan SET rekin_id = '' WHERE id = ?"
-	_, err = tx.ExecContext(ctx, scriptUpdate, subKegiatanId)
-	return err
+	return nil
 }
 
-func (repository *SubKegiatanTerpilihRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, subKegiatanTerpilihId string) (domain.SubKegiatanTerpilih, error) {
-	script := "SELECT * FROM tb_subkegiatan_terpilih WHERE id = ?"
+func (repository *SubKegiatanTerpilihRepositoryImpl) FindByIdAndKodeSubKegiatan(ctx context.Context, tx *sql.Tx, id string, kodeSubKegiatan string) (domain.SubKegiatanTerpilih, error) {
+	script := "SELECT id, kode_subkegiatan FROM tb_rencana_kinerja WHERE id = ? AND kode_subkegiatan = ?"
 	var subKegiatanTerpilih domain.SubKegiatanTerpilih
-	err := tx.QueryRowContext(ctx, script, subKegiatanTerpilihId).Scan(&subKegiatanTerpilih.Id, &subKegiatanTerpilih.RencanaKinerjaId, &subKegiatanTerpilih.SubKegiatanId)
+	err := tx.QueryRowContext(ctx, script, id, kodeSubKegiatan).Scan(&subKegiatanTerpilih.Id, &subKegiatanTerpilih.KodeSubKegiatan)
 	return subKegiatanTerpilih, err
-}
-
-func (repository *SubKegiatanTerpilihRepositoryImpl) ExistsByRencanaKinerjaIdAndSubKegiatanId(ctx context.Context, tx *sql.Tx, rencanaKinerjaId string, subKegiatanId string) (bool, error) {
-	SQL := "SELECT COUNT(*) FROM tb_subkegiatan_terpilih WHERE rekin_id = ? AND subkegiatan_id = ?"
-
-	var count int
-	err := tx.QueryRowContext(ctx, SQL, rencanaKinerjaId, subKegiatanId).Scan(&count)
-	if err != nil {
-		return false, err
-	}
-
-	return count > 0, nil
-}
-
-func (repository *SubKegiatanTerpilihRepositoryImpl) ExistsByRekinAndSubKegiatan(ctx context.Context, tx *sql.Tx, rekinId string, subKegiatanId string) (bool, error) {
-	script := "SELECT COUNT(*) FROM tb_subkegiatan_terpilih WHERE rekin_id = ? AND subkegiatan_id = ?"
-	var count int
-	err := tx.QueryRowContext(ctx, script, rekinId, subKegiatanId).Scan(&count)
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
-}
-
-func (repository *SubKegiatanTerpilihRepositoryImpl) ExistsInSubKegiatan(ctx context.Context, tx *sql.Tx, subKegiatanId string) (bool, error) {
-	script := "SELECT COUNT(*) FROM tb_subkegiatan WHERE id = ?"
-	var count int
-	err := tx.QueryRowContext(ctx, script, subKegiatanId).Scan(&count)
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
 }

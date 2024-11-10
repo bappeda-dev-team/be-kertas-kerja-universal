@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"ekak_kabupaten_madiun/model/domain"
 	"fmt"
+	"log"
 )
 
 type RencanaKinerjaRepositoryImpl struct {
@@ -202,4 +203,70 @@ func (repository *RencanaKinerjaRepositoryImpl) Delete(ctx context.Context, tx *
 	}
 
 	return nil
+}
+
+func (repository *RencanaKinerjaRepositoryImpl) FindAllRincianKak(ctx context.Context, tx *sql.Tx, rencanaKinerjaId string, pegawaiId string) ([]domain.RencanaKinerja, error) {
+	log.Printf("Mencari rencana kinerja dengan ID: %s dan PegawaiID: %s", rencanaKinerjaId, pegawaiId)
+
+	script := `
+		SELECT 
+			id, 
+			nama_rencana_kinerja, 
+			tahun, 
+			status_rencana_kinerja, 
+			catatan, 
+			kode_opd, 
+			pegawai_id, 
+			kode_subkegiatan, 
+			created_at 
+		FROM tb_rencana_kinerja 
+		WHERE 1=1
+	`
+	var params []interface{}
+
+	if rencanaKinerjaId != "" {
+		script += " AND id = ?"
+		params = append(params, rencanaKinerjaId)
+	}
+
+	if pegawaiId != "" {
+		script += " AND pegawai_id = ?"
+		params = append(params, pegawaiId)
+	}
+
+	script += " ORDER BY created_at ASC"
+
+	log.Printf("Executing query: %s with params: %v", script, params)
+
+	rows, err := tx.QueryContext(ctx, script, params...)
+	if err != nil {
+		log.Printf("Error executing query: %v", err)
+		return nil, fmt.Errorf("error querying rencana kinerja: %v", err)
+	}
+	defer rows.Close()
+
+	var rencanaKinerjas []domain.RencanaKinerja
+
+	for rows.Next() {
+		var rencanaKinerja domain.RencanaKinerja
+		err := rows.Scan(
+			&rencanaKinerja.Id,
+			&rencanaKinerja.NamaRencanaKinerja,
+			&rencanaKinerja.Tahun,
+			&rencanaKinerja.StatusRencanaKinerja,
+			&rencanaKinerja.Catatan,
+			&rencanaKinerja.KodeOpd,
+			&rencanaKinerja.PegawaiId,
+			&rencanaKinerja.KodeSubKegiatan,
+			&rencanaKinerja.CreatedAt,
+		)
+		if err != nil {
+			log.Printf("Error scanning row: %v", err)
+			return nil, fmt.Errorf("error scanning rencana kinerja: %v", err)
+		}
+		rencanaKinerjas = append(rencanaKinerjas, rencanaKinerja)
+	}
+
+	log.Printf("Found %d rencana kinerja records", len(rencanaKinerjas))
+	return rencanaKinerjas, nil
 }

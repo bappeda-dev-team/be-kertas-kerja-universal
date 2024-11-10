@@ -20,16 +20,14 @@ func NewSubKegiatanTerpilihControllerImpl(subKegiatanTerpilihService service.Sub
 	}
 }
 
-func (controller *SubKegiatanTerpilihControllerImpl) Create(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	subKegiatanTerpilihCreateRequest := subkegiatan.SubKegiatanTerpilihCreateRequest{}
-	helper.ReadFromRequestBody(request, &subKegiatanTerpilihCreateRequest)
-
-	// Ambil rekin dari parameter URL
-	rekinId := params.ByName("rencana_kinerja_id")
-	subKegiatanTerpilihCreateRequest.RencanaKinerjaId = rekinId
+func (controller *SubKegiatanTerpilihControllerImpl) Update(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	subKegiatanTerpilihUpdateRequest := subkegiatan.SubKegiatanTerpilihUpdateRequest{}
+	helper.ReadFromRequestBody(request, &subKegiatanTerpilihUpdateRequest)
+	rencanaKinerjaId := params.ByName("rencana_kinerja_id")
+	subKegiatanTerpilihUpdateRequest.Id = rencanaKinerjaId
 
 	// Panggil service untuk membuat SubKegiatanTerpilih
-	subKegiatanTerpilihResponse, err := controller.SubKegiatanTerpilihService.Create(request.Context(), subKegiatanTerpilihCreateRequest)
+	subKegiatanTerpilihResponse, err := controller.SubKegiatanTerpilihService.Update(request.Context(), subKegiatanTerpilihUpdateRequest)
 	if err != nil {
 		webResponse := web.WebSubKegiatanTerpilihResponse{
 			Code:   http.StatusInternalServerError,
@@ -43,16 +41,17 @@ func (controller *SubKegiatanTerpilihControllerImpl) Create(writer http.Response
 	// Kirim respons sukses
 	webResponse := web.WebSubKegiatanTerpilihResponse{
 		Code:   http.StatusCreated,
-		Status: "success create sub kegiatan terpilih",
+		Status: "success add sub kegiatan terpilih",
 		Data:   subKegiatanTerpilihResponse,
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }
 
 func (controller *SubKegiatanTerpilihControllerImpl) Delete(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	subKegiatanId := params.ByName("subkegiatan_id")
+	kodeSubKegiatan := params.ByName("kode_subkegiatan")
+	rencanaKinerjaId := params.ByName("rencana_kinerja_id")
 
-	err := controller.SubKegiatanTerpilihService.Delete(request.Context(), subKegiatanId)
+	err := controller.SubKegiatanTerpilihService.Delete(request.Context(), rencanaKinerjaId, kodeSubKegiatan)
 	if err != nil {
 		webResponse := web.WebSubKegiatanTerpilihResponse{
 			Code:   http.StatusInternalServerError,
@@ -66,6 +65,28 @@ func (controller *SubKegiatanTerpilihControllerImpl) Delete(writer http.Response
 	webResponse := web.WebSubKegiatanTerpilihResponse{
 		Code:   http.StatusOK,
 		Status: "success delete sub kegiatan terpilih",
+	}
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *SubKegiatanTerpilihControllerImpl) FindByKodeSubKegiatan(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	kodeSubKegiatan := params.ByName("kode_subkegiatan")
+
+	subKegiatanTerpilihResponse, err := controller.SubKegiatanTerpilihService.FindByKodeSubKegiatan(request.Context(), kodeSubKegiatan)
+	if err != nil {
+		webResponse := web.WebSubKegiatanTerpilihResponse{
+			Code:   http.StatusInternalServerError,
+			Status: "INTERNAL SERVER ERROR",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebSubKegiatanTerpilihResponse{
+		Code:   http.StatusOK,
+		Status: "success find sub kegiatan terpilih",
+		Data:   subKegiatanTerpilihResponse,
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }

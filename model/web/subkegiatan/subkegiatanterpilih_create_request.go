@@ -1,6 +1,6 @@
 package subkegiatan
 
-type SubKegiatanTerpilihCreateRequest struct {
-	RencanaKinerjaId string `json:"rencana_kinerja_id"`
-	SubKegiatanId    string `json:"subkegiatan_id"`
+type SubKegiatanTerpilihUpdateRequest struct {
+	Id              string `json:"id"`
+	KodeSubKegiatan string `json:"kode_subkegiatan"`
 }

@@ -257,3 +257,23 @@ func (repository *SubKegiatanRepositoryImpl) FindTargetByIndikatorId(ctx context
 
 	return targets, nil
 }
+
+func (repository *SubKegiatanRepositoryImpl) FindByKodeSubKegiatan(ctx context.Context, tx *sql.Tx, kodeSubKegiatan string) (domain.SubKegiatan, error) {
+	script := "SELECT id, kode_subkegiatan, nama_subkegiatan FROM tb_subkegiatan WHERE kode_subkegiatan = ?"
+	rows, err := tx.QueryContext(ctx, script, kodeSubKegiatan)
+	if err != nil {
+		return domain.SubKegiatan{}, err
+	}
+	defer rows.Close()
+
+	subKegiatan := domain.SubKegiatan{}
+	if rows.Next() {
+		err := rows.Scan(&subKegiatan.Id, &subKegiatan.KodeSubKegiatan, &subKegiatan.NamaSubKegiatan)
+		if err != nil {
+			return domain.SubKegiatan{}, err
+		}
+		return subKegiatan, nil
+	}
+
+	return domain.SubKegiatan{}, fmt.Errorf("subkegiatan dengan kode %s tidak ditemukan", kodeSubKegiatan)
+}

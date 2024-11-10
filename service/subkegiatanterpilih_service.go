@@ -6,6 +6,7 @@ import (
 )
 
 type SubKegiatanTerpilihService interface {
-	Create(ctx context.Context, request subkegiatan.SubKegiatanTerpilihCreateRequest) (subkegiatan.SubKegiatanTerpilihResponse, error)
-	Delete(ctx context.Context, id string) error
+	Update(ctx context.Context, request subkegiatan.SubKegiatanTerpilihUpdateRequest) (subkegiatan.SubKegiatanTerpilihResponse, error)
+	FindByKodeSubKegiatan(ctx context.Context, kodeSubKegiatan string) (subkegiatan.SubKegiatanTerpilihResponse, error)
+	Delete(ctx context.Context, id string, kodeSubKegiatan string) error
 }

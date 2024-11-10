@@ -7,6 +7,7 @@ import (
 )
 
 type SubKegiatanTerpilihController interface {
-	Create(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	Update(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	Delete(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	FindByKodeSubKegiatan(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 }

@@ -11,6 +11,7 @@ import (
 	"ekak_kabupaten_madiun/model/web/opdmaster"
 	"ekak_kabupaten_madiun/model/web/pegawai"
 	"ekak_kabupaten_madiun/model/web/pohonkinerja"
+	"ekak_kabupaten_madiun/model/web/rencanaaksi"
 	"ekak_kabupaten_madiun/model/web/rencanakinerja"
 	"ekak_kabupaten_madiun/model/web/subkegiatan"
 	"ekak_kabupaten_madiun/model/web/usulan"
@@ -89,6 +90,96 @@ func ToUsulanMusrebangResponse(usulanMusrebang domain.UsulanMusrebang) usulan.Us
 		Status:    usulanMusrebang.Status,
 		CreatedAt: usulanMusrebang.CreatedAt.Format("2006-01-02"),
 		Action:    buttonActions,
+	}
+}
+
+func ToPelaksanaanRencanaAksiResponse(pelaksanaan domain.PelaksanaanRencanaAksi) rencanaaksi.PelaksanaanRencanaAksiResponse {
+	host := os.Getenv("host")
+	port := os.Getenv("port")
+
+	buttonActions := []web.ActionButton{
+		{
+			NameAction: "Find Id Pelaksanaan Rencana Aksi",
+			Method:     "GET",
+			Url:        fmt.Sprintf("%s:%s/pelaksanaan_rencana_aksi/detail/:id", host, port),
+		},
+		{
+			NameAction: "Update Pelaksanaan Rencana Aksi",
+			Method:     "PUT",
+			Url:        fmt.Sprintf("%s:%s/pelaksanaan_rencana_aksi/update/:pelaksanaanRencanaAksiId", host, port),
+		},
+		{
+			NameAction: "Delete Pelaksanaan Rencana Aksi",
+			Method:     "DELETE",
+			Url:        fmt.Sprintf("%s:%s/pelaksanaan_rencana_aksi/delete/:id", host, port),
+		},
+	}
+
+	return rencanaaksi.PelaksanaanRencanaAksiResponse{
+		Id:            pelaksanaan.Id,
+		RencanaAksiId: pelaksanaan.RencanaAksiId,
+		Bulan:         pelaksanaan.Bulan,
+		Bobot:         pelaksanaan.Bobot,
+		Action:        buttonActions,
+	}
+}
+
+// Fungsi untuk mengkonversi slice rencana aksi
+func ToRencanaAksiResponses(rencanaAksis []domain.RencanaAksi, pelaksanaanMap map[string][]domain.PelaksanaanRencanaAksi) []rencanaaksi.RencanaAksiResponse {
+	var responses []rencanaaksi.RencanaAksiResponse
+	for _, rencanaAksi := range rencanaAksis {
+		pelaksanaanList := pelaksanaanMap[rencanaAksi.Id]
+		response := ToRencanaAksiResponse(rencanaAksi, pelaksanaanList)
+		responses = append(responses, response)
+	}
+	return responses
+}
+
+// Fungsi untuk mengkonversi single rencana aksi
+func ToRencanaAksiResponse(rencanaAksi domain.RencanaAksi, pelaksanaanList []domain.PelaksanaanRencanaAksi) rencanaaksi.RencanaAksiResponse {
+	host := os.Getenv("host")
+	port := os.Getenv("port")
+
+	buttonActions := []web.ActionButton{
+		{
+			NameAction: "Find Id Rencana Aksi",
+			Method:     "GET",
+			Url:        fmt.Sprintf("%s:%s/detail-rencana_aksi/:rencanaaksiId", host, port),
+		},
+		{
+			NameAction: "Update Rencana Aksi",
+			Method:     "PUT",
+			Url:        fmt.Sprintf("%s:%s/rencana_aksi/update/rencanaaksi/:rencanaaksiId", host, port),
+		},
+		{
+			NameAction: "Delete Rencana Aksi",
+			Method:     "DELETE",
+			Url:        fmt.Sprintf("%s:%s/rencana_aksi/delete/rencanaaksi/:rencanaaksiId", host, port),
+		},
+		{
+			NameAction: "Create Pelaksanaan Rencana Aksi",
+			Method:     "POST",
+			Url:        fmt.Sprintf("%s:%s/pelaksanaan_rencana_aksi/create/:rencanaAksiId", host, port),
+		},
+	}
+
+	var pelaksanaanResponses []rencanaaksi.PelaksanaanRencanaAksiResponse
+	jumlahBobot := 0
+	for _, pelaksanaan := range pelaksanaanList {
+		pelaksanaanResponses = append(pelaksanaanResponses, ToPelaksanaanRencanaAksiResponse(pelaksanaan))
+		jumlahBobot += pelaksanaan.Bobot
+	}
+
+	return rencanaaksi.RencanaAksiResponse{
+		Id:                     rencanaAksi.Id,
+		RencanaKinerjaId:       rencanaAksi.RencanaKinerjaId,
+		KodeOpd:                rencanaAksi.KodeOpd,
+		PegawaiId:              rencanaAksi.PegawaiId,
+		Urutan:                 rencanaAksi.Urutan,
+		NamaRencanaAksi:        rencanaAksi.NamaRencanaAksi,
+		PelaksanaanRencanaAksi: pelaksanaanResponses,
+		JumlahBobot:            jumlahBobot,
+		Action:                 buttonActions,
 	}
 }
 
@@ -371,10 +462,9 @@ func ToSubKegiatanResponse(subKegiatan domain.SubKegiatan) subkegiatan.SubKegiat
 		}
 
 		indikatorResponses = append(indikatorResponses, subkegiatan.IndikatorResponse{
-			Id:               indikator.Id,
-			RencanaKinerjaId: indikator.RencanaKinerjaId,
-			NamaIndikator:    indikator.Indikator,
-			Target:           targetResponses,
+			Id:            indikator.Id,
+			NamaIndikator: indikator.Indikator,
+			Target:        targetResponses,
 		})
 	}
 
@@ -440,9 +530,9 @@ func ToSubKegiatanResponses(subKegiatans []domain.SubKegiatan) []subkegiatan.Sub
 
 func ToSubKegiatanTerpilihResponse(subKegiatanTerpilih domain.SubKegiatanTerpilih) subkegiatan.SubKegiatanTerpilihResponse {
 	return subkegiatan.SubKegiatanTerpilihResponse{
-		Id:               subKegiatanTerpilih.Id,
-		RencanaKinerjaId: subKegiatanTerpilih.RencanaKinerjaId,
-		SubKegiatanId:    subKegiatanTerpilih.SubKegiatanId,
+		KodeSubKegiatan: subkegiatan.SubKegiatanResponse{
+			KodeSubKegiatan: subKegiatanTerpilih.KodeSubKegiatan,
+		},
 	}
 }
 

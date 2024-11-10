@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 type PohonKinerja struct {
 	Id         int
 	Parent     int
@@ -10,5 +12,6 @@ type PohonKinerja struct {
 	Tahun      string
 	JenisPohon string
 	LevelPohon int
+	CreatedAt  time.Time
 	Indikator  []Indikator
 }

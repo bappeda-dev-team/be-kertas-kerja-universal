@@ -3,12 +3,13 @@ package subkegiatan
 import "ekak_kabupaten_madiun/model/web"
 
 type SubKegiatanResponse struct {
-	Id                   string                         `json:"id"`
+	Id                   string                         `json:"id,omitempty"`
 	PegawaiId            string                         `json:"pegawai_id,omitempty"`
-	NamaSubKegiatan      string                         `json:"nama_sub_kegiatan"`
-	KodeOpd              string                         `json:"kode_opd"`
-	NamaOpd              string                         `json:"nama_opd"`
-	Tahun                string                         `json:"tahun"`
+	KodeSubKegiatan      string                         `json:"kode_subkegiatan,omitempty"`
+	NamaSubKegiatan      string                         `json:"nama_sub_kegiatan,omitempty"`
+	KodeOpd              string                         `json:"kode_opd,omitempty"`
+	NamaOpd              string                         `json:"nama_opd,omitempty"`
+	Tahun                string                         `json:"tahun,omitempty"`
 	Indikator            []IndikatorResponse            `json:"indikator,omitempty"`
 	IndikatorSubkegiatan []IndikatorSubKegiatanResponse `json:"indikator_subkegiatan,omitempty"`
 	PaguSubKegiatan      []PaguSubKegiatanResponse      `json:"pagu,omitempty"`
@@ -16,10 +17,9 @@ type SubKegiatanResponse struct {
 }
 
 type IndikatorResponse struct {
-	Id               string           `json:"id_indikator"`
-	RencanaKinerjaId string           `json:"rencana_kinerja_id"`
-	NamaIndikator    string           `json:"nama_indikator"`
-	Target           []TargetResponse `json:"targets"`
+	Id            string           `json:"id_indikator"`
+	NamaIndikator string           `json:"nama_indikator"`
+	Target        []TargetResponse `json:"targets"`
 }
 
 type TargetResponse struct {

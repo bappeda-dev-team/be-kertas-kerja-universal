@@ -14,4 +14,5 @@ type SubKegiatanRepository interface {
 	Delete(ctx context.Context, tx *sql.Tx, subKegiatanId string) error
 	FindIndikatorBySubKegiatanId(ctx context.Context, tx *sql.Tx, subKegiatanId string) ([]domain.Indikator, error)
 	FindTargetByIndikatorId(ctx context.Context, tx *sql.Tx, indikatorId string) ([]domain.Target, error)
+	FindByKodeSubKegiatan(ctx context.Context, tx *sql.Tx, kodeSubKegiatan string) (domain.SubKegiatan, error)
 }

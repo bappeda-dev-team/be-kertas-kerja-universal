@@ -9,106 +9,106 @@ import (
 	"ekak_kabupaten_madiun/repository"
 	"errors"
 	"fmt"
-
-	"github.com/google/uuid"
+	"log"
 )
 
 type SubKegiatanTerpilihServiceImpl struct {
+	RencanaKinerjaRepository      repository.RencanaKinerjaRepository
+	SubKegiatanRepository         repository.SubKegiatanRepository
 	SubKegiatanTerpilihRepository repository.SubKegiatanTerpilihRepository
 	DB                            *sql.DB
 }
 
-func NewSubKegiatanTerpilihServiceImpl(subKegiatanTerpilihRepository repository.SubKegiatanTerpilihRepository, DB *sql.DB) *SubKegiatanTerpilihServiceImpl {
+func NewSubKegiatanTerpilihServiceImpl(rencanaKinerjaRepository repository.RencanaKinerjaRepository, subKegiatanRepository repository.SubKegiatanRepository, subKegiatanTerpilihRepository repository.SubKegiatanTerpilihRepository, DB *sql.DB) *SubKegiatanTerpilihServiceImpl {
 	return &SubKegiatanTerpilihServiceImpl{
+		RencanaKinerjaRepository:      rencanaKinerjaRepository,
+		SubKegiatanRepository:         subKegiatanRepository,
 		SubKegiatanTerpilihRepository: subKegiatanTerpilihRepository,
 		DB:                            DB,
 	}
 }
 
-func (service *SubKegiatanTerpilihServiceImpl) Create(ctx context.Context, request subkegiatan.SubKegiatanTerpilihCreateRequest) (subkegiatan.SubKegiatanTerpilihResponse, error) {
+func (service *SubKegiatanTerpilihServiceImpl) Update(ctx context.Context, request subkegiatan.SubKegiatanTerpilihUpdateRequest) (subkegiatan.SubKegiatanTerpilihResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return subkegiatan.SubKegiatanTerpilihResponse{}, err
 	}
 	defer helper.CommitOrRollback(tx)
 
-	// Validasi keberadaan SubKegiatanId di tb_subkegiatan
-	exists, err := service.SubKegiatanTerpilihRepository.ExistsInSubKegiatan(ctx, tx, request.SubKegiatanId)
-	if err != nil {
-		return subkegiatan.SubKegiatanTerpilihResponse{}, err
-	}
-	if !exists {
-		return subkegiatan.SubKegiatanTerpilihResponse{}, errors.New("subkegiatan dengan ID tersebut tidak ditemukan di tb_subkegiatan")
+	var rencanaKinerja domain.RencanaKinerja
+	if request.Id != "" {
+		rencanaKinerja, err = service.RencanaKinerjaRepository.FindById(ctx, tx, request.Id, "", "")
+		if err != nil {
+			log.Printf("Gagal menemukan RencanaKinerja: %v", err)
+			return subkegiatan.SubKegiatanTerpilihResponse{}, fmt.Errorf("gagal menemukan RencanaKinerja: %v", err)
+		}
+	} else {
+		return subkegiatan.SubKegiatanTerpilihResponse{}, errors.New("id rencana kinerja tidak boleh kosong")
 	}
 
-	// Generate ID baru
-	randomDigits := fmt.Sprintf("%05d", uuid.New().ID()%100000)
-	uuId := fmt.Sprintf("SUB-TRPLH-%s", randomDigits)
+	// Cek apakah data dengan kode_subkegiatan tersebut ada
+	_, err = service.SubKegiatanRepository.FindByKodeSubKegiatan(ctx, tx, request.KodeSubKegiatan)
+	if err != nil {
+		return subkegiatan.SubKegiatanTerpilihResponse{}, errors.New("subkegiatan tidak ditemukan")
+	}
 
 	subKegiatanTerpilih := domain.SubKegiatanTerpilih{
-		Id:               uuId,
-		RencanaKinerjaId: request.RencanaKinerjaId,
-		SubKegiatanId:    request.SubKegiatanId,
+		Id:              rencanaKinerja.Id,
+		KodeSubKegiatan: request.KodeSubKegiatan,
 	}
 
-	result, err := service.SubKegiatanTerpilihRepository.Create(ctx, tx, subKegiatanTerpilih)
+	result, err := service.SubKegiatanTerpilihRepository.Update(ctx, tx, subKegiatanTerpilih)
 	if err != nil {
 		return subkegiatan.SubKegiatanTerpilihResponse{}, err
 	}
 
-	return helper.ToSubKegiatanTerpilihResponse(result), nil
+	return subkegiatan.SubKegiatanTerpilihResponse{
+		KodeSubKegiatan: subkegiatan.SubKegiatanResponse{
+			KodeSubKegiatan: result.KodeSubKegiatan,
+		},
+	}, nil
 }
 
-// func (service *SubKegiatanTerpilihServiceImpl) Create(ctx context.Context, request subkegiatan.SubKegiatanTerpilihCreateRequest) (subkegiatan.SubKegiatanTerpilihResponse, error) {
-// 	tx, err := service.DB.Begin()
-// 	if err != nil {
-// 		return subkegiatan.SubKegiatanTerpilihResponse{}, err
-// 	}
-// 	defer helper.CommitOrRollback(tx)
+func (service *SubKegiatanTerpilihServiceImpl) FindByKodeSubKegiatan(ctx context.Context, kodeSubKegiatan string) (subkegiatan.SubKegiatanTerpilihResponse, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return subkegiatan.SubKegiatanTerpilihResponse{}, err
+	}
+	defer helper.CommitOrRollback(tx)
 
-// 	// Validasi keberadaan SubKegiatanId di tb_subkegiatan
-// 	exists, err := service.SubKegiatanTerpilihRepository.ExistsInSubKegiatan(ctx, tx, request.SubKegiatanId)
-// 	if err != nil {
-// 		return subkegiatan.SubKegiatanTerpilihResponse{}, err
-// 	}
-// 	if !exists {
-// 		return subkegiatan.SubKegiatanTerpilihResponse{}, errors.New("subkegiatan dengan ID tersebut tidak ditemukan di tb_subkegiatan")
-// 	}
+	// Cek apakah data dengan kode_subkegiatan tersebut ada
 
-// 	randomDigits := fmt.Sprintf("%05d", uuid.New().ID()%100000)
-// 	uuId := fmt.Sprintf("SUB-TRPLH-%s", randomDigits)
+	result, err := service.SubKegiatanRepository.FindByKodeSubKegiatan(ctx, tx, kodeSubKegiatan)
+	if err != nil {
+		return subkegiatan.SubKegiatanTerpilihResponse{}, errors.New("subkegiatan tidak ditemukan")
+	}
 
-// 	subKegiatanTerpilih := domain.SubKegiatanTerpilih{
-// 		Id:               uuId,
-// 		RencanaKinerjaId: request.RencanaKinerjaId,
-// 		SubKegiatanId:    request.SubKegiatanId,
-// 	}
+	return subkegiatan.SubKegiatanTerpilihResponse{
+		KodeSubKegiatan: subkegiatan.SubKegiatanResponse{
+			KodeSubKegiatan: result.KodeSubKegiatan,
+			NamaSubKegiatan: result.NamaSubKegiatan,
+		},
+	}, nil
+}
 
-// 	// Memeriksa duplikasi berdasarkan rekin_id dan subkegiatan_id
-// 	exists, err = service.SubKegiatanTerpilihRepository.ExistsByRekinAndSubKegiatan(ctx, tx, request.RencanaKinerjaId, request.SubKegiatanId)
-// 	if err != nil {
-// 		return subkegiatan.SubKegiatanTerpilihResponse{}, err
-// 	}
-// 	if exists {
-// 		return subkegiatan.SubKegiatanTerpilihResponse{}, errors.New("subkegiatan ini sudah dipilih untuk rekin yang sama")
-// 	}
-
-// 	result, err := service.SubKegiatanTerpilihRepository.Create(ctx, tx, subKegiatanTerpilih)
-// 	if err != nil {
-// 		return subkegiatan.SubKegiatanTerpilihResponse{}, err
-// 	}
-
-// 	return helper.ToSubKegiatanTerpilihResponse(result), nil
-// }
-
-func (service *SubKegiatanTerpilihServiceImpl) Delete(ctx context.Context, subKegiatanTerpilihId string) error {
+func (service *SubKegiatanTerpilihServiceImpl) Delete(ctx context.Context, id string, kodeSubKegiatan string) error {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return err
 	}
 	defer helper.CommitOrRollback(tx)
 
-	err = service.SubKegiatanTerpilihRepository.Delete(ctx, tx, subKegiatanTerpilihId)
+	// Validasi: Cek apakah data dengan id dan kodeSubKegiatan ada
+	_, err = service.SubKegiatanTerpilihRepository.FindByIdAndKodeSubKegiatan(ctx, tx, id, kodeSubKegiatan)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return errors.New("data tidak ditemukan")
+		}
+		return err
+	}
+
+	// Lanjutkan dengan penghapusan jika data ditemukan
+	err = service.SubKegiatanTerpilihRepository.Delete(ctx, tx, id, kodeSubKegiatan)
 	if err != nil {
 		return err
 	}

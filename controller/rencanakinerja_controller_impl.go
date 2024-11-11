@@ -192,3 +192,27 @@ func (controller *RencanaKinerjaControllerImpl) FindAllRencanaKinerja(writer htt
 
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *RencanaKinerjaControllerImpl) FindAllRincianKak(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	rencanaKinerjaId := params.ByName("rencana_kinerja_id")
+	pegawaiId := params.ByName("pegawai_id")
+
+	rencanaAksiResponses, err := controller.rencanaKinerjaService.FindAllRincianKak(request.Context(), pegawaiId, rencanaKinerjaId)
+	if err != nil {
+		webResponse := web.WebRencanaKinerjaResponse{
+			Code:   http.StatusBadRequest,
+			Status: "failed get rincian kak",
+			Data:   nil,
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebRencanaKinerjaResponse{
+		Code:   http.StatusOK,
+		Status: "success get rincian kak",
+		Data:   rencanaAksiResponses,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}

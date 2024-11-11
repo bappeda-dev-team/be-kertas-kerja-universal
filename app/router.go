@@ -2,7 +2,6 @@ package app
 
 import (
 	"ekak_kabupaten_madiun/controller"
-	"net/http"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -138,8 +137,9 @@ func NewRouter(
 	router.DELETE("/sub_kegiatan/delete/:id", subKegiatanController.Delete)
 
 	//sub kegiatan terpilih
-	router.POST("/subkegiatanterpilih/create/:rencana_kinerja_id", subKegiatanTerpilihController.Create)
-	router.DELETE("/subkegiatanterpilih/delete/:subkegiatan_id", subKegiatanTerpilihController.Delete)
+	router.PUT("/subkegiatanterpilih/create/:rencana_kinerja_id", subKegiatanTerpilihController.Update)
+	router.DELETE("/subkegiatanterpilih/delete/:rencana_kinerja_id/:kode_subkegiatan", subKegiatanTerpilihController.Delete)
+	router.GET("/subkegiatanterpilih/findbykodesubkegiatan/:kode_subkegiatan", subKegiatanTerpilihController.FindByKodeSubKegiatan)
 
 	//pohon kinerja opd
 	router.POST("/pohon_kinerja_opd/create", pohonKinerjaOpdController.Create)
@@ -215,27 +215,30 @@ func NewRouter(
 	router.DELETE("/kegiatan/delete/:id", kegiatanController.Delete)
 	router.GET("/kegiatan/findall", kegiatanController.FindAll)
 
-	router.GET("/rencana_kinerja/:rencana_kinerja_id/pegawai/:pegawai_id/input_rincian_kak", combineHandlers(
-		rencanaKinerjaController.FindAll,
-		rencanaAksiController.FindAllByRekin,
-		usulanMusrebangController.FindAllRekin,
-		usulanMandatoriController.FindAllByRekin,
-		usulanPokokPikiranController.FindAllByRekin,
-		usulanInisiatifController.FindAllByRekin,
-		subKegiatanController.FindAllByRekin,
-		dasarHukumController.FindAllByRekinId,
-		gambaranUmumController.FindAllByRekinId,
-		inovasiController.FindAllByRekinId,
-	))
+	//rincian kak
+	router.GET("/rencana_kinerja/:rencana_kinerja_id/pegawai/:pegawai_id/input_rincian_kak", rencanaKinerjaController.FindAllRincianKak)
+
+	// router.GET("/rencana_kinerja/:rencana_kinerja_id/pegawai/:pegawai_id/input_rincian_kak", combineHandlers(
+	// 	rencanaKinerjaController.FindAll,
+	// 	rencanaAksiController.FindAllByRekin,
+	// 	usulanMusrebangController.FindAllRekin,
+	// 	usulanMandatoriController.FindAllByRekin,
+	// 	usulanPokokPikiranController.FindAllByRekin,
+	// 	usulanInisiatifController.FindAllByRekin,
+	// 	subKegiatanController.FindAllByRekin,
+	// 	dasarHukumController.FindAllByRekinId,
+	// 	gambaranUmumController.FindAllByRekinId,
+	// 	inovasiController.FindAllByRekinId,
+	// ))
 
 	return router
 }
 
 // Buat fungsi wrapper
-func combineHandlers(handlers ...httprouter.Handle) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		for _, handler := range handlers {
-			handler(w, r, ps)
-		}
-	}
-}
+// func combineHandlers(handlers ...httprouter.Handle) httprouter.Handle {
+// 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+// 		for _, handler := range handlers {
+// 			handler(w, r, ps)
+// 		}
+// 	}
+// }

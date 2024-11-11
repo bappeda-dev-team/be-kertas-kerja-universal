@@ -9,6 +9,7 @@ import (
 	"ekak_kabupaten_madiun/repository"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 )
 
@@ -112,6 +113,7 @@ func (service *PohonKinerjaOpdServiceImpl) Update(ctx context.Context, request p
 	pohonKinerja := domain.PohonKinerja{
 		Id:         request.Id,
 		NamaPohon:  request.NamaPohon,
+		Parent:     request.Parent,
 		JenisPohon: request.JenisPohon,
 		LevelPohon: request.LevelPohon,
 		KodeOpd:    request.KodeOpd,
@@ -199,6 +201,94 @@ func (service *PohonKinerjaOpdServiceImpl) FindById(ctx context.Context, id int)
 	}, nil
 }
 
+// func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd, tahun string) (pohonkinerja.PohonKinerjaOpdAllResponse, error) {
+// 	tx, err := service.DB.Begin()
+// 	if err != nil {
+// 		return pohonkinerja.PohonKinerjaOpdAllResponse{}, err
+// 	}
+// 	defer helper.CommitOrRollback(tx)
+
+// 	// Validasi kode OPD
+// 	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, kodeOpd)
+// 	if err != nil {
+// 		return pohonkinerja.PohonKinerjaOpdAllResponse{}, errors.New("kode opd tidak ditemukan")
+// 	}
+// 	if opd.KodeOpd == "" {
+// 		return pohonkinerja.PohonKinerjaOpdAllResponse{}, errors.New("kode opd tidak valid")
+// 	}
+
+// 	// Ambil semua pohon kinerja
+// 	pokins, err := service.pohonKinerjaOpdRepository.FindAll(ctx, tx, kodeOpd, tahun)
+// 	if err != nil {
+// 		return pohonkinerja.PohonKinerjaOpdAllResponse{}, err
+// 	}
+
+// 	// Validasi jika data tidak ditemukan
+// 	if len(pokins) == 0 {
+// 		return pohonkinerja.PohonKinerjaOpdAllResponse{}, errors.New("data tidak ditemukan untuk kode OPD dan tahun yang diberikan")
+// 	}
+
+// 	// Buat response sesuai format yang diinginkan
+// 	response := pohonkinerja.PohonKinerjaOpdAllResponse{
+// 		Tahun:         tahun,
+// 		KodeOpd:       kodeOpd,
+// 		NamaOpd:       opd.NamaOpd,
+// 		PohonKinerjas: []pohonkinerja.PohonKinerjaOpdResponse{},
+// 	}
+
+// 	// Urutkan berdasarkan level dan parent
+// 	var strategics, tacticals, operationals []pohonkinerja.PohonKinerjaOpdResponse
+
+// 	// Kelompokkan berdasarkan level
+// 	for _, pokin := range pokins {
+// 		parent := ""
+// 		if pokin.Parent != 0 {
+// 			parent = strconv.Itoa(pokin.Parent)
+// 		}
+
+// 		detail := pohonkinerja.PohonKinerjaOpdResponse{
+// 			Id:         pokin.Id,
+// 			Parent:     parent,
+// 			JenisPohon: helper.GetJenisPohon(pokin.LevelPohon),
+// 			LevelPohon: pokin.LevelPohon,
+// 			NamaPohon:  pokin.NamaPohon,
+// 		}
+
+// 		switch pokin.LevelPohon {
+// 		case 4:
+// 			strategics = append(strategics, detail)
+// 		case 5:
+// 			tacticals = append(tacticals, detail)
+// 		case 6:
+// 			operationals = append(operationals, detail)
+// 		}
+// 	}
+
+// 	// Susun ulang berdasarkan hierarki
+// 	response.PohonKinerjas = []pohonkinerja.PohonKinerjaOpdResponse{}
+
+// 	// Proses setiap Strategic
+// 	for _, strategic := range strategics {
+// 		response.PohonKinerjas = append(response.PohonKinerjas, strategic)
+
+// 		// Cari Tactical yang terkait
+// 		for _, tactical := range tacticals {
+// 			if tactical.Parent == strconv.Itoa(strategic.Id) {
+// 				response.PohonKinerjas = append(response.PohonKinerjas, tactical)
+
+// 				// Cari Operational yang terkait dengan Tactical ini
+// 				for _, operational := range operationals {
+// 					if operational.Parent == strconv.Itoa(tactical.Id) {
+// 						response.PohonKinerjas = append(response.PohonKinerjas, operational)
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+
+// 	return response, nil
+// }
+
 func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd, tahun string) (pohonkinerja.PohonKinerjaOpdAllResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
@@ -206,83 +296,53 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 	}
 	defer helper.CommitOrRollback(tx)
 
-	// Validasi kode OPD
 	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, kodeOpd)
 	if err != nil {
 		return pohonkinerja.PohonKinerjaOpdAllResponse{}, errors.New("kode opd tidak ditemukan")
 	}
-	if opd.KodeOpd == "" {
-		return pohonkinerja.PohonKinerjaOpdAllResponse{}, errors.New("kode opd tidak valid")
-	}
 
-	// Ambil semua pohon kinerja
 	pokins, err := service.pohonKinerjaOpdRepository.FindAll(ctx, tx, kodeOpd, tahun)
 	if err != nil {
 		return pohonkinerja.PohonKinerjaOpdAllResponse{}, err
 	}
 
-	// Validasi jika data tidak ditemukan
-	if len(pokins) == 0 {
-		return pohonkinerja.PohonKinerjaOpdAllResponse{}, errors.New("data tidak ditemukan untuk kode OPD dan tahun yang diberikan")
+	// Urutkan data berdasarkan LevelPohon dan Id
+	sort.Slice(pokins, func(i, j int) bool {
+		if pokins[i].LevelPohon == pokins[j].LevelPohon {
+			return pokins[i].Id < pokins[j].Id
+		}
+		return pokins[i].LevelPohon < pokins[j].LevelPohon
+	})
+
+	pohonMap := make(map[int]map[int][]domain.PohonKinerja)
+	for i := 0; i <= 6; i++ {
+		pohonMap[i] = make(map[int][]domain.PohonKinerja)
 	}
 
-	// Buat response sesuai format yang diinginkan
-	response := pohonkinerja.PohonKinerjaOpdAllResponse{
-		Tahun:         tahun,
-		KodeOpd:       kodeOpd,
-		NamaOpd:       opd.NamaOpd,
-		PohonKinerjas: []pohonkinerja.PohonKinerjaOpdResponse{},
+	for i := range pokins {
+		pokins[i].NamaOpd = opd.NamaOpd
+		pohonMap[pokins[i].LevelPohon][pokins[i].Parent] = append(
+			pohonMap[pokins[i].LevelPohon][pokins[i].Parent],
+			pokins[i],
+		)
 	}
 
-	// Urutkan berdasarkan level dan parent
-	var strategics, tacticals, operationals []pohonkinerja.PohonKinerjaOpdResponse
-
-	// Kelompokkan berdasarkan level
-	for _, pokin := range pokins {
-		parent := ""
-		if pokin.Parent != 0 {
-			parent = strconv.Itoa(pokin.Parent)
-		}
-
-		detail := pohonkinerja.PohonKinerjaOpdResponse{
-			Id:         pokin.Id,
-			Parent:     parent,
-			JenisPohon: helper.GetJenisPohon(pokin.LevelPohon),
-			LevelPohon: pokin.LevelPohon,
-			NamaPohon:  pokin.NamaPohon,
-		}
-
-		switch pokin.LevelPohon {
-		case 4:
-			strategics = append(strategics, detail)
-		case 5:
-			tacticals = append(tacticals, detail)
-		case 6:
-			operationals = append(operationals, detail)
-		}
+	var allStrategics []domain.PohonKinerja
+	for _, strategics := range pohonMap[4] {
+		allStrategics = append(allStrategics, strategics...)
 	}
 
-	// Susun ulang berdasarkan hierarki
-	response.PohonKinerjas = []pohonkinerja.PohonKinerjaOpdResponse{}
+	// Urutkan strategics berdasarkan Id
+	sort.Slice(allStrategics, func(i, j int) bool {
+		return allStrategics[i].Id < allStrategics[j].Id
+	})
 
-	// Proses setiap Strategic
-	for _, strategic := range strategics {
-		response.PohonKinerjas = append(response.PohonKinerjas, strategic)
+	strategics := helper.BuildStrategicOpdResponses(pohonMap, allStrategics)
 
-		// Cari Tactical yang terkait
-		for _, tactical := range tacticals {
-			if tactical.Parent == strconv.Itoa(strategic.Id) {
-				response.PohonKinerjas = append(response.PohonKinerjas, tactical)
-
-				// Cari Operational yang terkait dengan Tactical ini
-				for _, operational := range operationals {
-					if operational.Parent == strconv.Itoa(tactical.Id) {
-						response.PohonKinerjas = append(response.PohonKinerjas, operational)
-					}
-				}
-			}
-		}
-	}
-
-	return response, nil
+	return pohonkinerja.PohonKinerjaOpdAllResponse{
+		KodeOpd:    kodeOpd,
+		NamaOpd:    opd.NamaOpd,
+		Tahun:      tahun,
+		Strategics: strategics,
+	}, nil
 }

@@ -3,18 +3,20 @@ package rencanakinerja
 import (
 	"ekak_kabupaten_madiun/model/web"
 	"ekak_kabupaten_madiun/model/web/opdmaster"
+	"ekak_kabupaten_madiun/model/web/subkegiatan"
 )
 
 type RencanaKinerjaResponse struct {
-	Id                   string                      `json:"id_rencana_kinerja"`
-	NamaRencanaKinerja   string                      `json:"nama_rencana_kinerja"`
-	Tahun                string                      `json:"tahun"`
-	StatusRencanaKinerja string                      `json:"status_rencana_kinerja"`
-	Catatan              string                      `json:"catatan"`
-	KodeOpd              opdmaster.OpdResponseForAll `json:"operasioanl_daerah"`
-	PegawaiId            string                      `json:"pegawai_id"`
-	Indikator            []IndikatorResponse         `json:"indikator"`
-	Action               []web.ActionButton          `json:"action"`
+	Id                   string                          `json:"id_rencana_kinerja"`
+	NamaRencanaKinerja   string                          `json:"nama_rencana_kinerja"`
+	Tahun                string                          `json:"tahun"`
+	StatusRencanaKinerja string                          `json:"status_rencana_kinerja"`
+	Catatan              string                          `json:"catatan"`
+	KodeOpd              opdmaster.OpdResponseForAll     `json:"operasioanl_daerah"`
+	PegawaiId            string                          `json:"pegawai_id"`
+	Indikator            []IndikatorResponse             `json:"indikator"`
+	SubKegiatan          subkegiatan.SubKegiatanResponse `json:"sub_kegiatan,omitempty"`
+	Action               []web.ActionButton              `json:"action"`
 }
 
 type IndikatorResponse struct {

@@ -182,21 +182,29 @@ func (service *OpdServiceImpl) Delete(ctx context.Context, opdId string) error {
 }
 
 func (service *OpdServiceImpl) FindById(ctx context.Context, opdId string) (opdmaster.OpdResponse, error) {
+	fmt.Println("=== Mulai FindById OPD ===")
+	fmt.Printf("Mencari OPD dengan ID: %s\n", opdId)
+
 	tx, err := service.DB.Begin()
 	if err != nil {
+		fmt.Printf("Error saat memulai transaksi: %v\n", err)
 		return opdmaster.OpdResponse{}, err
 	}
 	defer helper.CommitOrRollback(tx)
 
 	opd, err := service.OpdRepository.FindById(ctx, tx, opdId)
 	if err != nil {
+		fmt.Printf("Error saat mencari OPD: %v\n", err)
 		return opdmaster.OpdResponse{}, err
 	}
+	fmt.Printf("OPD ditemukan: %+v\n", opd)
 
 	lembagaDomain, err := service.LembagaRepository.FindById(ctx, tx, opd.IdLembaga)
 	if err != nil {
+		fmt.Printf("Error saat mencari Lembaga: %v\n", err)
 		return opdmaster.OpdResponse{}, err
 	}
+	fmt.Printf("Lembaga ditemukan: %+v\n", lembagaDomain)
 
 	// Konversi dari domain ke response
 	lembagaResponse := lembaga.LembagaResponse{
@@ -205,7 +213,7 @@ func (service *OpdServiceImpl) FindById(ctx context.Context, opdId string) (opdm
 		// ... sesuaikan dengan field lainnya
 	}
 
-	return opdmaster.OpdResponse{
+	response := opdmaster.OpdResponse{
 		Id:            opd.Id,
 		KodeOpd:       opd.KodeOpd,
 		NamaOpd:       opd.NamaOpd,
@@ -219,7 +227,10 @@ func (service *OpdServiceImpl) FindById(ctx context.Context, opdId string) (opdm
 		NIPKepalaOpd:  opd.NIPKepalaOpd,
 		PangkatKepala: opd.PangkatKepala,
 		IdLembaga:     lembagaResponse,
-	}, nil
+	}
+
+	fmt.Println("=== Selesai FindById OPD ===")
+	return response, nil
 }
 
 func (service *OpdServiceImpl) FindAll(ctx context.Context) ([]opdmaster.OpdResponse, error) {
@@ -236,15 +247,21 @@ func (service *OpdServiceImpl) FindAll(ctx context.Context) ([]opdmaster.OpdResp
 
 	var opdResponses []opdmaster.OpdResponse
 	for _, opd := range opds {
+		var lembagaResponse lembaga.LembagaResponse
+
 		lembagaDomain, err := service.LembagaRepository.FindById(ctx, tx, opd.IdLembaga)
 		if err != nil {
-			return []opdmaster.OpdResponse{}, err
-		}
-
-		lembagaResponse := lembaga.LembagaResponse{
-			Id:          lembagaDomain.Id,
-			NamaLembaga: lembagaDomain.NamaLembaga,
-			IsActive:    lembagaDomain.IsActive,
+			lembagaResponse = lembaga.LembagaResponse{
+				Id:          "",
+				NamaLembaga: "",
+				IsActive:    false,
+			}
+		} else {
+			lembagaResponse = lembaga.LembagaResponse{
+				Id:          lembagaDomain.Id,
+				NamaLembaga: lembagaDomain.NamaLembaga,
+				IsActive:    lembagaDomain.IsActive,
+			}
 		}
 
 		opdResponses = append(opdResponses, opdmaster.OpdResponse{

@@ -113,6 +113,7 @@ func (service *PohonKinerjaOpdServiceImpl) Update(ctx context.Context, request p
 	pohonKinerja := domain.PohonKinerja{
 		Id:         request.Id,
 		NamaPohon:  request.NamaPohon,
+		Parent:     request.Parent,
 		JenisPohon: request.JenisPohon,
 		LevelPohon: request.LevelPohon,
 		KodeOpd:    request.KodeOpd,

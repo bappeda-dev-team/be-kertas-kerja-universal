@@ -115,10 +115,6 @@ func BuildStrategicResponses(pohonMap map[int]map[int][]domain.PohonKinerja, str
 			JenisPohon: strategic.JenisPohon,
 			LevelPohon: strategic.LevelPohon,
 			Keterangan: strategic.Keterangan,
-			// KodeOpd: opdmaster.OpdResponseForAll{
-			// 	KodeOpd: strategic.KodeOpd,
-			// 	NamaOpd: strategic.NamaOpd, // Pastikan field ini terisi
-			// },
 			Indikators: ConvertToIndikatorResponses(strategic.Indikator),
 		}
 
@@ -149,10 +145,6 @@ func BuildTacticalResponses(pohonMap map[int]map[int][]domain.PohonKinerja, tact
 			JenisPohon: tactical.JenisPohon,
 			LevelPohon: tactical.LevelPohon,
 			Keterangan: keterangan,
-			// KodeOpd: opdmaster.OpdResponseForAll{
-			// 	KodeOpd: tactical.KodeOpd,
-			// 	NamaOpd: tactical.NamaOpd, // Pastikan field ini terisi
-			// },
 			Indikators: ConvertToIndikatorResponses(tactical.Indikator),
 		}
 
@@ -183,10 +175,6 @@ func BuildOperationalResponses(operationals []domain.PohonKinerja) []pohonkinerj
 			JenisPohon: operational.JenisPohon,
 			LevelPohon: operational.LevelPohon,
 			Keterangan: keterangan,
-			// KodeOpd: opdmaster.OpdResponseForAll{
-			// 	KodeOpd: operational.KodeOpd,
-			// 	NamaOpd: operational.NamaOpd, // Pastikan field ini terisi
-			// },
 			Indikators: ConvertToIndikatorResponses(operational.Indikator),
 		}
 

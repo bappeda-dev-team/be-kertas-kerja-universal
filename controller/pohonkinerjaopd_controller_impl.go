@@ -165,3 +165,38 @@ func (controller *PohonKinerjaOpdControllerImpl) FindAll(writer http.ResponseWri
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *PohonKinerjaOpdControllerImpl) FindStrategicNoParent(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	kodeOpd := params.ByName("kode_opd")
+	tahun := params.ByName("tahun")
+
+	if kodeOpd == "" || tahun == "" {
+		webResponse := web.WebResponse{
+			Code:   400,
+			Status: "Bad Request",
+			Data:   "kode_opd dan tahun harus diisi",
+		}
+		writer.WriteHeader(http.StatusBadRequest)
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	pohonKinerjaResponse, err := controller.PohonKinerjaOpdService.FindStrategicNoParent(request.Context(), kodeOpd, tahun)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   404,
+			Status: "Not Found",
+			Data:   err.Error(),
+		}
+		writer.WriteHeader(http.StatusNotFound)
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   200,
+		Status: "Success Get Strategic No Parent",
+		Data:   pohonKinerjaResponse,
+	}
+	helper.WriteToResponseBody(writer, webResponse)
+}

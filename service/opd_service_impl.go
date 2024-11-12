@@ -210,7 +210,7 @@ func (service *OpdServiceImpl) FindById(ctx context.Context, opdId string) (opdm
 	lembagaResponse := lembaga.LembagaResponse{
 		Id:          lembagaDomain.Id,
 		NamaLembaga: lembagaDomain.NamaLembaga,
-		// ... sesuaikan dengan field lainnya
+		KodeLembaga: lembagaDomain.KodeLembaga,
 	}
 
 	response := opdmaster.OpdResponse{
@@ -253,12 +253,14 @@ func (service *OpdServiceImpl) FindAll(ctx context.Context) ([]opdmaster.OpdResp
 		if err != nil {
 			lembagaResponse = lembaga.LembagaResponse{
 				Id:          "",
+				KodeLembaga: "",
 				NamaLembaga: "",
 				IsActive:    false,
 			}
 		} else {
 			lembagaResponse = lembaga.LembagaResponse{
 				Id:          lembagaDomain.Id,
+				KodeLembaga: lembagaDomain.KodeLembaga,
 				NamaLembaga: lembagaDomain.NamaLembaga,
 				IsActive:    lembagaDomain.IsActive,
 			}

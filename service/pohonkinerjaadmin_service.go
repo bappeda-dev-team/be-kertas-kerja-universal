@@ -12,5 +12,5 @@ type PohonKinerjaAdminService interface {
 	FindById(ctx context.Context, id int) (pohonkinerja.PohonKinerjaAdminResponseData, error)
 	FindAll(ctx context.Context, tahun string) (pohonkinerja.PohonKinerjaAdminResponse, error)
 	FindSubTematik(ctx context.Context, tahun string) (pohonkinerja.PohonKinerjaAdminResponse, error)
-	FindPokinAdminByIdHierarki(ctx context.Context, idPokin int) (pohonkinerja.PohonKinerjaAdminResponse, error)
+	FindPokinAdminByIdHierarki(ctx context.Context, idPokin int) (pohonkinerja.TematikResponse, error)
 }

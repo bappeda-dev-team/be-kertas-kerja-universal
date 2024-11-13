@@ -157,6 +157,7 @@ func NewRouter(
 	router.GET("/pohon_kinerja_admin/findall/:tahun", pohonKinerjaAdminController.FindAll)
 	router.GET("/pohon_kinerja_admin/subtematik/:tahun", pohonKinerjaAdminController.FindSubTematik)
 	router.GET("/pohon_kinerja_admin/tematik/:idPokin", pohonKinerjaAdminController.FindPokinAdminByIdHierarki)
+	router.POST("/pohon_kinerja_admin/clone_strategic/create", pohonKinerjaAdminController.CreateStrategicAdmin)
 
 	//DATA MASTER
 	//pegawai

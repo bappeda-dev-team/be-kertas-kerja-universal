@@ -74,7 +74,7 @@ func (service *PohonKinerjaAdminServiceImpl) Create(ctx context.Context, request
 		NamaPohon:  request.NamaPohon,
 		JenisPohon: request.JenisPohon,
 		LevelPohon: request.LevelPohon,
-		KodeOpd:    "",
+		KodeOpd:    helper.EmptyStringIfNull(request.KodeOpd),
 		Keterangan: request.Keterangan,
 		Tahun:      request.Tahun,
 		Indikator:  indikators,
@@ -184,7 +184,7 @@ func (service *PohonKinerjaAdminServiceImpl) Update(ctx context.Context, request
 		NamaPohon:  request.NamaPohon,
 		JenisPohon: request.JenisPohon,
 		LevelPohon: request.LevelPohon,
-		KodeOpd:    "",
+		KodeOpd:    helper.EmptyStringIfNull(request.KodeOpd),
 		Keterangan: request.Keterangan,
 		Tahun:      request.Tahun,
 		Indikator:  indikators,
@@ -476,4 +476,97 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinAdminByIdHierarki(ctx cont
 	}
 
 	return tematiks[0], nil
+}
+
+func (service *PohonKinerjaAdminServiceImpl) CreateStrategicAdmin(ctx context.Context, request pohonkinerja.PohonKinerjaAdminStrategicCreateRequest) (pohonkinerja.PohonKinerjaAdminResponseData, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	existingPokin, err := service.pohonKinerjaRepository.FindPokinToClone(ctx, tx, request.IdToClone)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	err = service.pohonKinerjaRepository.ValidateParentLevel(ctx, tx, request.Parent, existingPokin.LevelPohon)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	// 3. Siapkan data baru
+	newPokin := domain.PohonKinerja{
+		Parent:     request.Parent,
+		NamaPohon:  existingPokin.NamaPohon,
+		JenisPohon: existingPokin.JenisPohon,
+		LevelPohon: existingPokin.LevelPohon,
+		KodeOpd:    existingPokin.KodeOpd,
+		Keterangan: existingPokin.Keterangan,
+		Tahun:      existingPokin.Tahun,
+	}
+
+	newPokinId, err := service.pohonKinerjaRepository.InsertClonedPokin(ctx, tx, newPokin)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	indikators, err := service.pohonKinerjaRepository.FindIndikatorToClone(ctx, tx, request.IdToClone)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	var indikatorResponses []pohonkinerja.IndikatorResponse
+
+	for _, indikator := range indikators {
+		newIndikatorId := "IND-POKIN-" + uuid.New().String()[:6]
+
+		err = service.pohonKinerjaRepository.InsertClonedIndikator(ctx, tx, newIndikatorId, newPokinId, indikator)
+		if err != nil {
+			return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+		}
+
+		targets, err := service.pohonKinerjaRepository.FindTargetToClone(ctx, tx, indikator.Id)
+		if err != nil {
+			return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+		}
+
+		var targetResponses []pohonkinerja.TargetResponse
+
+		for _, target := range targets {
+			newTargetId := "TRGT-IND-POKIN-" + uuid.New().String()[:5]
+			err = service.pohonKinerjaRepository.InsertClonedTarget(ctx, tx, newTargetId, newIndikatorId, target)
+			if err != nil {
+				return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+			}
+
+			targetResponses = append(targetResponses, pohonkinerja.TargetResponse{
+				Id:              newTargetId,
+				IndikatorId:     newIndikatorId,
+				TargetIndikator: target.Target,
+				SatuanIndikator: target.Satuan,
+			})
+		}
+
+		indikatorResponses = append(indikatorResponses, pohonkinerja.IndikatorResponse{
+			Id:            newIndikatorId,
+			IdPokin:       fmt.Sprint(newPokinId),
+			NamaIndikator: indikator.Indikator,
+			Target:        targetResponses,
+		})
+	}
+
+	response := pohonkinerja.PohonKinerjaAdminResponseData{
+		Id:         int(newPokinId),
+		Parent:     existingPokin.Parent,
+		NamaPohon:  existingPokin.NamaPohon,
+		JenisPohon: existingPokin.JenisPohon,
+		LevelPohon: existingPokin.LevelPohon,
+		KodeOpd:    existingPokin.KodeOpd,
+		Keterangan: existingPokin.Keterangan,
+		Tahun:      existingPokin.Tahun,
+		Indikators: indikatorResponses,
+	}
+
+	return response, nil
 }

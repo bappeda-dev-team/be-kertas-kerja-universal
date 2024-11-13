@@ -14,4 +14,5 @@ type PohonKinerjaAdminController interface {
 	FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindSubTematik(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindPokinAdminByIdHierarki(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	CreateStrategicAdmin(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 }

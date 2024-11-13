@@ -16,6 +16,7 @@ type PohonKinerjaAdminUpdateRequest struct {
 	Parent     int                      `json:"parent"`
 	NamaPohon  string                   `json:"nama_pohon"`
 	JenisPohon string                   `json:"jenis_pohon"`
+	KodeOpd    string                   `json:"kode_opd,omitempty"`
 	LevelPohon int                      `json:"level_pohon"`
 	Keterangan string                   `json:"keterangan"`
 	Tahun      string                   `json:"tahun"`

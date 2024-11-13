@@ -234,3 +234,30 @@ func (controller *PohonKinerjaAdminControllerImpl) FindPokinAdminByIdHierarki(wr
 
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *PohonKinerjaAdminControllerImpl) CreateStrategicAdmin(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	// Decode request body
+	pohonKinerjaCreateRequest := pohonkinerja.PohonKinerjaAdminStrategicCreateRequest{}
+	helper.ReadFromRequestBody(request, &pohonKinerjaCreateRequest)
+
+	// Panggil service create
+	pohonKinerjaResponse, err := controller.pohonKinerjaAdminService.CreateStrategicAdmin(request.Context(), pohonKinerjaCreateRequest)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	// Buat response sukses
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "Success Menarik Pohon Kinerja OPD",
+		Data:   pohonKinerjaResponse,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}

@@ -424,27 +424,27 @@ func (service *PohonKinerjaAdminServiceImpl) FindSubTematik(ctx context.Context,
 	}, nil
 }
 
-func (service *PohonKinerjaAdminServiceImpl) FindPokinAdminByIdHierarki(ctx context.Context, idPokin int) (pohonkinerja.PohonKinerjaAdminResponse, error) {
+func (service *PohonKinerjaAdminServiceImpl) FindPokinAdminByIdHierarki(ctx context.Context, idPokin int) (pohonkinerja.TematikResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
-		return pohonkinerja.PohonKinerjaAdminResponse{}, err
+		return pohonkinerja.TematikResponse{}, err
 	}
 	defer helper.CommitOrRollback(tx)
 
 	// Validasi level_pohon
 	pokin, err := service.pohonKinerjaRepository.FindPokinAdminById(ctx, tx, idPokin)
 	if err != nil {
-		return pohonkinerja.PohonKinerjaAdminResponse{}, err
+		return pohonkinerja.TematikResponse{}, err
 	}
 
 	if pokin.LevelPohon != 0 {
-		return pohonkinerja.PohonKinerjaAdminResponse{}, fmt.Errorf("ID yang diberikan bukan merupakan Tematik (level 0)")
+		return pohonkinerja.TematikResponse{}, fmt.Errorf("ID yang diberikan bukan merupakan Tematik (level 0)")
 	}
 
 	// Ambil semua data pohon kinerja
 	pokins, err := service.pohonKinerjaRepository.FindPokinAdminByIdHierarki(ctx, tx, idPokin)
 	if err != nil {
-		return pohonkinerja.PohonKinerjaAdminResponse{}, err
+		return pohonkinerja.TematikResponse{}, err
 	}
 
 	// Buat map untuk menyimpan data berdasarkan level dan parent
@@ -475,7 +475,5 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinAdminByIdHierarki(ctx cont
 		tematiks = append(tematiks, tematikResp)
 	}
 
-	return pohonkinerja.PohonKinerjaAdminResponse{
-		Tematik: tematiks,
-	}, nil
+	return tematiks[0], nil
 }

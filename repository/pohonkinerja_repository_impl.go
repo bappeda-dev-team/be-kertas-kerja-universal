@@ -105,33 +105,26 @@ func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *s
 
 	return result, nil
 
-	// script := "SELECT id, parent, nama_pohon, jenis_pohon, level_pohon, kode_opd, keterangan, tahun FROM tb_pohon_kinerja WHERE 1=1"
-	// params := []interface{}{}
-	// if kodeOpd != "" {
-	// 	script += " AND kode_opd = ?"
-	// 	params = append(params, kodeOpd)
-	// }
-	// if tahun != "" {
-	// 	script += " AND tahun = ?"
-	// 	params = append(params, tahun)
-	// }
+}
 
-	// rows, err := tx.QueryContext(ctx, script, params...)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// defer rows.Close()
+func (repository *PohonKinerjaRepositoryImpl) FindStrategicNoParent(ctx context.Context, tx *sql.Tx, levelPohon, parent int, kodeOpd, tahun string) ([]domain.PohonKinerja, error) {
+	script := "SELECT id, nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun FROM tb_pohon_kinerja WHERE level_pohon = ? AND parent = ? AND kode_opd = ? AND tahun = ?"
+	rows, err := tx.QueryContext(ctx, script, levelPohon, parent, kodeOpd, tahun)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-	// var pohonKinerjas []domain.PohonKinerja
-	// for rows.Next() {
-	// 	pohonKinerja := domain.PohonKinerja{}
-	// 	err := rows.Scan(&pohonKinerja.Id, &pohonKinerja.Parent, &pohonKinerja.NamaPohon, &pohonKinerja.JenisPohon, &pohonKinerja.LevelPohon, &pohonKinerja.KodeOpd, &pohonKinerja.Keterangan, &pohonKinerja.Tahun)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	pohonKinerjas = append(pohonKinerjas, pohonKinerja)
-	// }
-	// return pohonKinerjas, nil
+	var result []domain.PohonKinerja
+	for rows.Next() {
+		var pokin domain.PohonKinerja
+		err := rows.Scan(&pokin.Id, &pokin.NamaPohon, &pokin.Parent, &pokin.JenisPohon, &pokin.LevelPohon, &pokin.KodeOpd, &pokin.Keterangan, &pokin.Tahun)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, pokin)
+	}
+	return result, nil
 }
 
 func (repository *PohonKinerjaRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, id string) error {

@@ -11,6 +11,8 @@ func BuildTematikResponse(pohonMap map[int]map[int][]domain.PohonKinerja, temati
 		Id:         tematik.Id,
 		Parent:     nil,
 		Tema:       tematik.NamaPohon,
+		JenisPohon: tematik.JenisPohon,
+		LevelPohon: tematik.LevelPohon,
 		Keterangan: tematik.Keterangan,
 		Indikators: ConvertToIndikatorResponses(tematik.Indikator),
 	}
@@ -36,6 +38,8 @@ func BuildSubTematikResponse(pohonMap map[int]map[int][]domain.PohonKinerja, sub
 		Id:         subTematik.Id,
 		Parent:     subTematik.Parent,
 		Tema:       subTematik.NamaPohon,
+		JenisPohon: subTematik.JenisPohon,
+		LevelPohon: subTematik.LevelPohon,
 		Keterangan: subTematik.Keterangan,
 		Indikators: ConvertToIndikatorResponses(subTematik.Indikator),
 	}
@@ -61,6 +65,8 @@ func BuildSubSubTematikResponse(pohonMap map[int]map[int][]domain.PohonKinerja, 
 		Id:         subSubTematik.Id,
 		Parent:     subSubTematik.Parent,
 		Tema:       subSubTematik.NamaPohon,
+		JenisPohon: subSubTematik.JenisPohon,
+		LevelPohon: subSubTematik.LevelPohon,
 		Keterangan: subSubTematik.Keterangan,
 		Indikators: ConvertToIndikatorResponses(subSubTematik.Indikator),
 	}
@@ -86,6 +92,8 @@ func BuildSuperSubTematikResponse(pohonMap map[int]map[int][]domain.PohonKinerja
 		Id:         superSubTematik.Id,
 		Parent:     superSubTematik.Parent,
 		Tema:       superSubTematik.NamaPohon,
+		JenisPohon: superSubTematik.JenisPohon,
+		LevelPohon: superSubTematik.LevelPohon,
 		Keterangan: superSubTematik.Keterangan,
 		Indikators: ConvertToIndikatorResponses(superSubTematik.Indikator),
 	}
@@ -104,12 +112,17 @@ func BuildStrategicResponses(pohonMap map[int]map[int][]domain.PohonKinerja, str
 			Id:         strategic.Id,
 			Parent:     strategic.Parent,
 			Strategi:   strategic.NamaPohon,
+			JenisPohon: strategic.JenisPohon,
+			LevelPohon: strategic.LevelPohon,
 			Keterangan: strategic.Keterangan,
-			KodeOpd: opdmaster.OpdResponseForAll{
-				KodeOpd: strategic.KodeOpd,
-				NamaOpd: strategic.NamaOpd, // Pastikan field ini terisi
-			},
 			Indikators: ConvertToIndikatorResponses(strategic.Indikator),
+		}
+
+		if strategic.KodeOpd != "" {
+			strategicResp.KodeOpd = &opdmaster.OpdResponseForAll{
+				KodeOpd: strategic.KodeOpd,
+				NamaOpd: strategic.NamaOpd,
+			}
 		}
 
 		if tacticals := pohonMap[5][strategic.Id]; len(tacticals) > 0 {
@@ -129,12 +142,17 @@ func BuildTacticalResponses(pohonMap map[int]map[int][]domain.PohonKinerja, tact
 			Id:         tactical.Id,
 			Parent:     tactical.Parent,
 			Strategi:   tactical.NamaPohon,
+			JenisPohon: tactical.JenisPohon,
+			LevelPohon: tactical.LevelPohon,
 			Keterangan: keterangan,
-			KodeOpd: opdmaster.OpdResponseForAll{
-				KodeOpd: tactical.KodeOpd,
-				NamaOpd: tactical.NamaOpd, // Pastikan field ini terisi
-			},
 			Indikators: ConvertToIndikatorResponses(tactical.Indikator),
+		}
+
+		if tactical.KodeOpd != "" {
+			tacticalResp.KodeOpd = &opdmaster.OpdResponseForAll{
+				KodeOpd: tactical.KodeOpd,
+				NamaOpd: tactical.NamaOpd,
+			}
 		}
 
 		if operationals := pohonMap[6][tactical.Id]; len(operationals) > 0 {
@@ -154,13 +172,19 @@ func BuildOperationalResponses(operationals []domain.PohonKinerja) []pohonkinerj
 			Id:         operational.Id,
 			Parent:     operational.Parent,
 			Strategi:   operational.NamaPohon,
+			JenisPohon: operational.JenisPohon,
+			LevelPohon: operational.LevelPohon,
 			Keterangan: keterangan,
-			KodeOpd: opdmaster.OpdResponseForAll{
-				KodeOpd: operational.KodeOpd,
-				NamaOpd: operational.NamaOpd, // Pastikan field ini terisi
-			},
 			Indikators: ConvertToIndikatorResponses(operational.Indikator),
 		}
+
+		if operational.KodeOpd != "" {
+			operationalResp.KodeOpd = &opdmaster.OpdResponseForAll{
+				KodeOpd: operational.KodeOpd,
+				NamaOpd: operational.NamaOpd,
+			}
+		}
+
 		responses = append(responses, operationalResp)
 	}
 	return responses
@@ -172,6 +196,8 @@ func BuildTematikResponseLimited(pohonMap map[int]map[int][]domain.PohonKinerja,
 		Id:          tematik.Id,
 		Parent:      nil,
 		Tema:        tematik.NamaPohon,
+		JenisPohon:  tematik.JenisPohon,
+		LevelPohon:  tematik.LevelPohon,
 		Keterangan:  tematik.Keterangan,
 		Indikators:  ConvertToIndikatorResponses(tematik.Indikator),
 		SubTematiks: []pohonkinerja.SubtematikResponse{}, // Inisialisasi dengan array kosong
@@ -185,6 +211,8 @@ func BuildTematikResponseLimited(pohonMap map[int]map[int][]domain.PohonKinerja,
 				Id:         subTematik.Id,
 				Parent:     subTematik.Parent,
 				Tema:       subTematik.NamaPohon,
+				JenisPohon: subTematik.JenisPohon,
+				LevelPohon: subTematik.LevelPohon,
 				Keterangan: subTematik.Keterangan,
 				Indikators: ConvertToIndikatorResponses(subTematik.Indikator),
 				Strategics: []pohonkinerja.StrategicResponse{}, // Inisialisasi dengan array kosong

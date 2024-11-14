@@ -209,48 +209,112 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 	}
 	defer helper.CommitOrRollback(tx)
 
+	// Validasi OPD
 	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, kodeOpd)
 	if err != nil {
 		return pohonkinerja.PohonKinerjaOpdAllResponse{}, errors.New("kode opd tidak ditemukan")
 	}
 
+	// Ambil semua data pohon kinerja
 	pokins, err := service.pohonKinerjaOpdRepository.FindAll(ctx, tx, kodeOpd, tahun)
 	if err != nil {
 		return pohonkinerja.PohonKinerjaOpdAllResponse{}, err
 	}
 
-	// Urutkan data berdasarkan LevelPohon dan Id
-	sort.Slice(pokins, func(i, j int) bool {
-		if pokins[i].LevelPohon == pokins[j].LevelPohon {
-			return pokins[i].Id < pokins[j].Id
-		}
-		return pokins[i].LevelPohon < pokins[j].LevelPohon
-	})
-
+	// Buat map untuk menyimpan data berdasarkan level dan parent
 	pohonMap := make(map[int]map[int][]domain.PohonKinerja)
-	for i := 0; i <= 6; i++ {
+	for i := 4; i <= 6; i++ {
 		pohonMap[i] = make(map[int][]domain.PohonKinerja)
 	}
 
-	for i := range pokins {
-		pokins[i].NamaOpd = opd.NamaOpd
-		pohonMap[pokins[i].LevelPohon][pokins[i].Parent] = append(
-			pohonMap[pokins[i].LevelPohon][pokins[i].Parent],
-			pokins[i],
-		)
+	// Kelompokkan data berdasarkan level dan parent
+	for _, p := range pokins {
+		if p.LevelPohon >= 4 {
+			p.NamaOpd = opd.NamaOpd
+			pohonMap[p.LevelPohon][p.Parent] = append(
+				pohonMap[p.LevelPohon][p.Parent],
+				p,
+			)
+		}
 	}
 
-	var allStrategics []domain.PohonKinerja
-	for _, strategics := range pohonMap[4] {
-		allStrategics = append(allStrategics, strategics...)
+	// Build response untuk strategic (level 4)
+	var strategics []pohonkinerja.StrategicOpdResponse
+	for _, strategicList := range pohonMap[4] {
+		sort.Slice(strategicList, func(i, j int) bool {
+			return strategicList[i].Id < strategicList[j].Id
+		})
+
+		for _, strategic := range strategicList {
+			var tacticals []pohonkinerja.TacticalOpdResponse
+
+			// Build tactical (level 5)
+			if tacticalList := pohonMap[5][strategic.Id]; len(tacticalList) > 0 {
+				sort.Slice(tacticalList, func(i, j int) bool {
+					return tacticalList[i].Id < tacticalList[j].Id
+				})
+
+				for _, tactical := range tacticalList {
+					var operationals []pohonkinerja.OperationalOpdResponse
+
+					// Build operational (level 6)
+					if operationalList := pohonMap[6][tactical.Id]; len(operationalList) > 0 {
+						sort.Slice(operationalList, func(i, j int) bool {
+							return operationalList[i].Id < operationalList[j].Id
+						})
+
+						for _, operational := range operationalList {
+							operationals = append(operationals, pohonkinerja.OperationalOpdResponse{
+								Id:         operational.Id,
+								Parent:     operational.Parent,
+								Strategi:   operational.NamaPohon,
+								JenisPohon: operational.JenisPohon,
+								LevelPohon: operational.LevelPohon,
+								Keterangan: operational.Keterangan,
+								KodeOpd: opdmaster.OpdResponseForAll{
+									KodeOpd: operational.KodeOpd,
+									NamaOpd: operational.NamaOpd,
+								},
+							})
+						}
+					}
+
+					tacticals = append(tacticals, pohonkinerja.TacticalOpdResponse{
+						Id:         tactical.Id,
+						Parent:     tactical.Parent,
+						Strategi:   tactical.NamaPohon,
+						JenisPohon: tactical.JenisPohon,
+						LevelPohon: tactical.LevelPohon,
+						Keterangan: tactical.Keterangan,
+						KodeOpd: opdmaster.OpdResponseForAll{
+							KodeOpd: tactical.KodeOpd,
+							NamaOpd: tactical.NamaOpd,
+						},
+						Operationals: operationals,
+					})
+				}
+			}
+
+			strategics = append(strategics, pohonkinerja.StrategicOpdResponse{
+				Id:         strategic.Id,
+				Parent:     nil,
+				Strategi:   strategic.NamaPohon,
+				JenisPohon: strategic.JenisPohon,
+				LevelPohon: strategic.LevelPohon,
+				Keterangan: strategic.Keterangan,
+				KodeOpd: opdmaster.OpdResponseForAll{
+					KodeOpd: strategic.KodeOpd,
+					NamaOpd: strategic.NamaOpd,
+				},
+				Tacticals: tacticals,
+			})
+		}
 	}
 
 	// Urutkan strategics berdasarkan Id
-	sort.Slice(allStrategics, func(i, j int) bool {
-		return allStrategics[i].Id < allStrategics[j].Id
+	sort.Slice(strategics, func(i, j int) bool {
+		return strategics[i].Id < strategics[j].Id
 	})
-
-	strategics := helper.BuildStrategicOpdResponses(pohonMap, allStrategics)
 
 	return pohonkinerja.PohonKinerjaOpdAllResponse{
 		KodeOpd:    kodeOpd,

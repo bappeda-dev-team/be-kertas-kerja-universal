@@ -22,9 +22,10 @@ type PohonKinerjaAdminCreateRequest struct {
 }
 
 type PohonKinerjaAdminStrategicCreateRequest struct {
-	IdToClone  int `json:"id"`
-	Parent     int `json:"parent"`
-	LevelPohon int `json:"level_pohon"`
+	IdToClone int `json:"id"`
+	Parent    int `json:"parent"`
+	// LevelPohon int `json:"level_pohon"`
+	JenisPohon string `json:"jenis_pohon"`
 }
 
 type IndikatorCreateRequest struct {

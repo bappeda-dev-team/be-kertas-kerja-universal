@@ -12,6 +12,10 @@ import (
 
 	"fmt"
 
+	"sort"
+
+	"errors"
+
 	"github.com/google/uuid"
 )
 
@@ -399,24 +403,70 @@ func (service *PohonKinerjaAdminServiceImpl) FindSubTematik(ctx context.Context,
 		return pohonkinerja.PohonKinerjaAdminResponse{}, err
 	}
 
-	// Inisialisasi map dengan benar
+	// Buat map untuk menyimpan data berdasarkan level dan parent
 	pohonMap := make(map[int]map[int][]domain.PohonKinerja)
-	pohonMap[0] = make(map[int][]domain.PohonKinerja) // Inisialisasi untuk level 0
-	pohonMap[1] = make(map[int][]domain.PohonKinerja) // Inisialisasi untuk level 1
+	for i := 1; i <= 2; i++ { // Hanya inisialisasi level 1 dan 2
+		pohonMap[i] = make(map[int][]domain.PohonKinerja)
+	}
 
-	// Filter dan kelompokkan data hanya untuk level 0 dan 1
-	for _, pokin := range pokins {
-		if pokin.LevelPohon <= 1 { // Hanya proses level 0 dan 1
-			pohonMap[pokin.LevelPohon][pokin.Parent] = append(pohonMap[pokin.LevelPohon][pokin.Parent], pokin)
+	// Filter dan kelompokkan data
+	for _, p := range pokins {
+		// Ambil data OPD jika ada
+		if p.KodeOpd != "" {
+			opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, p.KodeOpd)
+			if err == nil {
+				p.NamaOpd = opd.NamaOpd
+			}
+		}
+
+		// Hanya masukkan data level 1 dan 2
+		if p.LevelPohon >= 1 && p.LevelPohon <= 2 {
+			pohonMap[p.LevelPohon][p.Parent] = append(pohonMap[p.LevelPohon][p.Parent], p)
 		}
 	}
 
-	// Bangun response dimulai dari Tematik (level 0)
+	// Bangun response dimulai dari SubTematik (level 1)
 	var tematiks []pohonkinerja.TematikResponse
-	for _, tematik := range pohonMap[0][0] {
-		tematikResp := helper.BuildTematikResponseLimited(pohonMap, tematik) // Gunakan BuildTematikResponseLimited
-		tematiks = append(tematiks, tematikResp)
+	for _, subTematiks := range pohonMap[1] {
+		// Urutkan subTematiks berdasarkan Id
+		sort.Slice(subTematiks, func(i, j int) bool {
+			return subTematiks[i].Id < subTematiks[j].Id
+		})
+
+		for _, subTematik := range subTematiks {
+			var childs []interface{}
+
+			// Tambahkan subsubtematik ke childs
+			if subSubTematiks := pohonMap[2][subTematik.Id]; len(subSubTematiks) > 0 {
+				// Urutkan subSubTematiks berdasarkan Id
+				sort.Slice(subSubTematiks, func(i, j int) bool {
+					return subSubTematiks[i].Id < subSubTematiks[j].Id
+				})
+
+				for _, subSubTematik := range subSubTematiks {
+					subSubTematikResp := helper.BuildSubSubTematikResponse(pohonMap, subSubTematik)
+					childs = append(childs, subSubTematikResp)
+				}
+			}
+
+			tematikResp := pohonkinerja.TematikResponse{
+				Id:         subTematik.Id,
+				Parent:     &subTematik.Parent,
+				Tema:       subTematik.NamaPohon,
+				JenisPohon: subTematik.JenisPohon,
+				LevelPohon: subTematik.LevelPohon,
+				Keterangan: subTematik.Keterangan,
+				Indikators: helper.ConvertToIndikatorResponses(subTematik.Indikator),
+				Child:      childs,
+			}
+			tematiks = append(tematiks, tematikResp)
+		}
 	}
+
+	// Urutkan hasil akhir berdasarkan Id
+	sort.Slice(tematiks, func(i, j int) bool {
+		return tematiks[i].Id < tematiks[j].Id
+	})
 
 	return pohonkinerja.PohonKinerjaAdminResponse{
 		Tahun:   tahun,
@@ -431,14 +481,15 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinAdminByIdHierarki(ctx cont
 	}
 	defer helper.CommitOrRollback(tx)
 
-	// Validasi level_pohon
+	// Ambil data pohon kinerja
 	pokin, err := service.pohonKinerjaRepository.FindPokinAdminById(ctx, tx, idPokin)
 	if err != nil {
 		return pohonkinerja.TematikResponse{}, err
 	}
 
+	// Validasi level pohon harus 0
 	if pokin.LevelPohon != 0 {
-		return pohonkinerja.TematikResponse{}, fmt.Errorf("ID yang diberikan bukan merupakan Tematik (level 0)")
+		return pohonkinerja.TematikResponse{}, fmt.Errorf("id yang diberikan bukan merupakan level tematik (level 0)")
 	}
 
 	// Ambil semua data pohon kinerja
@@ -453,29 +504,61 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinAdminByIdHierarki(ctx cont
 		pohonMap[i] = make(map[int][]domain.PohonKinerja)
 	}
 
-	// Kelompokkan data dan ambil data OPD untuk setiap pohon kinerja
-	for i := range pokins {
-		if pokins[i].KodeOpd != "" {
-			opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, pokins[i].KodeOpd)
+	// Kelompokkan data
+	for _, p := range pokins {
+		if p.KodeOpd != "" {
+			opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, p.KodeOpd)
 			if err == nil {
-				// Update data pohon kinerja dengan nama OPD
-				pokins[i].NamaOpd = opd.NamaOpd
+				p.NamaOpd = opd.NamaOpd
 			}
 		}
-		pohonMap[pokins[i].LevelPohon][pokins[i].Parent] = append(
-			pohonMap[pokins[i].LevelPohon][pokins[i].Parent],
-			pokins[i],
-		)
+		pohonMap[p.LevelPohon][p.Parent] = append(pohonMap[p.LevelPohon][p.Parent], p)
 	}
 
-	// Bangun response dimulai dari Tematik (level 0)
-	var tematiks []pohonkinerja.TematikResponse
-	for _, tematik := range pohonMap[0][0] {
-		tematikResp := helper.BuildTematikResponse(pohonMap, tematik)
-		tematiks = append(tematiks, tematikResp)
+	// Bangun response hierarki
+	var tematikResponse pohonkinerja.TematikResponse
+	if tematik, exists := pohonMap[0][0]; exists && len(tematik) > 0 {
+		var childs []interface{}
+
+		// Tambahkan strategic langsung ke childs jika ada
+		if strategics := pohonMap[4][tematik[0].Id]; len(strategics) > 0 {
+			// Urutkan strategic berdasarkan Id
+			sort.Slice(strategics, func(i, j int) bool {
+				return strategics[i].Id < strategics[j].Id
+			})
+
+			for _, strategic := range strategics {
+				strategicResp := helper.BuildStrategicResponse(pohonMap, strategic)
+				childs = append(childs, strategicResp)
+			}
+		}
+
+		// Tambahkan subtematik ke childs
+		if subTematiks := pohonMap[1][tematik[0].Id]; len(subTematiks) > 0 {
+			// Urutkan subtematik berdasarkan Id
+			sort.Slice(subTematiks, func(i, j int) bool {
+				return subTematiks[i].Id < subTematiks[j].Id
+			})
+
+			for _, subTematik := range subTematiks {
+				subTematikResp := helper.BuildSubTematikResponse(pohonMap, subTematik)
+				childs = append(childs, subTematikResp)
+			}
+		}
+
+		tematikResponse = pohonkinerja.TematikResponse{
+			Id:         tematik[0].Id,
+			Parent:     nil,
+			Tema:       tematik[0].NamaPohon,
+			JenisPohon: tematik[0].JenisPohon,
+			LevelPohon: tematik[0].LevelPohon,
+			Keterangan: tematik[0].Keterangan,
+			Indikators: helper.ConvertToIndikatorResponses(tematik[0].Indikator),
+			Child:      childs,
+		}
 	}
 
-	return tematiks[0], nil
+	return tematikResponse, nil
 }
 
 func (service *PohonKinerjaAdminServiceImpl) CreateStrategicAdmin(ctx context.Context, request pohonkinerja.PohonKinerjaAdminStrategicCreateRequest) (pohonkinerja.PohonKinerjaAdminResponseData, error) {
@@ -495,11 +578,15 @@ func (service *PohonKinerjaAdminServiceImpl) CreateStrategicAdmin(ctx context.Co
 		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
 	}
 
-	// 3. Siapkan data baru
+	// Validasi JenisPohon
+	if request.JenisPohon == "" {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, errors.New("jenis pohon tidak boleh kosong")
+	}
+
 	newPokin := domain.PohonKinerja{
 		Parent:     request.Parent,
 		NamaPohon:  existingPokin.NamaPohon,
-		JenisPohon: existingPokin.JenisPohon,
+		JenisPohon: request.JenisPohon,
 		LevelPohon: existingPokin.LevelPohon,
 		KodeOpd:    existingPokin.KodeOpd,
 		Keterangan: existingPokin.Keterangan,
@@ -560,7 +647,7 @@ func (service *PohonKinerjaAdminServiceImpl) CreateStrategicAdmin(ctx context.Co
 		Id:         int(newPokinId),
 		Parent:     existingPokin.Parent,
 		NamaPohon:  existingPokin.NamaPohon,
-		JenisPohon: existingPokin.JenisPohon,
+		JenisPohon: request.JenisPohon,
 		LevelPohon: existingPokin.LevelPohon,
 		KodeOpd:    existingPokin.KodeOpd,
 		Keterangan: existingPokin.Keterangan,
@@ -569,4 +656,186 @@ func (service *PohonKinerjaAdminServiceImpl) CreateStrategicAdmin(ctx context.Co
 	}
 
 	return response, nil
+}
+
+func (service *PohonKinerjaAdminServiceImpl) FindPokinByTematik(ctx context.Context, tahun string) ([]pohonkinerja.PohonKinerjaAdminResponseData, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	pokins, err := service.pohonKinerjaRepository.FindPokinByJenisPohon(ctx, tx, "Tematik", 0, tahun, "")
+	if err != nil {
+		return nil, err
+	}
+
+	if len(pokins) == 0 {
+		return nil, nil
+	}
+
+	var result []pohonkinerja.PohonKinerjaAdminResponseData
+	for _, pokin := range pokins {
+		result = append(result, pohonkinerja.PohonKinerjaAdminResponseData{
+			Id:         pokin.Id,
+			NamaPohon:  pokin.NamaPohon,
+			JenisPohon: pokin.JenisPohon,
+			LevelPohon: pokin.LevelPohon,
+			Tahun:      pokin.Tahun,
+		})
+	}
+
+	return result, nil
+}
+
+func (service *PohonKinerjaAdminServiceImpl) FindPokinByStrategic(ctx context.Context, kodeOpd string, tahun string) ([]pohonkinerja.PohonKinerjaAdminResponseData, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	// Validasi OPD jika kodeOpd tidak kosong
+	if kodeOpd != "" {
+		_, err := service.opdRepository.FindByKodeOpd(ctx, tx, kodeOpd)
+		if err != nil {
+			return nil, errors.New("kode opd tidak ditemukan")
+		}
+	}
+
+	// Ambil data pohon kinerja dengan jenis "Strategic" dan level 4
+	pokins, err := service.pohonKinerjaRepository.FindPokinByJenisPohon(ctx, tx, "Strategic", 4, tahun, kodeOpd)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(pokins) == 0 {
+		return nil, nil
+	}
+
+	var result []pohonkinerja.PohonKinerjaAdminResponseData
+	for _, pokin := range pokins {
+		// Ambil data OPD jika ada kodeOpd
+		var namaOpd string
+		if pokin.KodeOpd != "" {
+			opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, pokin.KodeOpd)
+			if err == nil {
+				namaOpd = opd.NamaOpd
+			}
+		}
+
+		result = append(result, pohonkinerja.PohonKinerjaAdminResponseData{
+			Id:         pokin.Id,
+			Parent:     pokin.Parent,
+			NamaPohon:  pokin.NamaPohon,
+			JenisPohon: pokin.JenisPohon,
+			LevelPohon: pokin.LevelPohon,
+			KodeOpd:    pokin.KodeOpd,
+			NamaOpd:    namaOpd,
+			Tahun:      pokin.Tahun,
+		})
+	}
+
+	return result, nil
+}
+
+func (service *PohonKinerjaAdminServiceImpl) FindPokinByTactical(ctx context.Context, kodeOpd string, tahun string) ([]pohonkinerja.PohonKinerjaAdminResponseData, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	// Validasi OPD jika kodeOpd tidak kosong
+	if kodeOpd != "" {
+		_, err := service.opdRepository.FindByKodeOpd(ctx, tx, kodeOpd)
+		if err != nil {
+			return nil, errors.New("kode opd tidak ditemukan")
+		}
+	}
+
+	// Ambil data pohon kinerja dengan jenis "Strategic" dan level 4
+	pokins, err := service.pohonKinerjaRepository.FindPokinByJenisPohon(ctx, tx, "Tactical", 5, tahun, kodeOpd)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(pokins) == 0 {
+		return nil, nil
+	}
+
+	var result []pohonkinerja.PohonKinerjaAdminResponseData
+	for _, pokin := range pokins {
+		var namaOpd string
+		if pokin.KodeOpd != "" {
+			opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, pokin.KodeOpd)
+			if err == nil {
+				namaOpd = opd.NamaOpd
+			}
+		}
+
+		result = append(result, pohonkinerja.PohonKinerjaAdminResponseData{
+			Id:         pokin.Id,
+			Parent:     pokin.Parent,
+			NamaPohon:  pokin.NamaPohon,
+			JenisPohon: pokin.JenisPohon,
+			LevelPohon: pokin.LevelPohon,
+			KodeOpd:    pokin.KodeOpd,
+			NamaOpd:    namaOpd,
+			Tahun:      pokin.Tahun,
+		})
+	}
+
+	return result, nil
+}
+
+func (service *PohonKinerjaAdminServiceImpl) FindPokinByOperational(ctx context.Context, kodeOpd string, tahun string) ([]pohonkinerja.PohonKinerjaAdminResponseData, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	// Validasi OPD jika kodeOpd tidak kosong
+	if kodeOpd != "" {
+		_, err := service.opdRepository.FindByKodeOpd(ctx, tx, kodeOpd)
+		if err != nil {
+			return nil, errors.New("kode opd tidak ditemukan")
+		}
+	}
+
+	// Ambil data pohon kinerja dengan jenis "Strategic" dan level 4
+	pokins, err := service.pohonKinerjaRepository.FindPokinByJenisPohon(ctx, tx, "Operational", 6, tahun, kodeOpd)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(pokins) == 0 {
+		return nil, nil
+	}
+
+	var result []pohonkinerja.PohonKinerjaAdminResponseData
+	for _, pokin := range pokins {
+		// Ambil data OPD jika ada kodeOpd
+		var namaOpd string
+		if pokin.KodeOpd != "" {
+			opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, pokin.KodeOpd)
+			if err == nil {
+				namaOpd = opd.NamaOpd
+			}
+		}
+
+		result = append(result, pohonkinerja.PohonKinerjaAdminResponseData{
+			Id:         pokin.Id,
+			Parent:     pokin.Parent,
+			NamaPohon:  pokin.NamaPohon,
+			JenisPohon: pokin.JenisPohon,
+			LevelPohon: pokin.LevelPohon,
+			KodeOpd:    pokin.KodeOpd,
+			NamaOpd:    namaOpd,
+			Tahun:      pokin.Tahun,
+		})
+	}
+
+	return result, nil
 }

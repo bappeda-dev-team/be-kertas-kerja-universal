@@ -734,3 +734,42 @@ func (repository *PohonKinerjaRepositoryImpl) InsertClonedTarget(ctx context.Con
 	}
 	return nil
 }
+
+func (repository *PohonKinerjaRepositoryImpl) FindPokinByJenisPohon(ctx context.Context, tx *sql.Tx, jenisPohon string, levelPohon int, tahun string, kodeOpd string) ([]domain.PohonKinerja, error) {
+	script := "SELECT id, nama_pohon, jenis_pohon, level_pohon, kode_opd, tahun FROM tb_pohon_kinerja WHERE 1=1"
+	parameters := []interface{}{}
+	if jenisPohon != "" {
+		script += " AND jenis_pohon = ?"
+		parameters = append(parameters, jenisPohon)
+	}
+	if levelPohon != 0 {
+		script += " AND level_pohon = ?"
+		parameters = append(parameters, levelPohon)
+	}
+	if kodeOpd != "" {
+		script += " AND kode_opd = ?"
+		parameters = append(parameters, kodeOpd)
+	}
+	if tahun != "" {
+		script += " AND tahun = ?"
+		parameters = append(parameters, tahun)
+	}
+	script += " ORDER BY nama_pohon asc"
+
+	rows, err := tx.QueryContext(ctx, script, parameters...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var pokins []domain.PohonKinerja
+	for rows.Next() {
+		var pokin domain.PohonKinerja
+		err := rows.Scan(&pokin.Id, &pokin.NamaPohon, &pokin.JenisPohon, &pokin.LevelPohon, &pokin.KodeOpd, &pokin.Tahun)
+		if err != nil {
+			return nil, err
+		}
+		pokins = append(pokins, pokin)
+	}
+	return pokins, nil
+}

@@ -15,12 +15,14 @@ import (
 
 type PegawaiServiceImpl struct {
 	pegawaiRepository repository.PegawaiRepository
+	opdRepository     repository.OpdRepository
 	DB                *sql.DB
 }
 
-func NewPegawaiServiceImpl(pegawaiRepository repository.PegawaiRepository, DB *sql.DB) *PegawaiServiceImpl {
+func NewPegawaiServiceImpl(pegawaiRepository repository.PegawaiRepository, opdRepository repository.OpdRepository, DB *sql.DB) *PegawaiServiceImpl {
 	return &PegawaiServiceImpl{
 		pegawaiRepository: pegawaiRepository,
+		opdRepository:     opdRepository,
 		DB:                DB,
 	}
 }
@@ -44,6 +46,7 @@ func (service *PegawaiServiceImpl) Create(ctx context.Context, request pegawai.P
 		Id:          pegawaiId,
 		NamaPegawai: request.NamaPegawai,
 		Nip:         request.Nip,
+		KodeOpd:     helper.EmptyStringIfNull(request.KodeOpd),
 	}
 
 	pegawais, err := service.pegawaiRepository.Create(ctx, tx, pegawaiDomain)
@@ -68,6 +71,7 @@ func (service *PegawaiServiceImpl) Update(ctx context.Context, request pegawai.P
 
 	pegawaiData.NamaPegawai = request.NamaPegawai
 	pegawaiData.Nip = request.Nip
+	pegawaiData.KodeOpd = helper.EmptyStringIfNull(request.KodeOpd)
 
 	updatedPegawai := service.pegawaiRepository.Update(ctx, tx, pegawaiData)
 	return helper.ToPegawaiResponse(updatedPegawai), nil
@@ -109,6 +113,14 @@ func (service *PegawaiServiceImpl) FindById(ctx context.Context, id string) (peg
 		return pegawai.PegawaiResponse{}, err
 	}
 
+	// Tambahkan nama OPD jika pegawai memiliki kodeOpd
+	if pegawais.KodeOpd != "" {
+		opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, pegawais.KodeOpd)
+		if err == nil {
+			pegawais.NamaOpd = opd.NamaOpd
+		}
+	}
+
 	return helper.ToPegawaiResponse(pegawais), nil
 }
 
@@ -122,6 +134,15 @@ func (service *PegawaiServiceImpl) FindAll(ctx context.Context) ([]pegawai.Pegaw
 	pegawais, err := service.pegawaiRepository.FindAll(ctx, tx)
 	if err != nil {
 		return []pegawai.PegawaiResponse{}, err
+	}
+
+	for i := range pegawais {
+		if pegawais[i].KodeOpd != "" {
+			opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, pegawais[i].KodeOpd)
+			if err == nil {
+				pegawais[i].NamaOpd = opd.NamaOpd
+			}
+		}
 	}
 
 	return helper.ToPegawaiResponses(pegawais), nil

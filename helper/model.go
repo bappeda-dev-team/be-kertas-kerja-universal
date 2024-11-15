@@ -545,10 +545,12 @@ func ToSubKegiatanTerpilihResponses(subKegiatanTerpilihs []domain.SubKegiatanTer
 }
 
 func ToPegawaiResponse(pegawais domainmaster.Pegawai) pegawai.PegawaiResponse {
-	return pegawai.PegawaiResponse{ // Langsung return struct PegawaiResponse
+	return pegawai.PegawaiResponse{
 		Id:          pegawais.Id,
 		NamaPegawai: pegawais.NamaPegawai,
 		Nip:         pegawais.Nip,
+		KodeOpd:     pegawais.KodeOpd,
+		NamaOpd:     pegawais.NamaOpd,
 	}
 }
 func ToPegawaiResponses(pegawais []domainmaster.Pegawai) []pegawai.PegawaiResponse {

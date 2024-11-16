@@ -236,7 +236,6 @@ func (repository *PohonKinerjaRepositoryImpl) UpdatePokinAdmin(ctx context.Conte
 }
 
 func (repository *PohonKinerjaRepositoryImpl) DeletePokinAdmin(ctx context.Context, tx *sql.Tx, id int) error {
-	// Pertama, dapatkan semua ID yang akan dihapus menggunakan CTE (Common Table Expression)
 	findIdsScript := `
         WITH RECURSIVE pohon_hierarki AS (
             -- Base case: node yang akan dihapus
@@ -321,7 +320,6 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinAdminById(ctx context.Con
 }
 
 func (repository *PohonKinerjaRepositoryImpl) FindPokinAdminAll(ctx context.Context, tx *sql.Tx, tahun string) ([]domain.PohonKinerja, error) {
-	// Query dasar untuk mengambil semua data pohon kinerja
 	script := `
         SELECT 
             pk.id,
@@ -443,7 +441,6 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinAdminAll(ctx context.Cont
 }
 
 func (repository *PohonKinerjaRepositoryImpl) FindPokinAdminByIdHierarki(ctx context.Context, tx *sql.Tx, idPokin int) ([]domain.PohonKinerja, error) {
-	// Query untuk mendapatkan semua pohon kinerja yang terkait secara hierarki
 	script := `
         WITH RECURSIVE pohon_hierarki AS (
             -- Base case: pilih node yang diminta
@@ -613,4 +610,166 @@ func (repository *PohonKinerjaRepositoryImpl) FindTargetByIndikatorId(ctx contex
 		targets = append(targets, target)
 	}
 	return targets, nil
+}
+
+func (repository *PohonKinerjaRepositoryImpl) FindPokinToClone(ctx context.Context, tx *sql.Tx, id int) (domain.PohonKinerja, error) {
+	script := "SELECT id, nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun FROM tb_pohon_kinerja WHERE id = ?"
+	rows, err := tx.QueryContext(ctx, script, id)
+	if err != nil {
+		return domain.PohonKinerja{}, fmt.Errorf("gagal memeriksa data yang akan di-clone: %v", err)
+	}
+	defer rows.Close()
+
+	var existingPokin domain.PohonKinerja
+	if rows.Next() {
+		err := rows.Scan(
+			&existingPokin.Id,
+			&existingPokin.NamaPohon,
+			&existingPokin.Parent,
+			&existingPokin.JenisPohon,
+			&existingPokin.LevelPohon,
+			&existingPokin.KodeOpd,
+			&existingPokin.Keterangan,
+			&existingPokin.Tahun,
+		)
+		if err != nil {
+			return domain.PohonKinerja{}, fmt.Errorf("gagal membaca data yang akan di-clone: %v", err)
+		}
+		return existingPokin, nil
+	}
+	return domain.PohonKinerja{}, fmt.Errorf("data dengan ID %d tidak ditemukan", id)
+}
+
+func (repository *PohonKinerjaRepositoryImpl) ValidateParentLevel(ctx context.Context, tx *sql.Tx, parentId int, levelPohon int) error {
+	script := "SELECT level_pohon FROM tb_pohon_kinerja WHERE id = ?"
+	var parentLevel int
+	err := tx.QueryRowContext(ctx, script, parentId).Scan(&parentLevel)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("parent dengan ID %d tidak ditemukan", parentId)
+		}
+		return fmt.Errorf("gagal memeriksa level parent: %v", err)
+	}
+
+	if levelPohon == 5 && parentLevel != 4 {
+		return fmt.Errorf("untuk level pohon 5, parent harus memiliki level 4")
+	} else if levelPohon == 6 && parentLevel != 5 {
+		return fmt.Errorf("untuk level pohon 6, parent harus memiliki level 5")
+	}
+
+	return nil
+}
+
+func (repository *PohonKinerjaRepositoryImpl) FindIndikatorToClone(ctx context.Context, tx *sql.Tx, pokinId int) ([]domain.Indikator, error) {
+	script := "SELECT id, indikator, tahun FROM tb_indikator WHERE pokin_id = ?"
+	rows, err := tx.QueryContext(ctx, script, pokinId)
+	if err != nil {
+		return nil, fmt.Errorf("gagal mengambil data indikator: %v", err)
+	}
+	defer rows.Close()
+
+	var indikators []domain.Indikator
+	for rows.Next() {
+		var indikator domain.Indikator
+		err := rows.Scan(&indikator.Id, &indikator.Indikator, &indikator.Tahun)
+		if err != nil {
+			return nil, fmt.Errorf("gagal membaca data indikator: %v", err)
+		}
+		indikators = append(indikators, indikator)
+	}
+	return indikators, nil
+}
+
+func (repository *PohonKinerjaRepositoryImpl) FindTargetToClone(ctx context.Context, tx *sql.Tx, indikatorId string) ([]domain.Target, error) {
+	script := "SELECT target, satuan, tahun FROM tb_target WHERE indikator_id = ?"
+	rows, err := tx.QueryContext(ctx, script, indikatorId)
+	if err != nil {
+		return nil, fmt.Errorf("gagal mengambil data target: %v", err)
+	}
+	defer rows.Close()
+
+	var targets []domain.Target
+	for rows.Next() {
+		var target domain.Target
+		err := rows.Scan(&target.Target, &target.Satuan, &target.Tahun)
+		if err != nil {
+			return nil, fmt.Errorf("gagal membaca data target: %v", err)
+		}
+		targets = append(targets, target)
+	}
+	return targets, nil
+}
+
+func (repository *PohonKinerjaRepositoryImpl) InsertClonedPokin(ctx context.Context, tx *sql.Tx, pokin domain.PohonKinerja) (int64, error) {
+	script := "INSERT INTO tb_pohon_kinerja (nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun) VALUES (?, ?, ?, ?, ?, ?, ?)"
+	result, err := tx.ExecContext(ctx, script,
+		pokin.NamaPohon,
+		pokin.Parent,
+		pokin.JenisPohon,
+		pokin.LevelPohon,
+		pokin.KodeOpd,
+		pokin.Keterangan,
+		pokin.Tahun,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("gagal menyimpan data pohon kinerja yang di-clone: %v", err)
+	}
+	return result.LastInsertId()
+}
+
+func (repository *PohonKinerjaRepositoryImpl) InsertClonedIndikator(ctx context.Context, tx *sql.Tx, indikatorId string, pokinId int64, indikator domain.Indikator) error {
+	script := "INSERT INTO tb_indikator (id, pokin_id, indikator, tahun) VALUES (?, ?, ?, ?)"
+	_, err := tx.ExecContext(ctx, script, indikatorId, pokinId, indikator.Indikator, indikator.Tahun)
+	if err != nil {
+		return fmt.Errorf("gagal menyimpan indikator baru: %v", err)
+	}
+	return nil
+}
+
+func (repository *PohonKinerjaRepositoryImpl) InsertClonedTarget(ctx context.Context, tx *sql.Tx, targetId string, indikatorId string, target domain.Target) error {
+	script := "INSERT INTO tb_target (id, indikator_id, target, satuan, tahun) VALUES (?, ?, ?, ?, ?)"
+	_, err := tx.ExecContext(ctx, script, targetId, indikatorId, target.Target, target.Satuan, target.Tahun)
+	if err != nil {
+		return fmt.Errorf("gagal menyimpan target baru: %v", err)
+	}
+	return nil
+}
+
+func (repository *PohonKinerjaRepositoryImpl) FindPokinByJenisPohon(ctx context.Context, tx *sql.Tx, jenisPohon string, levelPohon int, tahun string, kodeOpd string) ([]domain.PohonKinerja, error) {
+	script := "SELECT id, nama_pohon, jenis_pohon, level_pohon, kode_opd, tahun FROM tb_pohon_kinerja WHERE 1=1"
+	parameters := []interface{}{}
+	if jenisPohon != "" {
+		script += " AND jenis_pohon = ?"
+		parameters = append(parameters, jenisPohon)
+	}
+	if levelPohon != 0 {
+		script += " AND level_pohon = ?"
+		parameters = append(parameters, levelPohon)
+	}
+	if kodeOpd != "" {
+		script += " AND kode_opd = ?"
+		parameters = append(parameters, kodeOpd)
+	}
+	if tahun != "" {
+		script += " AND tahun = ?"
+		parameters = append(parameters, tahun)
+	}
+	script += " ORDER BY nama_pohon asc"
+
+	rows, err := tx.QueryContext(ctx, script, parameters...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var pokins []domain.PohonKinerja
+	for rows.Next() {
+		var pokin domain.PohonKinerja
+		err := rows.Scan(&pokin.Id, &pokin.NamaPohon, &pokin.JenisPohon, &pokin.LevelPohon, &pokin.KodeOpd, &pokin.Tahun)
+		if err != nil {
+			return nil, err
+		}
+		pokins = append(pokins, pokin)
+	}
+	return pokins, nil
 }

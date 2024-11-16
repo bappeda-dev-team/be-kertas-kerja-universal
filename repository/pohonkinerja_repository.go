@@ -23,4 +23,14 @@ type PohonKinerjaRepository interface {
 	FindPokinAdminByIdHierarki(ctx context.Context, tx *sql.Tx, idPokin int) ([]domain.PohonKinerja, error)
 	FindIndikatorByPokinId(ctx context.Context, tx *sql.Tx, pokinId string) ([]domain.Indikator, error)
 	FindTargetByIndikatorId(ctx context.Context, tx *sql.Tx, indikatorId string) ([]domain.Target, error)
+	FindPokinToClone(ctx context.Context, tx *sql.Tx, id int) (domain.PohonKinerja, error)
+	ValidateParentLevel(ctx context.Context, tx *sql.Tx, parentId int, levelPohon int) error
+	FindIndikatorToClone(ctx context.Context, tx *sql.Tx, pokinId int) ([]domain.Indikator, error)
+	FindTargetToClone(ctx context.Context, tx *sql.Tx, indikatorId string) ([]domain.Target, error)
+	InsertClonedPokin(ctx context.Context, tx *sql.Tx, pokin domain.PohonKinerja) (int64, error)
+	InsertClonedIndikator(ctx context.Context, tx *sql.Tx, indikatorId string, pokinId int64, indikator domain.Indikator) error
+	InsertClonedTarget(ctx context.Context, tx *sql.Tx, targetId string, indikatorId string, target domain.Target) error
+
+	//find pokin for dropdown
+	FindPokinByJenisPohon(ctx context.Context, tx *sql.Tx, jenisPohon string, levelPohon int, tahun string, kodeOpd string) ([]domain.PohonKinerja, error)
 }

@@ -13,4 +13,11 @@ type PohonKinerjaAdminService interface {
 	FindAll(ctx context.Context, tahun string) (pohonkinerja.PohonKinerjaAdminResponse, error)
 	FindSubTematik(ctx context.Context, tahun string) (pohonkinerja.PohonKinerjaAdminResponse, error)
 	FindPokinAdminByIdHierarki(ctx context.Context, idPokin int) (pohonkinerja.TematikResponse, error)
+	CreateStrategicAdmin(ctx context.Context, request pohonkinerja.PohonKinerjaAdminStrategicCreateRequest) (pohonkinerja.PohonKinerjaAdminResponseData, error)
+
+	//find pokin for dropdown
+	FindPokinByTematik(ctx context.Context, tahun string) ([]pohonkinerja.PohonKinerjaAdminResponseData, error)
+	FindPokinByStrategic(ctx context.Context, kodeOpd string, tahun string) ([]pohonkinerja.PohonKinerjaAdminResponseData, error)
+	FindPokinByTactical(ctx context.Context, kodeOpd string, tahun string) ([]pohonkinerja.PohonKinerjaAdminResponseData, error)
+	FindPokinByOperational(ctx context.Context, kodeOpd string, tahun string) ([]pohonkinerja.PohonKinerjaAdminResponseData, error)
 }

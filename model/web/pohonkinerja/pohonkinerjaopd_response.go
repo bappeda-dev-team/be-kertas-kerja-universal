@@ -25,6 +25,8 @@ type StrategicOpdResponse struct {
 	Id         int                         `json:"id"`
 	Parent     *int                        `json:"parent"`
 	Strategi   string                      `json:"strategi"`
+	JenisPohon string                      `json:"jenis_pohon"`
+	LevelPohon int                         `json:"level_pohon"`
 	Keterangan string                      `json:"keterangan"`
 	KodeOpd    opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
 	Tacticals  []TacticalOpdResponse       `json:"tacticals,omitempty"`
@@ -34,6 +36,8 @@ type TacticalOpdResponse struct {
 	Id           int                         `json:"id"`
 	Parent       int                         `json:"parent"`
 	Strategi     string                      `json:"strategi"`
+	JenisPohon   string                      `json:"jenis_pohon"`
+	LevelPohon   int                         `json:"level_pohon"`
 	Keterangan   string                      `json:"keterangan"`
 	KodeOpd      opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
 	Operationals []OperationalOpdResponse    `json:"operational"`
@@ -43,6 +47,8 @@ type OperationalOpdResponse struct {
 	Id         int                         `json:"id"`
 	Parent     int                         `json:"parent"`
 	Strategi   string                      `json:"strategi"`
+	JenisPohon string                      `json:"jenis_pohon"`
+	LevelPohon int                         `json:"level_pohon"`
 	Keterangan string                      `json:"keterangan"`
 	KodeOpd    opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
 }

@@ -234,3 +234,125 @@ func (controller *PohonKinerjaAdminControllerImpl) FindPokinAdminByIdHierarki(wr
 
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *PohonKinerjaAdminControllerImpl) CreateStrategicAdmin(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	// Decode request body
+	pohonKinerjaCreateRequest := pohonkinerja.PohonKinerjaAdminStrategicCreateRequest{}
+	helper.ReadFromRequestBody(request, &pohonKinerjaCreateRequest)
+
+	// Panggil service create
+	pohonKinerjaResponse, err := controller.pohonKinerjaAdminService.CreateStrategicAdmin(request.Context(), pohonKinerjaCreateRequest)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	// Buat response sukses
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "Success Menarik Pohon Kinerja OPD",
+		Data:   pohonKinerjaResponse,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *PohonKinerjaAdminControllerImpl) FindPokinByTematik(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	tahun := params.ByName("tahun")
+
+	result, err := controller.pohonKinerjaAdminService.FindPokinByTematik(request.Context(), tahun)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusInternalServerError,
+			Status: "INTERNAL SERVER ERROR",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "Success Get Pokin By Tematik",
+		Data:   result,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *PohonKinerjaAdminControllerImpl) FindPokinByStrategic(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	kodeOpd := params.ByName("kode_opd")
+	tahun := params.ByName("tahun")
+
+	result, err := controller.pohonKinerjaAdminService.FindPokinByStrategic(request.Context(), kodeOpd, tahun)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusInternalServerError,
+			Status: "INTERNAL SERVER ERROR",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "Success Get Pokin By Strategic",
+		Data:   result,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *PohonKinerjaAdminControllerImpl) FindPokinByTactical(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	kodeOpd := params.ByName("kode_opd")
+	tahun := params.ByName("tahun")
+
+	result, err := controller.pohonKinerjaAdminService.FindPokinByTactical(request.Context(), kodeOpd, tahun)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusInternalServerError,
+			Status: "INTERNAL SERVER ERROR",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "Success Get Pokin By Tactical",
+		Data:   result,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *PohonKinerjaAdminControllerImpl) FindPokinByOperational(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	kodeOpd := params.ByName("kode_opd")
+	tahun := params.ByName("tahun")
+
+	result, err := controller.pohonKinerjaAdminService.FindPokinByOperational(request.Context(), kodeOpd, tahun)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusInternalServerError,
+			Status: "INTERNAL SERVER ERROR",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "Success Get Pokin By Operational",
+		Data:   result,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}

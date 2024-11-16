@@ -18,7 +18,7 @@ type PohonKinerjaOpdAllResponse struct {
 	KodeOpd    string                 `json:"kode_opd"`
 	NamaOpd    string                 `json:"nama_opd"`
 	Tahun      string                 `json:"tahun"`
-	Strategics []StrategicOpdResponse `json:"strategic"`
+	Strategics []StrategicOpdResponse `json:"childs"`
 }
 
 type StrategicOpdResponse struct {
@@ -29,7 +29,7 @@ type StrategicOpdResponse struct {
 	LevelPohon int                         `json:"level_pohon"`
 	Keterangan string                      `json:"keterangan"`
 	KodeOpd    opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
-	Tacticals  []TacticalOpdResponse       `json:"tacticals,omitempty"`
+	Tacticals  []TacticalOpdResponse       `json:"childs,omitempty"`
 }
 
 type TacticalOpdResponse struct {
@@ -40,7 +40,7 @@ type TacticalOpdResponse struct {
 	LevelPohon   int                         `json:"level_pohon"`
 	Keterangan   string                      `json:"keterangan"`
 	KodeOpd      opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
-	Operationals []OperationalOpdResponse    `json:"operational"`
+	Operationals []OperationalOpdResponse    `json:"childs,omitempty"`
 }
 
 type OperationalOpdResponse struct {

@@ -22,28 +22,30 @@ func NewPohonKinerjaOpdControllerImpl(pohonKinerjaOpdService service.PohonKinerj
 }
 
 func (controller *PohonKinerjaOpdControllerImpl) Create(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	// Decode request body ke CreatePohonKinerjaOpdRequest
 	pohonKinerjaCreateRequest := pohonkinerja.PohonKinerjaCreateRequest{}
 	helper.ReadFromRequestBody(request, &pohonKinerjaCreateRequest)
 
-	// Panggil service Create
-	pohonKinerjaResponse, err := controller.PohonKinerjaOpdService.Create(request.Context(), pohonKinerjaCreateRequest)
+	response, err := controller.PohonKinerjaOpdService.Create(request.Context(), pohonKinerjaCreateRequest)
 	if err != nil {
-		panic(err)
+		webResponse := web.WebResponse{
+			Code:   400,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
 	}
 
-	// Kirim response
 	webResponse := web.WebResponse{
 		Code:   200,
-		Status: "Success Create Pohon Kinerja",
-		Data:   pohonKinerjaResponse,
+		Status: "OK",
+		Data:   response,
 	}
 
 	helper.WriteToResponseBody(writer, webResponse)
 }
 
 func (controller *PohonKinerjaOpdControllerImpl) Update(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	// Decode request body ke PohonKinerjaUpdateRequest
 	pohonKinerjaUpdateRequest := pohonkinerja.PohonKinerjaUpdateRequest{}
 	helper.ReadFromRequestBody(request, &pohonKinerjaUpdateRequest)
 
@@ -63,7 +65,13 @@ func (controller *PohonKinerjaOpdControllerImpl) Update(writer http.ResponseWrit
 	// Panggil service Update
 	pohonKinerjaResponse, err := controller.PohonKinerjaOpdService.Update(request.Context(), pohonKinerjaUpdateRequest)
 	if err != nil {
-		panic(err)
+		webResponse := web.WebResponse{
+			Code:   400,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
 	}
 
 	// Kirim response

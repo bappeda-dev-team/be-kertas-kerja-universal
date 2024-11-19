@@ -226,27 +226,5 @@ func NewRouter(
 	//rincian kak
 	router.GET("/rencana_kinerja/:rencana_kinerja_id/pegawai/:pegawai_id/input_rincian_kak", rencanaKinerjaController.FindAllRincianKak)
 
-	// router.GET("/rencana_kinerja/:rencana_kinerja_id/pegawai/:pegawai_id/input_rincian_kak", combineHandlers(
-	// 	rencanaKinerjaController.FindAll,
-	// 	rencanaAksiController.FindAllByRekin,
-	// 	usulanMusrebangController.FindAllRekin,
-	// 	usulanMandatoriController.FindAllByRekin,
-	// 	usulanPokokPikiranController.FindAllByRekin,
-	// 	usulanInisiatifController.FindAllByRekin,
-	// 	subKegiatanController.FindAllByRekin,
-	// 	dasarHukumController.FindAllByRekinId,
-	// 	gambaranUmumController.FindAllByRekinId,
-	// 	inovasiController.FindAllByRekinId,
-	// ))
-
 	return router
 }
-
-// Buat fungsi wrapper
-// func combineHandlers(handlers ...httprouter.Handle) httprouter.Handle {
-// 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-// 		for _, handler := range handlers {
-// 			handler(w, r, ps)
-// 		}
-// 	}
-// }

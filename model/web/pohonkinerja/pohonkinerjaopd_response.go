@@ -44,8 +44,8 @@ type TacticalOpdResponse struct {
 	LevelPohon   int                         `json:"level_pohon"`
 	Keterangan   string                      `json:"keterangan"`
 	KodeOpd      opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
-	Operationals []OperationalOpdResponse    `json:"childs,omitempty"`
 	Pelaksana    []PelaksanaOpdResponse      `json:"pelaksana"`
+	Operationals []OperationalOpdResponse    `json:"childs,omitempty"`
 }
 
 type OperationalOpdResponse struct {

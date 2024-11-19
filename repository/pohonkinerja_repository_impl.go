@@ -267,6 +267,12 @@ func (repository *PohonKinerjaRepositoryImpl) FindPelaksanaPokin(ctx context.Con
 	return result, nil
 }
 
+func (repository *PohonKinerjaRepositoryImpl) DeletePelaksanaPokin(ctx context.Context, tx *sql.Tx, pelaksanaId string) error {
+	script := "DELETE FROM tb_pelaksana_pokin WHERE id = ?"
+	_, err := tx.ExecContext(ctx, script, pelaksanaId)
+	return err
+}
+
 // admin pokin
 func (repository *PohonKinerjaRepositoryImpl) CreatePokinAdmin(ctx context.Context, tx *sql.Tx, pokinAdmin domain.PohonKinerja) (domain.PohonKinerja, error) {
 	// Insert pohon kinerja tanpa ID

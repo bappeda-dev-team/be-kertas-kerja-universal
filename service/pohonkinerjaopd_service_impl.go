@@ -341,17 +341,20 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 			var tacticals []pohonkinerja.TacticalOpdResponse
 			var strategicPelaksana []pohonkinerja.PelaksanaOpdResponse
 
-			// Get pelaksana untuk strategic
-			for _, pelaksana := range strategic.Pelaksana {
-				pegawaiPelaksana, err := service.pegawaiRepository.FindById(ctx, tx, pelaksana.PegawaiId)
-				if err != nil {
-					continue
+			// Ambil data pelaksana untuk strategic
+			pelaksanaStrategic, err := service.pohonKinerjaOpdRepository.FindPelaksanaPokin(ctx, tx, fmt.Sprint(strategic.Id))
+			if err == nil {
+				for _, pelaksana := range pelaksanaStrategic {
+					pegawaiPelaksana, err := service.pegawaiRepository.FindById(ctx, tx, pelaksana.PegawaiId)
+					if err != nil {
+						continue
+					}
+					strategicPelaksana = append(strategicPelaksana, pohonkinerja.PelaksanaOpdResponse{
+						Id:          pelaksana.Id,
+						PegawaiId:   pegawaiPelaksana.Id,
+						NamaPegawai: pegawaiPelaksana.NamaPegawai,
+					})
 				}
-				strategicPelaksana = append(strategicPelaksana, pohonkinerja.PelaksanaOpdResponse{
-					Id:          pelaksana.Id,
-					PegawaiId:   pegawaiPelaksana.Id,
-					NamaPegawai: pegawaiPelaksana.NamaPegawai,
-				})
 			}
 
 			// Build tactical (level 5)
@@ -364,17 +367,20 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 					var operationals []pohonkinerja.OperationalOpdResponse
 					var tacticalPelaksana []pohonkinerja.PelaksanaOpdResponse
 
-					// Get pelaksana untuk tactical
-					for _, pelaksana := range tactical.Pelaksana {
-						pegawaiPelaksana, err := service.pegawaiRepository.FindById(ctx, tx, pelaksana.PegawaiId)
-						if err != nil {
-							continue
+					// Ambil data pelaksana untuk tactical
+					pelaksanaTactical, err := service.pohonKinerjaOpdRepository.FindPelaksanaPokin(ctx, tx, fmt.Sprint(tactical.Id))
+					if err == nil {
+						for _, pelaksana := range pelaksanaTactical {
+							pegawaiPelaksana, err := service.pegawaiRepository.FindById(ctx, tx, pelaksana.PegawaiId)
+							if err != nil {
+								continue
+							}
+							tacticalPelaksana = append(tacticalPelaksana, pohonkinerja.PelaksanaOpdResponse{
+								Id:          pelaksana.Id,
+								PegawaiId:   pegawaiPelaksana.Id,
+								NamaPegawai: pegawaiPelaksana.NamaPegawai,
+							})
 						}
-						tacticalPelaksana = append(tacticalPelaksana, pohonkinerja.PelaksanaOpdResponse{
-							Id:          pelaksana.Id,
-							PegawaiId:   pegawaiPelaksana.Id,
-							NamaPegawai: pegawaiPelaksana.NamaPegawai,
-						})
 					}
 
 					// Build operational (level 6)
@@ -386,17 +392,20 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 						for _, operational := range operationalList {
 							var operationalPelaksana []pohonkinerja.PelaksanaOpdResponse
 
-							// Get pelaksana untuk operational
-							for _, pelaksana := range operational.Pelaksana {
-								pegawaiPelaksana, err := service.pegawaiRepository.FindById(ctx, tx, pelaksana.PegawaiId)
-								if err != nil {
-									continue
+							// Ambil data pelaksana untuk operational
+							pelaksanaOperational, err := service.pohonKinerjaOpdRepository.FindPelaksanaPokin(ctx, tx, fmt.Sprint(operational.Id))
+							if err == nil {
+								for _, pelaksana := range pelaksanaOperational {
+									pegawaiPelaksana, err := service.pegawaiRepository.FindById(ctx, tx, pelaksana.PegawaiId)
+									if err != nil {
+										continue
+									}
+									operationalPelaksana = append(operationalPelaksana, pohonkinerja.PelaksanaOpdResponse{
+										Id:          pelaksana.Id,
+										PegawaiId:   pegawaiPelaksana.Id,
+										NamaPegawai: pegawaiPelaksana.NamaPegawai,
+									})
 								}
-								operationalPelaksana = append(operationalPelaksana, pohonkinerja.PelaksanaOpdResponse{
-									Id:          pelaksana.Id,
-									PegawaiId:   pegawaiPelaksana.Id,
-									NamaPegawai: pegawaiPelaksana.NamaPegawai,
-								})
 							}
 
 							operationals = append(operationals, pohonkinerja.OperationalOpdResponse{
@@ -502,4 +511,13 @@ func (service *PohonKinerjaOpdServiceImpl) FindStrategicNoParent(ctx context.Con
 	}
 
 	return strategics, nil
+}
+
+func (service *PohonKinerjaOpdServiceImpl) DeletePelaksana(ctx context.Context, pelaksanaId string) error {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer helper.CommitOrRollback(tx)
+	return service.pohonKinerjaOpdRepository.DeletePelaksanaPokin(ctx, tx, pelaksanaId)
 }

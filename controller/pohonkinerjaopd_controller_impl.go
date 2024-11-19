@@ -208,3 +208,24 @@ func (controller *PohonKinerjaOpdControllerImpl) FindStrategicNoParent(writer ht
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *PohonKinerjaOpdControllerImpl) DeletePelaksana(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	err := controller.PohonKinerjaOpdService.DeletePelaksana(request.Context(), params.ByName("id"))
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   500,
+			Status: "Internal Server Error",
+			Data:   err.Error(),
+		}
+		writer.WriteHeader(http.StatusInternalServerError)
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   200,
+		Status: "Success Delete Pelaksana",
+		Data:   nil,
+	}
+	helper.WriteToResponseBody(writer, webResponse)
+}

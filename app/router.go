@@ -148,7 +148,7 @@ func NewRouter(
 	router.DELETE("/pohon_kinerja_opd/delete/:id", pohonKinerjaOpdController.Delete)
 	router.GET("/pohon_kinerja_opd/findall/:kode_opd/:tahun", pohonKinerjaOpdController.FindAll)
 	router.GET("/pohon_kinerja_opd/strategic_no_parent/:kode_opd/:tahun", pohonKinerjaOpdController.FindStrategicNoParent)
-
+	router.DELETE("/pohon_kinerja_opd/delete_pelaksana/:id", pohonKinerjaOpdController.DeletePelaksana)
 	//pohon kinerja admin
 	router.POST("/pohon_kinerja_admin/create", pohonKinerjaAdminController.Create)
 	router.PUT("/pohon_kinerja_admin/update/:pohonKinerjaId", pohonKinerjaAdminController.Update)

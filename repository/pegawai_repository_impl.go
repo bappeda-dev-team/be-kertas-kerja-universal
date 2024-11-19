@@ -52,11 +52,7 @@ func (repository *PegawaiRepositoryImpl) FindById(ctx context.Context, tx *sql.T
 }
 
 func (repository *PegawaiRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]domainmaster.Pegawai, error) {
-<<<<<<< HEAD
 	script := "SELECT id, nama, nip, kode_opd FROM tb_pegawai"
-=======
-	script := "SELECT id, nama, nip FROM tb_pegawai ORDER BY nama ASC"
->>>>>>> develop_pokin
 	rows, err := tx.QueryContext(ctx, script)
 	if err != nil {
 		return []domainmaster.Pegawai{}, err

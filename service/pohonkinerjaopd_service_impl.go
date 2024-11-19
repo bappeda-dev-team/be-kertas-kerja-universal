@@ -12,18 +12,22 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+
+	"github.com/google/uuid"
 )
 
 type PohonKinerjaOpdServiceImpl struct {
 	pohonKinerjaOpdRepository repository.PohonKinerjaRepository
 	opdRepository             repository.OpdRepository
+	pegawaiRepository         repository.PegawaiRepository
 	DB                        *sql.DB
 }
 
-func NewPohonKinerjaOpdServiceImpl(pohonKinerjaOpdRepository repository.PohonKinerjaRepository, opdRepository repository.OpdRepository, DB *sql.DB) *PohonKinerjaOpdServiceImpl {
+func NewPohonKinerjaOpdServiceImpl(pohonKinerjaOpdRepository repository.PohonKinerjaRepository, opdRepository repository.OpdRepository, pegawaiRepository repository.PegawaiRepository, DB *sql.DB) *PohonKinerjaOpdServiceImpl {
 	return &PohonKinerjaOpdServiceImpl{
 		pohonKinerjaOpdRepository: pohonKinerjaOpdRepository,
 		opdRepository:             opdRepository,
+		pegawaiRepository:         pegawaiRepository,
 		DB:                        DB,
 	}
 }
@@ -49,6 +53,37 @@ func (service *PohonKinerjaOpdServiceImpl) Create(ctx context.Context, request p
 		return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("kode opd tidak valid")
 	}
 
+	// Validasi dan persiapan data pelaksana
+	var pelaksanaList []domain.PelaksanaPokin
+	var pelaksanaResponses []pohonkinerja.PelaksanaOpdResponse
+
+	for _, pelaksanaReq := range request.PelaksanaId {
+		// Generate ID untuk pelaksana_pokin
+		pelaksanaId := fmt.Sprintf("PLKS-%s", uuid.New().String()[:8])
+
+		// Validasi setiap pelaksana
+		pegawaiPelaksana, err := service.pegawaiRepository.FindById(ctx, tx, pelaksanaReq.PegawaiId)
+		if err != nil {
+			return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("pelaksana tidak ditemukan")
+		}
+		if pegawaiPelaksana.Id == "" {
+			return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("pelaksana tidak ditemukan")
+		}
+
+		// Tambahkan ke list pelaksana
+		pelaksanaList = append(pelaksanaList, domain.PelaksanaPokin{
+			Id:        pelaksanaId,
+			PegawaiId: pelaksanaReq.PegawaiId,
+		})
+
+		// Siapkan response pelaksana
+		pelaksanaResponses = append(pelaksanaResponses, pohonkinerja.PelaksanaOpdResponse{
+			Id:          pelaksanaId,
+			PegawaiId:   pegawaiPelaksana.Id,
+			NamaPegawai: pegawaiPelaksana.NamaPegawai,
+		})
+	}
+
 	pohonKinerja := domain.PohonKinerja{
 		NamaPohon:  request.NamaPohon,
 		Parent:     request.Parent,
@@ -57,15 +92,13 @@ func (service *PohonKinerjaOpdServiceImpl) Create(ctx context.Context, request p
 		KodeOpd:    request.KodeOpd,
 		Keterangan: request.Keterangan,
 		Tahun:      request.Tahun,
+		Pelaksana:  pelaksanaList,
 	}
 
 	result, err := service.pohonKinerjaOpdRepository.Create(ctx, tx, pohonKinerja)
 	if err != nil {
 		return pohonkinerja.PohonKinerjaOpdResponse{}, err
 	}
-
-	// Tambahkan log untuk debug tipe data dan nilai
-	fmt.Printf("ID Type: %T, Value: %v\n", result.Id, result.Id)
 
 	response := pohonkinerja.PohonKinerjaOpdResponse{
 		Id:         result.Id,
@@ -74,12 +107,11 @@ func (service *PohonKinerjaOpdServiceImpl) Create(ctx context.Context, request p
 		JenisPohon: result.JenisPohon,
 		LevelPohon: result.LevelPohon,
 		KodeOpd:    result.KodeOpd,
+		NamaOpd:    opd.NamaOpd,
 		Keterangan: result.Keterangan,
 		Tahun:      result.Tahun,
+		Pelaksana:  pelaksanaResponses,
 	}
-
-	// Log response untuk memastikan
-	fmt.Printf("Response: %+v\n", response)
 
 	return response, nil
 }
@@ -111,6 +143,37 @@ func (service *PohonKinerjaOpdServiceImpl) Update(ctx context.Context, request p
 		return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("data pohon kinerja tidak ditemukan")
 	}
 
+	// Validasi dan persiapan data pelaksana
+	var pelaksanaList []domain.PelaksanaPokin
+	var pelaksanaResponses []pohonkinerja.PelaksanaOpdResponse
+
+	for _, pelaksanaReq := range request.PelaksanaId {
+		// Generate ID untuk pelaksana_pokin
+		pelaksanaId := fmt.Sprintf("PLKS-%s", uuid.New().String()[:8])
+
+		// Validasi setiap pelaksana
+		pegawaiPelaksana, err := service.pegawaiRepository.FindById(ctx, tx, pelaksanaReq.PegawaiId)
+		if err != nil {
+			return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("pelaksana tidak ditemukan")
+		}
+		if pegawaiPelaksana.Id == "" {
+			return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("pelaksana tidak ditemukan")
+		}
+
+		// Tambahkan ke list pelaksana
+		pelaksanaList = append(pelaksanaList, domain.PelaksanaPokin{
+			Id:        pelaksanaId,
+			PegawaiId: pelaksanaReq.PegawaiId,
+		})
+
+		// Siapkan response pelaksana
+		pelaksanaResponses = append(pelaksanaResponses, pohonkinerja.PelaksanaOpdResponse{
+			Id:          pelaksanaId,
+			PegawaiId:   pegawaiPelaksana.Id,
+			NamaPegawai: pegawaiPelaksana.NamaPegawai,
+		})
+	}
+
 	pohonKinerja := domain.PohonKinerja{
 		Id:         request.Id,
 		NamaPohon:  request.NamaPohon,
@@ -120,22 +183,25 @@ func (service *PohonKinerjaOpdServiceImpl) Update(ctx context.Context, request p
 		KodeOpd:    request.KodeOpd,
 		Keterangan: request.Keterangan,
 		Tahun:      request.Tahun,
+		Pelaksana:  pelaksanaList,
 	}
 
-	pokin, err := service.pohonKinerjaOpdRepository.Update(ctx, tx, pohonKinerja)
+	result, err := service.pohonKinerjaOpdRepository.Update(ctx, tx, pohonKinerja)
 	if err != nil {
 		return pohonkinerja.PohonKinerjaOpdResponse{}, err
 	}
 
 	return pohonkinerja.PohonKinerjaOpdResponse{
-		Id:         pokin.Id,
-		Parent:     strconv.Itoa(pokin.Parent),
-		NamaPohon:  pokin.NamaPohon,
-		JenisPohon: pokin.JenisPohon,
-		LevelPohon: pokin.LevelPohon,
-		KodeOpd:    pokin.KodeOpd,
-		Keterangan: pokin.Keterangan,
-		Tahun:      pokin.Tahun,
+		Id:         result.Id,
+		Parent:     strconv.Itoa(result.Parent),
+		NamaPohon:  result.NamaPohon,
+		JenisPohon: result.JenisPohon,
+		LevelPohon: result.LevelPohon,
+		KodeOpd:    result.KodeOpd,
+		NamaOpd:    opd.NamaOpd,
+		Keterangan: result.Keterangan,
+		Tahun:      result.Tahun,
+		Pelaksana:  pelaksanaResponses,
 	}, nil
 }
 
@@ -173,23 +239,46 @@ func (service *PohonKinerjaOpdServiceImpl) FindById(ctx context.Context, id int)
 	}
 	defer helper.CommitOrRollback(tx)
 
+	// 1. Ambil data pohon kinerja
 	pokin, err := service.pohonKinerjaOpdRepository.FindById(ctx, tx, id)
 	if err != nil {
 		return pohonkinerja.PohonKinerjaOpdResponse{}, err
 	}
 
-	// Tambahkan validasi jika data tidak ditemukan
+	// 2. Validasi data pohon kinerja
 	if pokin.Id == 0 {
 		return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("data tidak ditemukan")
 	}
 
-	// Ambil data OPD berdasarkan kode OPD
+	// 3. Ambil data OPD
 	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, pokin.KodeOpd)
 	if err != nil {
 		return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("data opd tidak ditemukan")
 	}
 
-	return pohonkinerja.PohonKinerjaOpdResponse{
+	// 4. Ambil data pelaksana
+	pelaksanaList, err := service.pohonKinerjaOpdRepository.FindPelaksanaPokin(ctx, tx, fmt.Sprint(pokin.Id))
+	if err != nil {
+		return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("gagal mengambil data pelaksana")
+	}
+
+	// 5. Proses data pelaksana
+	var pelaksanaResponses []pohonkinerja.PelaksanaOpdResponse
+	for _, pelaksana := range pelaksanaList {
+		pegawaiPelaksana, err := service.pegawaiRepository.FindById(ctx, tx, pelaksana.PegawaiId)
+		if err != nil {
+			continue // Skip jika pegawai tidak ditemukan
+		}
+
+		pelaksanaResponses = append(pelaksanaResponses, pohonkinerja.PelaksanaOpdResponse{
+			Id:          pelaksana.Id,
+			PegawaiId:   pegawaiPelaksana.Id,
+			NamaPegawai: pegawaiPelaksana.NamaPegawai,
+		})
+	}
+
+	// 6. Susun response
+	response := pohonkinerja.PohonKinerjaOpdResponse{
 		Id:         pokin.Id,
 		Parent:     strconv.Itoa(pokin.Parent),
 		NamaPohon:  pokin.NamaPohon,
@@ -199,7 +288,10 @@ func (service *PohonKinerjaOpdServiceImpl) FindById(ctx context.Context, id int)
 		NamaOpd:    opd.NamaOpd,
 		Keterangan: pokin.Keterangan,
 		Tahun:      pokin.Tahun,
-	}, nil
+		Pelaksana:  pelaksanaResponses,
+	}
+
+	return response, nil
 }
 
 func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd, tahun string) (pohonkinerja.PohonKinerjaOpdAllResponse, error) {
@@ -247,6 +339,23 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 
 		for _, strategic := range strategicList {
 			var tacticals []pohonkinerja.TacticalOpdResponse
+			var strategicPelaksana []pohonkinerja.PelaksanaOpdResponse
+
+			// Ambil data pelaksana untuk strategic
+			pelaksanaStrategic, err := service.pohonKinerjaOpdRepository.FindPelaksanaPokin(ctx, tx, fmt.Sprint(strategic.Id))
+			if err == nil {
+				for _, pelaksana := range pelaksanaStrategic {
+					pegawaiPelaksana, err := service.pegawaiRepository.FindById(ctx, tx, pelaksana.PegawaiId)
+					if err != nil {
+						continue
+					}
+					strategicPelaksana = append(strategicPelaksana, pohonkinerja.PelaksanaOpdResponse{
+						Id:          pelaksana.Id,
+						PegawaiId:   pegawaiPelaksana.Id,
+						NamaPegawai: pegawaiPelaksana.NamaPegawai,
+					})
+				}
+			}
 
 			// Build tactical (level 5)
 			if tacticalList := pohonMap[5][strategic.Id]; len(tacticalList) > 0 {
@@ -256,6 +365,23 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 
 				for _, tactical := range tacticalList {
 					var operationals []pohonkinerja.OperationalOpdResponse
+					var tacticalPelaksana []pohonkinerja.PelaksanaOpdResponse
+
+					// Ambil data pelaksana untuk tactical
+					pelaksanaTactical, err := service.pohonKinerjaOpdRepository.FindPelaksanaPokin(ctx, tx, fmt.Sprint(tactical.Id))
+					if err == nil {
+						for _, pelaksana := range pelaksanaTactical {
+							pegawaiPelaksana, err := service.pegawaiRepository.FindById(ctx, tx, pelaksana.PegawaiId)
+							if err != nil {
+								continue
+							}
+							tacticalPelaksana = append(tacticalPelaksana, pohonkinerja.PelaksanaOpdResponse{
+								Id:          pelaksana.Id,
+								PegawaiId:   pegawaiPelaksana.Id,
+								NamaPegawai: pegawaiPelaksana.NamaPegawai,
+							})
+						}
+					}
 
 					// Build operational (level 6)
 					if operationalList := pohonMap[6][tactical.Id]; len(operationalList) > 0 {
@@ -264,6 +390,24 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 						})
 
 						for _, operational := range operationalList {
+							var operationalPelaksana []pohonkinerja.PelaksanaOpdResponse
+
+							// Ambil data pelaksana untuk operational
+							pelaksanaOperational, err := service.pohonKinerjaOpdRepository.FindPelaksanaPokin(ctx, tx, fmt.Sprint(operational.Id))
+							if err == nil {
+								for _, pelaksana := range pelaksanaOperational {
+									pegawaiPelaksana, err := service.pegawaiRepository.FindById(ctx, tx, pelaksana.PegawaiId)
+									if err != nil {
+										continue
+									}
+									operationalPelaksana = append(operationalPelaksana, pohonkinerja.PelaksanaOpdResponse{
+										Id:          pelaksana.Id,
+										PegawaiId:   pegawaiPelaksana.Id,
+										NamaPegawai: pegawaiPelaksana.NamaPegawai,
+									})
+								}
+							}
+
 							operationals = append(operationals, pohonkinerja.OperationalOpdResponse{
 								Id:         operational.Id,
 								Parent:     operational.Parent,
@@ -275,6 +419,7 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 									KodeOpd: operational.KodeOpd,
 									NamaOpd: operational.NamaOpd,
 								},
+								Pelaksana: operationalPelaksana,
 							})
 						}
 					}
@@ -290,6 +435,7 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 							KodeOpd: tactical.KodeOpd,
 							NamaOpd: tactical.NamaOpd,
 						},
+						Pelaksana:    tacticalPelaksana,
 						Operationals: operationals,
 					})
 				}
@@ -306,6 +452,7 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 					KodeOpd: strategic.KodeOpd,
 					NamaOpd: strategic.NamaOpd,
 				},
+				Pelaksana: strategicPelaksana,
 				Tacticals: tacticals,
 			})
 		}
@@ -364,4 +511,13 @@ func (service *PohonKinerjaOpdServiceImpl) FindStrategicNoParent(ctx context.Con
 	}
 
 	return strategics, nil
+}
+
+func (service *PohonKinerjaOpdServiceImpl) DeletePelaksana(ctx context.Context, pelaksanaId string) error {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer helper.CommitOrRollback(tx)
+	return service.pohonKinerjaOpdRepository.DeletePelaksanaPokin(ctx, tx, pelaksanaId)
 }

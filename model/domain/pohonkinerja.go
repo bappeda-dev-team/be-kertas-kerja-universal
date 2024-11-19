@@ -14,4 +14,5 @@ type PohonKinerja struct {
 	LevelPohon int
 	CreatedAt  time.Time
 	Indikator  []Indikator
+	Pelaksana  []PelaksanaPokin
 }

@@ -64,10 +64,14 @@ func InitializeServer() *http.Server {
 	subKegiatanTerpilihServiceImpl := service.NewSubKegiatanTerpilihServiceImpl(rencanaKinerjaRepositoryImpl, subKegiatanRepositoryImpl, subKegiatanTerpilihRepositoryImpl, db)
 	subKegiatanTerpilihControllerImpl := controller.NewSubKegiatanTerpilihControllerImpl(subKegiatanTerpilihServiceImpl)
 	pohonKinerjaRepositoryImpl := repository.NewPohonKinerjaRepositoryImpl()
-	pohonKinerjaOpdServiceImpl := service.NewPohonKinerjaOpdServiceImpl(pohonKinerjaRepositoryImpl, opdRepositoryImpl, db)
-	pohonKinerjaOpdControllerImpl := controller.NewPohonKinerjaOpdControllerImpl(pohonKinerjaOpdServiceImpl)
 	pegawaiRepositoryImpl := repository.NewPegawaiRepositoryImpl()
+<<<<<<< HEAD
 	pegawaiServiceImpl := service.NewPegawaiServiceImpl(pegawaiRepositoryImpl, opdRepositoryImpl, db)
+=======
+	pohonKinerjaOpdServiceImpl := service.NewPohonKinerjaOpdServiceImpl(pohonKinerjaRepositoryImpl, opdRepositoryImpl, pegawaiRepositoryImpl, db)
+	pohonKinerjaOpdControllerImpl := controller.NewPohonKinerjaOpdControllerImpl(pohonKinerjaOpdServiceImpl)
+	pegawaiServiceImpl := service.NewPegawaiServiceImpl(pegawaiRepositoryImpl, db)
+>>>>>>> develop_pokin
 	pegawaiControllerImpl := controller.NewPegawaiControllerImpl(pegawaiServiceImpl)
 	lembagaRepositoryImpl := repository.NewLembagaRepositoryImpl()
 	lembagaServiceImpl := service.NewLembagaServiceImpl(lembagaRepositoryImpl, db, validate)

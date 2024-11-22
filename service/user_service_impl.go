@@ -318,6 +318,11 @@ func (service *UserServiceImpl) Login(ctx context.Context, request user.UserLogi
 		return user.UserLoginResponse{}, err
 	}
 
+	pegawaiDomain, err := service.PegawaiRepository.FindByNip(ctx, tx, userDomain.Nip)
+	if err != nil {
+		return user.UserLoginResponse{}, err
+	}
+
 	err = bcrypt.CompareHashAndPassword([]byte(userDomain.Password), []byte(request.Password))
 	if err != nil {
 		return user.UserLoginResponse{}, errors.New("username atau password salah")
@@ -334,6 +339,7 @@ func (service *UserServiceImpl) Login(ctx context.Context, request user.UserLogi
 
 	token := helper.CreateNewJWT(
 		userDomain.Id,
+		pegawaiDomain.Id,
 		userDomain.Email,
 		userDomain.Nip,
 		roleNames,

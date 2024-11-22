@@ -222,6 +222,24 @@ var kegiatanSet = wire.NewSet(
 	wire.Bind(new(controller.KegiatanController), new(*controller.KegiatanControllerImpl)),
 )
 
+var roleSet = wire.NewSet(
+	repository.NewRoleRepositoryImpl,
+	wire.Bind(new(repository.RoleRepository), new(*repository.RoleRepositoryImpl)),
+	service.NewRoleServiceImpl,
+	wire.Bind(new(service.RoleService), new(*service.RoleServiceImpl)),
+	controller.NewRoleControllerImpl,
+	wire.Bind(new(controller.RoleController), new(*controller.RoleControllerImpl)),
+)
+
+var userSet = wire.NewSet(
+	repository.NewUserRepositoryImpl,
+	wire.Bind(new(repository.UserRepository), new(*repository.UserRepositoryImpl)),
+	service.NewUserServiceImpl,
+	wire.Bind(new(service.UserService), new(*service.UserServiceImpl)),
+	controller.NewUserControllerImpl,
+	wire.Bind(new(controller.UserController), new(*controller.UserControllerImpl)),
+)
+
 func InitializeServer() *http.Server {
 
 	wire.Build(
@@ -251,6 +269,8 @@ func InitializeServer() *http.Server {
 		urusanSet,
 		bidangUrusanSet,
 		kegiatanSet,
+		roleSet,
+		userSet,
 		app.NewRouter,
 		wire.Bind(new(http.Handler), new(*httprouter.Router)),
 		middleware.NewAuthMiddleware,

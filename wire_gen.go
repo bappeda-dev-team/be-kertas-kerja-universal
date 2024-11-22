@@ -91,7 +91,13 @@ func InitializeServer() *http.Server {
 	kegiatanRepositoryImpl := repository.NewKegiatanRepositoryImpl()
 	kegiatanServiceImpl := service.NewKegiatanServiceImpl(kegiatanRepositoryImpl, opdRepositoryImpl, db)
 	kegiatanControllerImpl := controller.NewKegiatanControllerImpl(kegiatanServiceImpl)
-	router := app.NewRouter(rencanaKinerjaControllerImpl, rencanaAksiControllerImpl, pelaksanaanRencanaAksiControllerImpl, usulanMusrebangControllerImpl, usulanMandatoriControllerImpl, usulanPokokPikiranControllerImpl, usulanInisiatifControllerImpl, usulanTerpilihControllerImpl, gambaranUmumControllerImpl, dasarHukumControllerImpl, inovasiControllerImpl, subKegiatanControllerImpl, subKegiatanTerpilihControllerImpl, pohonKinerjaOpdControllerImpl, pegawaiControllerImpl, lembagaControllerImpl, jabatanControllerImpl, pohonKinerjaAdminControllerImpl, opdControllerImpl, programControllerImpl, urusanControllerImpl, bidangUrusanControllerImpl, kegiatanControllerImpl)
+	userRepositoryImpl := repository.NewUserRepositoryImpl()
+	roleRepositoryImpl := repository.NewRoleRepositoryImpl()
+	userServiceImpl := service.NewUserServiceImpl(userRepositoryImpl, roleRepositoryImpl, pegawaiRepositoryImpl, db)
+	userControllerImpl := controller.NewUserControllerImpl(userServiceImpl)
+	roleServiceImpl := service.NewRoleServiceImpl(roleRepositoryImpl, db)
+	roleControllerImpl := controller.NewRoleControllerImpl(roleServiceImpl)
+	router := app.NewRouter(rencanaKinerjaControllerImpl, rencanaAksiControllerImpl, pelaksanaanRencanaAksiControllerImpl, usulanMusrebangControllerImpl, usulanMandatoriControllerImpl, usulanPokokPikiranControllerImpl, usulanInisiatifControllerImpl, usulanTerpilihControllerImpl, gambaranUmumControllerImpl, dasarHukumControllerImpl, inovasiControllerImpl, subKegiatanControllerImpl, subKegiatanTerpilihControllerImpl, pohonKinerjaOpdControllerImpl, pegawaiControllerImpl, lembagaControllerImpl, jabatanControllerImpl, pohonKinerjaAdminControllerImpl, opdControllerImpl, programControllerImpl, urusanControllerImpl, bidangUrusanControllerImpl, kegiatanControllerImpl, userControllerImpl, roleControllerImpl)
 	authMiddleware := middleware.NewAuthMiddleware(router)
 	server := NewServer(authMiddleware)
 	return server
@@ -148,3 +154,7 @@ var urusanSet = wire.NewSet(repository.NewUrusanRepositoryImpl, wire.Bind(new(re
 var bidangUrusanSet = wire.NewSet(repository.NewBidangUrusanRepositoryImpl, wire.Bind(new(repository.BidangUrusanRepository), new(*repository.BidangUrusanRepositoryImpl)), service.NewBidangUrusanServiceImpl, wire.Bind(new(service.BidangUrusanService), new(*service.BidangUrusanServiceImpl)), controller.NewBidangUrusanControllerImpl, wire.Bind(new(controller.BidangUrusanController), new(*controller.BidangUrusanControllerImpl)))
 
 var kegiatanSet = wire.NewSet(repository.NewKegiatanRepositoryImpl, wire.Bind(new(repository.KegiatanRepository), new(*repository.KegiatanRepositoryImpl)), service.NewKegiatanServiceImpl, wire.Bind(new(service.KegiatanService), new(*service.KegiatanServiceImpl)), controller.NewKegiatanControllerImpl, wire.Bind(new(controller.KegiatanController), new(*controller.KegiatanControllerImpl)))
+
+var roleSet = wire.NewSet(repository.NewRoleRepositoryImpl, wire.Bind(new(repository.RoleRepository), new(*repository.RoleRepositoryImpl)), service.NewRoleServiceImpl, wire.Bind(new(service.RoleService), new(*service.RoleServiceImpl)), controller.NewRoleControllerImpl, wire.Bind(new(controller.RoleController), new(*controller.RoleControllerImpl)))
+
+var userSet = wire.NewSet(repository.NewUserRepositoryImpl, wire.Bind(new(repository.UserRepository), new(*repository.UserRepositoryImpl)), service.NewUserServiceImpl, wire.Bind(new(service.UserService), new(*service.UserServiceImpl)), controller.NewUserControllerImpl, wire.Bind(new(controller.UserController), new(*controller.UserControllerImpl)))

@@ -6,5 +6,5 @@ type Users struct {
 	Email    string
 	Password string
 	IsActive bool
-	Role     Roles
+	Role     []Roles
 }

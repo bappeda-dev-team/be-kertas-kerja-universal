@@ -26,15 +26,12 @@ func (repository *UserRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, us
 	}
 	users.Id = int(id)
 
-	userRole := domain.UsersRole{
-		UserId: users.Id,
-		RoleId: 2,
-	}
-
 	scriptRole := "INSERT INTO tb_user_role(user_id, role_id) VALUES (?, ?)"
-	_, err = tx.ExecContext(ctx, scriptRole, userRole.UserId, userRole.RoleId)
-	if err != nil {
-		return users, err
+	for _, role := range users.Role {
+		_, err = tx.ExecContext(ctx, scriptRole, users.Id, role.Id)
+		if err != nil {
+			return users, err
+		}
 	}
 
 	return users, nil
@@ -47,26 +44,30 @@ func (repository *UserRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, us
 		return users, err
 	}
 
-	userRole := domain.UsersRole{
-		UserId: users.Id,
-		RoleId: 2,
-	}
-
-	scriptRole := "UPDATE tb_user_role SET role_id = ? WHERE user_id = ?"
-	_, err = tx.ExecContext(ctx, scriptRole, userRole.RoleId, userRole.UserId)
+	scriptDeleteRoles := "DELETE FROM tb_user_role WHERE user_id = ?"
+	_, err = tx.ExecContext(ctx, scriptDeleteRoles, users.Id)
 	if err != nil {
 		return users, err
 	}
 
-	return users, nil
+	scriptRole := "INSERT INTO tb_user_role(user_id, role_id) VALUES (?, ?)"
+	for _, role := range users.Role {
+		_, err = tx.ExecContext(ctx, scriptRole, users.Id, role.Id)
+		if err != nil {
+			return users, err
+		}
+	}
+
+	return repository.FindById(ctx, tx, users.Id)
 }
 
 func (repository *UserRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]domain.Users, error) {
 	script := `
 		SELECT u.id, u.nip, u.email, u.is_active, ur.role_id, r.role 
 		FROM tb_users u
-		LEFT JOIN tb_user_role ur ON u.id = ur.user_id
-		LEFT JOIN tb_role r ON ur.role_id = r.id
+			LEFT JOIN tb_user_role ur ON u.id = ur.user_id
+			LEFT JOIN tb_role r ON ur.role_id = r.id
+		ORDER BY u.id, ur.role_id
 	`
 	rows, err := tx.QueryContext(ctx, script)
 	if err != nil {
@@ -75,29 +76,49 @@ func (repository *UserRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) (
 	defer rows.Close()
 
 	var users []domain.Users
+	userMap := make(map[int]*domain.Users)
+
 	for rows.Next() {
-		user := domain.Users{}
-		userRole := domain.UsersRole{}
-		var roleName string
+		var userId int
+		var nip, email string
+		var isActive bool
+		var roleId sql.NullInt64
+		var roleName sql.NullString
 
 		err := rows.Scan(
-			&user.Id,
-			&user.Nip,
-			&user.Email,
-			&user.IsActive,
-			&userRole.RoleId,
+			&userId,
+			&nip,
+			&email,
+			&isActive,
+			&roleId,
 			&roleName,
 		)
 		if err != nil {
 			return []domain.Users{}, err
 		}
 
-		user.Role = domain.Roles{
-			Id:   userRole.RoleId,
-			Role: roleName,
+		user, exists := userMap[userId]
+		if !exists {
+			user = &domain.Users{
+				Id:       userId,
+				Nip:      nip,
+				Email:    email,
+				IsActive: isActive,
+				Role:     []domain.Roles{},
+			}
+			userMap[userId] = user
 		}
 
-		users = append(users, user)
+		if roleId.Valid && roleName.Valid {
+			user.Role = append(user.Role, domain.Roles{
+				Id:   int(roleId.Int64),
+				Role: roleName.String,
+			})
+		}
+	}
+
+	for _, user := range userMap {
+		users = append(users, *user)
 	}
 
 	return users, nil
@@ -105,11 +126,12 @@ func (repository *UserRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) (
 
 func (repository *UserRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, id int) (domain.Users, error) {
 	script := `
-		SELECT u.id, u.nip, u.email, u.is_active, ur.role_id, r.role 
+		SELECT u.id, u.nip, u.email, u.password, u.is_active, ur.role_id, r.role 
 		FROM tb_users u
-		LEFT JOIN tb_user_role ur ON u.id = ur.user_id
-		LEFT JOIN tb_role r ON ur.role_id = r.id
+			LEFT JOIN tb_user_role ur ON u.id = ur.user_id
+			LEFT JOIN tb_role r ON ur.role_id = r.id
 		WHERE u.id = ?
+		ORDER BY ur.role_id
 	`
 	rows, err := tx.QueryContext(ctx, script, id)
 	if err != nil {
@@ -117,26 +139,50 @@ func (repository *UserRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, 
 	}
 	defer rows.Close()
 
-	user := domain.Users{}
-	if rows.Next() {
-		userRole := domain.UsersRole{}
-		var roleName string
+	var user domain.Users
+	first := true
 
-		err := rows.Scan(
-			&user.Id,
-			&user.Nip,
-			&user.Email,
-			&user.IsActive,
-			&userRole.RoleId,
-			&roleName,
-		)
-		if err != nil {
-			return domain.Users{}, err
+	for rows.Next() {
+		var roleId sql.NullInt64
+		var roleName sql.NullString
+
+		if first {
+			err := rows.Scan(
+				&user.Id,
+				&user.Nip,
+				&user.Email,
+				&user.Password,
+				&user.IsActive,
+				&roleId,
+				&roleName,
+			)
+			if err != nil {
+				return domain.Users{}, err
+			}
+			first = false
+		} else {
+			var userId int
+			var nip, email, password string
+			var isActive bool
+			err := rows.Scan(
+				&userId,
+				&nip,
+				&email,
+				&password,
+				&isActive,
+				&roleId,
+				&roleName,
+			)
+			if err != nil {
+				return domain.Users{}, err
+			}
 		}
 
-		user.Role = domain.Roles{
-			Id:   userRole.RoleId,
-			Role: roleName,
+		if roleId.Valid && roleName.Valid {
+			user.Role = append(user.Role, domain.Roles{
+				Id:   int(roleId.Int64),
+				Role: roleName.String,
+			})
 		}
 	}
 
@@ -157,4 +203,69 @@ func (repository *UserRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, id
 	}
 
 	return nil
+}
+
+func (repository *UserRepositoryImpl) FindByEmailOrNip(ctx context.Context, tx *sql.Tx, username string) (domain.Users, error) {
+	script := `
+		SELECT u.id, u.nip, u.email, u.password, u.is_active, ur.role_id, r.role 
+		FROM tb_users u
+		LEFT JOIN tb_user_role ur ON u.id = ur.user_id
+		LEFT JOIN tb_role r ON ur.role_id = r.id
+		WHERE u.email = ? OR u.nip = ?
+		ORDER BY ur.role_id
+	`
+	rows, err := tx.QueryContext(ctx, script, username, username)
+	if err != nil {
+		return domain.Users{}, err
+	}
+	defer rows.Close()
+
+	var user domain.Users
+	first := true
+
+	for rows.Next() {
+		var roleId sql.NullInt64
+		var roleName sql.NullString
+
+		if first {
+			err := rows.Scan(
+				&user.Id,
+				&user.Nip,
+				&user.Email,
+				&user.Password,
+				&user.IsActive,
+				&roleId,
+				&roleName,
+			)
+			if err != nil {
+				return domain.Users{}, err
+			}
+			first = false
+		} else {
+			var userId int
+			var nip, email, password string
+			var isActive bool
+			err := rows.Scan(
+				&userId,
+				&nip,
+				&email,
+				&password,
+				&isActive,
+				&roleId,
+				&roleName,
+			)
+			if err != nil {
+				return domain.Users{}, err
+			}
+		}
+
+		if roleId.Valid && roleName.Valid {
+			user.Role = append(user.Role, domain.Roles{
+				Id:   int(roleId.Int64),
+				Role: roleName.String,
+			})
+		}
+	}
+
+	return user, nil
 }

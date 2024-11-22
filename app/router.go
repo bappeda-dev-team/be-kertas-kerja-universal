@@ -241,6 +241,7 @@ func NewRouter(
 	router.GET("/user/detail/:id", userController.FindById)
 	router.DELETE("/user/delete/:id", userController.Delete)
 	router.GET("/user/findall", userController.FindAll)
+	router.POST("/user/login", userController.Login)
 
 	return router
 }

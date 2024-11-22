@@ -1,9 +1,9 @@
 package user
 
 type UserResponse struct {
-	Id       int
-	Nip      string
-	Email    string
-	IsActive bool
-	Role     []RoleResponse
+	Id       int            `json:"id"`
+	Nip      string         `json:"nip"`
+	Email    string         `json:"email"`
+	IsActive bool           `json:"is_active"`
+	Role     []RoleResponse `json:"role"`
 }

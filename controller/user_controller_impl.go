@@ -159,3 +159,29 @@ func (controller *UserControllerImpl) FindById(writer http.ResponseWriter, reque
 
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *UserControllerImpl) Login(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	loginRequest := user.UserLoginRequest{}
+	helper.ReadFromRequestBody(request, &loginRequest)
+
+	loginResponse, err := controller.userService.Login(request.Context(), loginRequest)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "OK",
+		Data: map[string]interface{}{
+			"token": loginResponse.Token,
+		},
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}

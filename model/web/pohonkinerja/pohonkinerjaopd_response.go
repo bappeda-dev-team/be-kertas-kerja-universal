@@ -27,7 +27,7 @@ type PohonKinerjaOpdAllResponse struct {
 type StrategicOpdResponse struct {
 	Id         int                         `json:"id"`
 	Parent     *int                        `json:"parent"`
-	Strategi   string                      `json:"strategi"`
+	Strategi   string                      `json:"nama_pohon"`
 	JenisPohon string                      `json:"jenis_pohon"`
 	LevelPohon int                         `json:"level_pohon"`
 	Keterangan string                      `json:"keterangan"`
@@ -39,7 +39,7 @@ type StrategicOpdResponse struct {
 type TacticalOpdResponse struct {
 	Id           int                         `json:"id"`
 	Parent       int                         `json:"parent"`
-	Strategi     string                      `json:"strategi"`
+	Strategi     string                      `json:"nama_pohon"`
 	JenisPohon   string                      `json:"jenis_pohon"`
 	LevelPohon   int                         `json:"level_pohon"`
 	Keterangan   string                      `json:"keterangan"`
@@ -51,7 +51,7 @@ type TacticalOpdResponse struct {
 type OperationalOpdResponse struct {
 	Id         int                         `json:"id"`
 	Parent     int                         `json:"parent"`
-	Strategi   string                      `json:"strategi"`
+	Strategi   string                      `json:"nama_pohon"`
 	JenisPohon string                      `json:"jenis_pohon"`
 	LevelPohon int                         `json:"level_pohon"`
 	Keterangan string                      `json:"keterangan"`

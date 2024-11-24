@@ -549,6 +549,7 @@ func ToPegawaiResponse(pegawais domainmaster.Pegawai) pegawai.PegawaiResponse {
 		Id:          pegawais.Id,
 		NamaPegawai: pegawais.NamaPegawai,
 		Nip:         pegawais.Nip,
+		KodeOpd:     pegawais.KodeOpd,
 	}
 }
 func ToPegawaiResponses(pegawais []domainmaster.Pegawai) []pegawai.PegawaiResponse {

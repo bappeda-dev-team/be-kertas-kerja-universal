@@ -44,6 +44,7 @@ func (service *PegawaiServiceImpl) Create(ctx context.Context, request pegawai.P
 		Id:          pegawaiId,
 		NamaPegawai: request.NamaPegawai,
 		Nip:         request.Nip,
+		KodeOpd:     request.KodeOpd,
 	}
 
 	pegawais, err := service.pegawaiRepository.Create(ctx, tx, pegawaiDomain)
@@ -68,7 +69,7 @@ func (service *PegawaiServiceImpl) Update(ctx context.Context, request pegawai.P
 
 	pegawaiData.NamaPegawai = request.NamaPegawai
 	pegawaiData.Nip = request.Nip
-
+	pegawaiData.KodeOpd = request.KodeOpd
 	updatedPegawai := service.pegawaiRepository.Update(ctx, tx, pegawaiData)
 	return helper.ToPegawaiResponse(updatedPegawai), nil
 }

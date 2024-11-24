@@ -210,6 +210,32 @@ func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *s
 		result[i].Pelaksana = pelaksanaList
 	}
 
+	// Modifikasi bagian pemrosesan data
+	pohonMap := make(map[int]map[int][]domain.PohonKinerja)
+	maxLevel := 0
+
+	// Tentukan level maksimal yang ada
+	for _, pokin := range result {
+		if pokin.LevelPohon > maxLevel {
+			maxLevel = pokin.LevelPohon
+		}
+	}
+
+	// Inisialisasi map untuk semua level
+	for i := 4; i <= maxLevel; i++ {
+		pohonMap[i] = make(map[int][]domain.PohonKinerja)
+	}
+
+	// Kelompokkan data berdasarkan level dan parent
+	for _, p := range result {
+		if p.LevelPohon >= 4 {
+			pohonMap[p.LevelPohon][p.Parent] = append(
+				pohonMap[p.LevelPohon][p.Parent],
+				p,
+			)
+		}
+	}
+
 	return result, nil
 }
 
@@ -909,4 +935,39 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinByJenisPohon(ctx context.
 		pokins = append(pokins, pokin)
 	}
 	return pokins, nil
+}
+
+// Tambahkan fungsi helper untuk mendapatkan child nodes
+func (repository *PohonKinerjaRepositoryImpl) GetChildNodes(ctx context.Context, tx *sql.Tx, parentId int) ([]domain.PohonKinerja, error) {
+	script := `
+        SELECT 
+            id, nama_pohon, parent, jenis_pohon, level_pohon, 
+            kode_opd, keterangan, tahun
+        FROM 
+            tb_pohon_kinerja 
+        WHERE 
+            parent = ?
+        ORDER BY 
+            id ASC
+    `
+	rows, err := tx.QueryContext(ctx, script, parentId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var children []domain.PohonKinerja
+	for rows.Next() {
+		var child domain.PohonKinerja
+		err := rows.Scan(
+			&child.Id, &child.NamaPohon, &child.Parent,
+			&child.JenisPohon, &child.LevelPohon,
+			&child.KodeOpd, &child.Keterangan, &child.Tahun,
+		)
+		if err != nil {
+			return nil, err
+		}
+		children = append(children, child)
+	}
+	return children, nil
 }

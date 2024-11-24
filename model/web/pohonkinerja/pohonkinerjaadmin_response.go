@@ -123,3 +123,15 @@ type OperationalResponse struct {
 	Indikators []IndikatorResponse          `json:"indikators"`
 	Childs     []interface{}                `json:"childs,omitempty"`
 }
+
+type OperationalNResponse struct {
+	Id         int                          `json:"id"`
+	Parent     int                          `json:"parent"`
+	Strategi   string                       `json:"tema"`
+	JenisPohon string                       `json:"jenis_pohon"`
+	LevelPohon int                          `json:"level_pohon"`
+	Keterangan *string                      `json:"keterangan"`
+	KodeOpd    *opdmaster.OpdResponseForAll `json:"perangkat_daerah,omitempty"`
+	Indikators []IndikatorResponse          `json:"indikators"`
+	Childs     []OperationalNResponse       `json:"childs,omitempty"`
+}

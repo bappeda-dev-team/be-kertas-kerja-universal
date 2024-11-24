@@ -66,15 +66,50 @@ func ValidateJWT(tokenString string) web.JWTClaim {
 			}
 		}
 
+		userId := 0
+		if id, ok := claims["user_id"].(float64); ok {
+			userId = int(id)
+		}
+
+		pegawaiId := ""
+		if id, ok := claims["pegawai_id"].(string); ok {
+			pegawaiId = id
+		}
+
+		email := ""
+		if e, ok := claims["email"].(string); ok {
+			email = e
+		}
+
+		nip := ""
+		if n, ok := claims["nip"].(string); ok {
+			nip = n
+		}
+
+		issuer := ""
+		if iss, ok := claims["iss"].(string); ok {
+			issuer = iss
+		}
+
+		iat := int64(0)
+		if issuedAt, ok := claims["iat"].(float64); ok {
+			iat = int64(issuedAt)
+		}
+
+		exp := int64(0)
+		if expiry, ok := claims["exp"].(float64); ok {
+			exp = int64(expiry)
+		}
+
 		return web.JWTClaim{
-			Issuer:    claims["iss"].(string),
-			UserId:    int(claims["user_id"].(float64)),
-			PegawaiId: int(claims["pegawai_id"].(float64)),
-			Email:     claims["email"].(string),
-			Nip:       claims["nip"].(string),
+			Issuer:    issuer,
+			UserId:    userId,
+			PegawaiId: pegawaiId,
+			Email:     email,
+			Nip:       nip,
 			Roles:     roles,
-			Iat:       int64(claims["iat"].(float64)),
-			Exp:       int64(claims["exp"].(float64)),
+			Iat:       iat,
+			Exp:       exp,
 		}
 	}
 

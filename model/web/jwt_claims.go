@@ -5,6 +5,7 @@ type JWTClaim struct {
 	Subject   string   `json:"sub"`
 	UserId    int      `json:"user_id"`
 	PegawaiId string   `json:"pegawai_id"`
+	KodeOpd   string   `json:"kode_opd"`
 	Email     string   `json:"email"`
 	Nip       string   `json:"nip"`
 	Roles     []string `json:"roles"`

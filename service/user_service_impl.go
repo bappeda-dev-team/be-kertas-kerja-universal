@@ -342,6 +342,7 @@ func (service *UserServiceImpl) Login(ctx context.Context, request user.UserLogi
 		pegawaiDomain.Id,
 		userDomain.Email,
 		userDomain.Nip,
+		pegawaiDomain.KodeOpd,
 		roleNames,
 	)
 

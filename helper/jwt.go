@@ -13,7 +13,7 @@ var jwtSecretKey = []byte(os.Getenv("JWT_SECRET_KEY"))
 var jwtIssuer = os.Getenv("JWT_ISSUER")
 var jwtExpiration = os.Getenv("JWT_EXPIRATION")
 
-func CreateNewJWT(userId int, pegawaiId string, email string, nip string, roles []string) string {
+func CreateNewJWT(userId int, pegawaiId string, email string, nip string, kodeOpd string, roles []string) string {
 	exp := 24 * time.Hour
 	if jwtExpiration != "" {
 		if duration, err := time.ParseDuration(jwtExpiration + "h"); err == nil {
@@ -27,6 +27,7 @@ func CreateNewJWT(userId int, pegawaiId string, email string, nip string, roles 
 		"pegawai_id": pegawaiId,
 		"email":      email,
 		"nip":        nip,
+		"kode_opd":   kodeOpd,
 		"roles":      roles,
 		"iat":        time.Now().Unix(),
 		"exp":        time.Now().Add(exp).Unix(),
@@ -101,10 +102,16 @@ func ValidateJWT(tokenString string) web.JWTClaim {
 			exp = int64(expiry)
 		}
 
+		kodeOpd := ""
+		if opd, ok := claims["kode_opd"].(string); ok {
+			kodeOpd = opd
+		}
+
 		return web.JWTClaim{
 			Issuer:    issuer,
 			UserId:    userId,
 			PegawaiId: pegawaiId,
+			KodeOpd:   kodeOpd,
 			Email:     email,
 			Nip:       nip,
 			Roles:     roles,

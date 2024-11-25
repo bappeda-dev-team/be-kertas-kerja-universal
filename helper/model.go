@@ -45,12 +45,15 @@ func ToRencanaKinerjaResponse(rencanaKinerja domain.RencanaKinerja) rencanakiner
 
 	return rencanakinerja.RencanaKinerjaResponse{
 		Id:                   rencanaKinerja.Id,
+		IdPohon:              rencanaKinerja.IdPohon,
+		NamaPohon:            rencanaKinerja.NamaPohon,
 		NamaRencanaKinerja:   rencanaKinerja.NamaRencanaKinerja,
 		Tahun:                rencanaKinerja.Tahun,
 		StatusRencanaKinerja: rencanaKinerja.StatusRencanaKinerja,
 		Catatan:              rencanaKinerja.Catatan,
 		KodeOpd:              opdResponse,
 		PegawaiId:            rencanaKinerja.PegawaiId,
+		NamaPegawai:          rencanaKinerja.NamaPegawai,
 		Indikator:            indikatorResponses,
 	}
 }

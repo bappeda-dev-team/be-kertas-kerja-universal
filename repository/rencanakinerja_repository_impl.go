@@ -16,8 +16,8 @@ func NewRencanaKinerjaRepositoryImpl() *RencanaKinerjaRepositoryImpl {
 }
 
 func (repository *RencanaKinerjaRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, rencanaKinerja domain.RencanaKinerja) (domain.RencanaKinerja, error) {
-	script := "INSERT INTO tb_rencana_kinerja (id, nama_rencana_kinerja, tahun, status_rencana_kinerja, catatan, kode_opd, pegawai_id, kode_subkegiatan) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-	_, err := tx.ExecContext(ctx, script, rencanaKinerja.Id, rencanaKinerja.NamaRencanaKinerja, rencanaKinerja.Tahun, rencanaKinerja.StatusRencanaKinerja, rencanaKinerja.Catatan, rencanaKinerja.KodeOpd, rencanaKinerja.PegawaiId, rencanaKinerja.KodeSubKegiatan)
+	script := "INSERT INTO tb_rencana_kinerja (id, id_pohon, nama_rencana_kinerja, tahun, status_rencana_kinerja, catatan, kode_opd, pegawai_id, kode_subkegiatan) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	_, err := tx.ExecContext(ctx, script, rencanaKinerja.Id, rencanaKinerja.IdPohon, rencanaKinerja.NamaRencanaKinerja, rencanaKinerja.Tahun, rencanaKinerja.StatusRencanaKinerja, rencanaKinerja.Catatan, rencanaKinerja.KodeOpd, rencanaKinerja.PegawaiId, rencanaKinerja.KodeSubKegiatan)
 	if err != nil {
 		return domain.RencanaKinerja{}, fmt.Errorf("error saat menyimpan rencana kinerja: %v", err)
 	}
@@ -42,8 +42,8 @@ func (repository *RencanaKinerjaRepositoryImpl) Create(ctx context.Context, tx *
 }
 
 func (repository *RencanaKinerjaRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, rencanaKinerja domain.RencanaKinerja) (domain.RencanaKinerja, error) {
-	script := "UPDATE tb_rencana_kinerja SET nama_rencana_kinerja = ?, tahun = ?, status_rencana_kinerja = ?, catatan = ?, kode_opd = ?, pegawai_id = ? WHERE id = ?"
-	_, err := tx.ExecContext(ctx, script, rencanaKinerja.NamaRencanaKinerja, rencanaKinerja.Tahun, rencanaKinerja.StatusRencanaKinerja, rencanaKinerja.Catatan, rencanaKinerja.KodeOpd, rencanaKinerja.PegawaiId, rencanaKinerja.Id)
+	script := "UPDATE tb_rencana_kinerja SET id_pohon = ?, nama_rencana_kinerja = ?, tahun = ?, status_rencana_kinerja = ?, catatan = ?, kode_opd = ?, pegawai_id = ? WHERE id = ?"
+	_, err := tx.ExecContext(ctx, script, rencanaKinerja.IdPohon, rencanaKinerja.NamaRencanaKinerja, rencanaKinerja.Tahun, rencanaKinerja.StatusRencanaKinerja, rencanaKinerja.Catatan, rencanaKinerja.KodeOpd, rencanaKinerja.PegawaiId, rencanaKinerja.Id)
 	if err != nil {
 		return domain.RencanaKinerja{}, err
 	}
@@ -79,7 +79,7 @@ func (repository *RencanaKinerjaRepositoryImpl) Update(ctx context.Context, tx *
 }
 
 func (repository *RencanaKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, pegawaiId string, kodeOPD string, tahun string) ([]domain.RencanaKinerja, error) {
-	script := "SELECT id, nama_rencana_kinerja, tahun, status_rencana_kinerja, catatan, kode_opd, pegawai_id, created_at FROM tb_rencana_kinerja WHERE 1=1"
+	script := "SELECT id, id_pohon, nama_rencana_kinerja, tahun, status_rencana_kinerja, catatan, kode_opd, pegawai_id, created_at FROM tb_rencana_kinerja WHERE 1=1"
 	params := []interface{}{}
 
 	if pegawaiId != "" {
@@ -107,7 +107,7 @@ func (repository *RencanaKinerjaRepositoryImpl) FindAll(ctx context.Context, tx 
 
 	for rows.Next() {
 		var rencanaKinerja domain.RencanaKinerja
-		err := rows.Scan(&rencanaKinerja.Id, &rencanaKinerja.NamaRencanaKinerja, &rencanaKinerja.Tahun, &rencanaKinerja.StatusRencanaKinerja, &rencanaKinerja.Catatan, &rencanaKinerja.KodeOpd, &rencanaKinerja.PegawaiId, &rencanaKinerja.CreatedAt)
+		err := rows.Scan(&rencanaKinerja.Id, &rencanaKinerja.IdPohon, &rencanaKinerja.NamaRencanaKinerja, &rencanaKinerja.Tahun, &rencanaKinerja.StatusRencanaKinerja, &rencanaKinerja.Catatan, &rencanaKinerja.KodeOpd, &rencanaKinerja.PegawaiId, &rencanaKinerja.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -166,7 +166,7 @@ func (repository *RencanaKinerjaRepositoryImpl) FindTargetByIndikatorId(ctx cont
 }
 
 func (repository *RencanaKinerjaRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, id string, kodeOPD string, tahun string) (domain.RencanaKinerja, error) {
-	script := "SELECT id, nama_rencana_kinerja, tahun, status_rencana_kinerja, catatan, kode_opd, pegawai_id FROM tb_rencana_kinerja WHERE id = ?"
+	script := "SELECT id, id_pohon, nama_rencana_kinerja, tahun, status_rencana_kinerja, catatan, kode_opd, pegawai_id FROM tb_rencana_kinerja WHERE id = ?"
 	params := []interface{}{id}
 
 	if kodeOPD != "" {
@@ -180,7 +180,7 @@ func (repository *RencanaKinerjaRepositoryImpl) FindById(ctx context.Context, tx
 
 	row := tx.QueryRowContext(ctx, script, params...)
 	var rencanaKinerja domain.RencanaKinerja
-	err := row.Scan(&rencanaKinerja.Id, &rencanaKinerja.NamaRencanaKinerja, &rencanaKinerja.Tahun, &rencanaKinerja.StatusRencanaKinerja, &rencanaKinerja.Catatan, &rencanaKinerja.KodeOpd, &rencanaKinerja.PegawaiId)
+	err := row.Scan(&rencanaKinerja.Id, &rencanaKinerja.IdPohon, &rencanaKinerja.NamaRencanaKinerja, &rencanaKinerja.Tahun, &rencanaKinerja.StatusRencanaKinerja, &rencanaKinerja.Catatan, &rencanaKinerja.KodeOpd, &rencanaKinerja.PegawaiId)
 	if err != nil {
 		return domain.RencanaKinerja{}, err
 	}
@@ -211,6 +211,7 @@ func (repository *RencanaKinerjaRepositoryImpl) FindAllRincianKak(ctx context.Co
 	script := `
 		SELECT 
 			id, 
+			id_pohon, 
 			nama_rencana_kinerja, 
 			tahun, 
 			status_rencana_kinerja, 
@@ -251,6 +252,7 @@ func (repository *RencanaKinerjaRepositoryImpl) FindAllRincianKak(ctx context.Co
 		var rencanaKinerja domain.RencanaKinerja
 		err := rows.Scan(
 			&rencanaKinerja.Id,
+			&rencanaKinerja.IdPohon,
 			&rencanaKinerja.NamaRencanaKinerja,
 			&rencanaKinerja.Tahun,
 			&rencanaKinerja.StatusRencanaKinerja,

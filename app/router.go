@@ -44,6 +44,7 @@ func NewRouter(
 	router.GET("/detail-rencana_kinerja/:rencana_kinerja_id", rencanaKinerjaController.FindById)
 	router.PUT("/rencana_kinerja/update/:id", rencanaKinerjaController.Update)
 	router.DELETE("/rencana_kinerja/delete/:id", rencanaKinerjaController.Delete)
+	router.GET("/rencana_kinerja_pokin/pokin_by_pelaksana/:pegawai_id/:tahun", pohonKinerjaOpdController.FindPokinByPelaksana)
 
 	//rencana_aksi
 	router.GET("/rencana_aksi/findall/:rencana_kinerja_id", rencanaAksiController.FindAll)

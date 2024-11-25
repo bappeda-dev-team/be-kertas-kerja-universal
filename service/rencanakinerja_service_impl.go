@@ -33,9 +33,11 @@ type RencanaKinerjaServiceImpl struct {
 	GambaranUmumRepository           repository.GambaranUmumRepository
 	InovasiRepository                repository.InovasiRepository
 	PelaksanaanRencanaAksiRepository repository.PelaksanaanRencanaAksiRepository
+	pegawaiRepository                repository.PegawaiRepository
+	pohonKinerjaRepository           repository.PohonKinerjaRepository
 }
 
-func NewRencanaKinerjaServiceImpl(rencanaKinerjaRepository repository.RencanaKinerjaRepository, DB *sql.DB, validate *validator.Validate, opdRepository repository.OpdRepository, rencanaAksiRepository repository.RencanaAksiRepository, usulanMusrebangRepository repository.UsulanMusrebangRepository, usulanMandatoriRepository repository.UsulanMandatoriRepository, usulanPokokPikiranRepository repository.UsulanPokokPikiranRepository, usulanInisiatifRepository repository.UsulanInisiatifRepository, subKegiatanRepository repository.SubKegiatanRepository, dasarHukumRepository repository.DasarHukumRepository, gambaranUmumRepository repository.GambaranUmumRepository, inovasiRepository repository.InovasiRepository, pelaksanaanRencanaAksiRepository repository.PelaksanaanRencanaAksiRepository) *RencanaKinerjaServiceImpl {
+func NewRencanaKinerjaServiceImpl(rencanaKinerjaRepository repository.RencanaKinerjaRepository, DB *sql.DB, validate *validator.Validate, opdRepository repository.OpdRepository, rencanaAksiRepository repository.RencanaAksiRepository, usulanMusrebangRepository repository.UsulanMusrebangRepository, usulanMandatoriRepository repository.UsulanMandatoriRepository, usulanPokokPikiranRepository repository.UsulanPokokPikiranRepository, usulanInisiatifRepository repository.UsulanInisiatifRepository, subKegiatanRepository repository.SubKegiatanRepository, dasarHukumRepository repository.DasarHukumRepository, gambaranUmumRepository repository.GambaranUmumRepository, inovasiRepository repository.InovasiRepository, pelaksanaanRencanaAksiRepository repository.PelaksanaanRencanaAksiRepository, pegawaiRepository repository.PegawaiRepository, pohonKinerjaRepository repository.PohonKinerjaRepository) *RencanaKinerjaServiceImpl {
 	return &RencanaKinerjaServiceImpl{
 		rencanaKinerjaRepository:         rencanaKinerjaRepository,
 		DB:                               DB,
@@ -51,6 +53,8 @@ func NewRencanaKinerjaServiceImpl(rencanaKinerjaRepository repository.RencanaKin
 		GambaranUmumRepository:           gambaranUmumRepository,
 		InovasiRepository:                inovasiRepository,
 		PelaksanaanRencanaAksiRepository: pelaksanaanRencanaAksiRepository,
+		pegawaiRepository:                pegawaiRepository,
+		pohonKinerjaRepository:           pohonKinerjaRepository,
 	}
 }
 
@@ -86,17 +90,40 @@ func (service *RencanaKinerjaServiceImpl) Create(ctx context.Context, request re
 		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("kode OPD %s tidak valid", request.KodeOpd)
 	}
 
+	pegawais, err := service.pegawaiRepository.FindById(ctx, tx, request.PegawaiId)
+	if err != nil {
+		log.Printf("Gagal mengambil data pegawai: %v", err)
+		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("gagal mengambil data pegawai: %v", err)
+	}
+
+	if pegawais.Id == "" {
+		log.Printf("Pegawai dengan ID %s tidak ditemukan", request.PegawaiId)
+		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("pegawai dengan ID %s tidak ditemukan", request.PegawaiId)
+	}
+
+	pohon, err := service.pohonKinerjaRepository.FindById(ctx, tx, request.IdPohon)
+	if err != nil {
+		log.Printf("Gagal mengambil data pohon kinerja: %v", err)
+		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("gagal mengambil data pohon kinerja: %v", err)
+	}
+
+	if pohon.Id == 0 {
+		log.Printf("Pohon kinerja dengan ID %v tidak ditemukan", request.IdPohon)
+		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("pohon kinerja dengan ID %v tidak ditemukan", request.IdPohon)
+	}
+
 	randomDigits := fmt.Sprintf("%05d", uuid.New().ID()%100000)
 	customId := fmt.Sprintf("REKIN-PEG-%s", randomDigits)
 
 	rencanaKinerja := domain.RencanaKinerja{
 		Id:                   customId,
+		IdPohon:              request.IdPohon,
 		NamaRencanaKinerja:   request.NamaRencanaKinerja,
 		Tahun:                request.Tahun,
 		StatusRencanaKinerja: request.StatusRencanaKinerja,
 		Catatan:              request.Catatan,
 		KodeOpd:              request.KodeOpd,
-		PegawaiId:            request.PegawaiId,
+		PegawaiId:            pegawais.Id,
 		KodeSubKegiatan:      "",
 		Indikator:            make([]domain.Indikator, len(request.Indikator)),
 	}
@@ -145,7 +172,8 @@ func (service *RencanaKinerjaServiceImpl) Create(ctx context.Context, request re
 	}
 
 	rencanaKinerja.NamaOpd = opd.NamaOpd
-
+	rencanaKinerja.NamaPegawai = pegawais.NamaPegawai
+	rencanaKinerja.NamaPohon = pohon.NamaPohon
 	log.Println("RencanaKinerja berhasil disimpan")
 	response := helper.ToRencanaKinerjaResponse(rencanaKinerja)
 	log.Printf("Response: %+v", response)
@@ -169,6 +197,46 @@ func (service *RencanaKinerjaServiceImpl) Update(ctx context.Context, request re
 	}
 	defer helper.CommitOrRollback(tx)
 
+	// Validasi OPD
+	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, request.KodeOpd)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("Kode OPD %s tidak ditemukan", request.KodeOpd)
+			return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("kode OPD %s tidak ditemukan", request.KodeOpd)
+		}
+		log.Printf("Gagal memeriksa kode OPD: %v", err)
+		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("gagal memeriksa kode OPD: %v", err)
+	}
+
+	if opd.KodeOpd == "" {
+		log.Printf("Kode OPD %s tidak valid", request.KodeOpd)
+		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("kode OPD %s tidak valid", request.KodeOpd)
+	}
+
+	// Validasi Pegawai
+	pegawai, err := service.pegawaiRepository.FindById(ctx, tx, request.PegawaiId)
+	if err != nil {
+		log.Printf("Gagal mengambil data pegawai: %v", err)
+		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("gagal mengambil data pegawai: %v", err)
+	}
+
+	if pegawai.Id == "" {
+		log.Printf("Pegawai dengan ID %s tidak ditemukan", request.PegawaiId)
+		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("pegawai dengan ID %s tidak ditemukan", request.PegawaiId)
+	}
+
+	pohon, err := service.pohonKinerjaRepository.FindById(ctx, tx, request.IdPohon)
+	if err != nil {
+		log.Printf("Gagal mengambil data pohon kinerja: %v", err)
+		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("gagal mengambil data pohon kinerja: %v", err)
+	}
+
+	if pohon.Id == 0 {
+		log.Printf("Pohon kinerja dengan ID %v tidak ditemukan", request.IdPohon)
+		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("pohon kinerja dengan ID %v tidak ditemukan", request.IdPohon)
+	}
+
+	//
 	var rencanaKinerja domain.RencanaKinerja
 	if request.Id != "" {
 		rencanaKinerja, err = service.rencanaKinerjaRepository.FindById(ctx, tx, request.Id, "", "")
@@ -182,6 +250,7 @@ func (service *RencanaKinerjaServiceImpl) Update(ctx context.Context, request re
 		log.Printf("Membuat RencanaKinerja baru dengan ID: %s", rencanaKinerja.Id)
 	}
 
+	rencanaKinerja.IdPohon = request.IdPohon
 	rencanaKinerja.NamaRencanaKinerja = request.NamaRencanaKinerja
 	rencanaKinerja.Tahun = request.Tahun
 	rencanaKinerja.StatusRencanaKinerja = request.StatusRencanaKinerja
@@ -238,14 +307,10 @@ func (service *RencanaKinerjaServiceImpl) Update(ctx context.Context, request re
 		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("gagal memperbarui RencanaKinerja: %v", err)
 	}
 
-	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, rencanaKinerja.KodeOpd)
-	if err != nil {
-		log.Printf("Gagal mengambil data OPD: %v", err)
-		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("gagal mengambil data OPD: %v", err)
-	}
-
-	// Set nama OPD ke dalam rencanaKinerja
 	rencanaKinerja.NamaOpd = opd.NamaOpd
+	rencanaKinerja.NamaPegawai = pegawai.NamaPegawai
+	rencanaKinerja.NamaPohon = pohon.NamaPohon
+
 	log.Println("RencanaKinerja berhasil diperbarui")
 	response := helper.ToRencanaKinerjaResponse(rencanaKinerja)
 	log.Printf("Response: %+v", response)
@@ -331,6 +396,18 @@ func (service *RencanaKinerjaServiceImpl) FindAll(ctx context.Context, pegawaiId
 			return nil, fmt.Errorf("gagal mencari OPD: %v", err)
 		}
 
+		pegawai, err := service.pegawaiRepository.FindById(ctx, tx, rencana.PegawaiId)
+		if err != nil {
+			log.Printf("Gagal mencari Pegawai: %v", err)
+			return nil, fmt.Errorf("gagal mencari Pegawai: %v", err)
+		}
+
+		pohon, err := service.pohonKinerjaRepository.FindById(ctx, tx, rencana.IdPohon)
+		if err != nil {
+			log.Printf("Gagal mencari Pohon Kinerja: %v", err)
+			return nil, fmt.Errorf("gagal mencari Pohon Kinerja: %v", err)
+		}
+
 		responses = append(responses, rencanakinerja.RencanaKinerjaResponse{
 			Id:                   rencana.Id,
 			NamaRencanaKinerja:   rencana.NamaRencanaKinerja,
@@ -341,9 +418,12 @@ func (service *RencanaKinerjaServiceImpl) FindAll(ctx context.Context, pegawaiId
 				KodeOpd: opd.KodeOpd,
 				NamaOpd: opd.NamaOpd,
 			},
-			PegawaiId: rencana.PegawaiId,
-			Indikator: indikatorResponses,
-			Action:    ActionButton,
+			PegawaiId:   rencana.PegawaiId,
+			NamaPegawai: pegawai.NamaPegawai,
+			IdPohon:     rencana.IdPohon,
+			NamaPohon:   pohon.NamaPohon,
+			Indikator:   indikatorResponses,
+			Action:      ActionButton,
 		})
 		log.Printf("RencanaKinerja Response ditambahkan untuk ID: %s", rencana.Id)
 	}
@@ -398,8 +478,22 @@ func (service *RencanaKinerjaServiceImpl) FindById(ctx context.Context, id strin
 		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("gagal mengambil data OPD: %v", err)
 	}
 
-	// Set nama OPD ke dalam rencanaKinerja
+	pegawai, err := service.pegawaiRepository.FindById(ctx, tx, rencanaKinerja.PegawaiId)
+	if err != nil {
+		log.Printf("Gagal mengambil data pegawai: %v", err)
+		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("gagal mengambil data pegawai: %v", err)
+	}
+
+	pohon, err := service.pohonKinerjaRepository.FindById(ctx, tx, rencanaKinerja.IdPohon)
+	if err != nil {
+		log.Printf("Gagal mengambil data pohon kinerja: %v", err)
+		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("gagal mengambil data pohon kinerja: %v", err)
+	}
+
+	// Set semua data yang diperlukan ke dalam rencanaKinerja
 	rencanaKinerja.NamaOpd = opd.NamaOpd
+	rencanaKinerja.NamaPegawai = pegawai.NamaPegawai
+	rencanaKinerja.NamaPohon = pohon.NamaPohon
 
 	response := helper.ToRencanaKinerjaResponse(rencanaKinerja)
 	log.Printf("Response: %+v", response)
@@ -472,12 +566,23 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 			})
 		}
 
-		// Ambil data OPD
+		// Setelah mengambil data OPD dan sebelum membuat response
 		opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, rencanaKinerja.KodeOpd)
 		if err != nil {
 			return nil, fmt.Errorf("gagal mengambil data OPD: %v", err)
 		}
 
+		// Tambahkan untuk mengambil data pegawai
+		pegawai, err := service.pegawaiRepository.FindById(ctx, tx, rencanaKinerja.PegawaiId)
+		if err != nil {
+			return nil, fmt.Errorf("gagal mengambil data pegawai: %v", err)
+		}
+
+		// Tambahkan untuk mengambil data pohon kinerja
+		pohon, err := service.pohonKinerjaRepository.FindById(ctx, tx, rencanaKinerja.IdPohon)
+		if err != nil {
+			return nil, fmt.Errorf("gagal mengambil data pohon kinerja: %v", err)
+		}
 		// Ambil data terkait untuk setiap rencana
 		rencanaAksiList, err := service.RencanaAksiRepository.FindAll(ctx, tx, rencanaKinerja.Id, pegawaiId)
 		if err != nil {
@@ -498,40 +603,52 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 			rencanaAksiResponses = append(rencanaAksiResponses, response)
 		}
 
-		// Ambil subkegiatan terkait
-		subKegiatan, err := service.SubKegiatanRepository.FindByKodeSubKegiatan(ctx, tx, rencanaKinerja.KodeSubKegiatan)
-		if err != nil && err != sql.ErrNoRows {
-			return nil, fmt.Errorf("gagal mengambil subkegiatan: %v", err)
-		}
-
-		// Ambil indikator untuk subkegiatan
-		subIndikators, err := service.SubKegiatanRepository.FindIndikatorBySubKegiatanId(ctx, tx, subKegiatan.Id)
-		if err != nil && err != sql.ErrNoRows {
-			return nil, fmt.Errorf("gagal mengambil indikator subkegiatan: %v", err)
-		}
-
-		var subIndikatorResponses []subkegiatan.IndikatorResponse
-		for _, subIndikator := range subIndikators {
-			subTargets, err := service.SubKegiatanRepository.FindTargetByIndikatorId(ctx, tx, subIndikator.Id)
+		// Modifikasi bagian subkegiatan
+		var subKegiatanResponses []subkegiatan.SubKegiatanResponse
+		if rencanaKinerja.KodeSubKegiatan != "" {
+			// Ambil subkegiatan terkait
+			subKegiatan, err := service.SubKegiatanRepository.FindByKodeSubKegiatan(ctx, tx, rencanaKinerja.KodeSubKegiatan)
 			if err != nil && err != sql.ErrNoRows {
-				return nil, fmt.Errorf("gagal mengambil target subkegiatan: %v", err)
+				return nil, fmt.Errorf("gagal mengambil subkegiatan: %v", err)
 			}
 
-			var subTargetResponses []subkegiatan.TargetResponse
-			for _, subTarget := range subTargets {
-				subTargetResponses = append(subTargetResponses, subkegiatan.TargetResponse{
-					Id:              subTarget.Id,
-					IndikatorId:     subTarget.IndikatorId,
-					TargetIndikator: subTarget.Target,
-					SatuanIndikator: subTarget.Satuan,
+			if err != sql.ErrNoRows && subKegiatan.KodeSubKegiatan != "" {
+				// Ambil indikator untuk subkegiatan
+				subIndikators, err := service.SubKegiatanRepository.FindIndikatorBySubKegiatanId(ctx, tx, subKegiatan.Id)
+				if err != nil && err != sql.ErrNoRows {
+					return nil, fmt.Errorf("gagal mengambil indikator subkegiatan: %v", err)
+				}
+
+				var subIndikatorResponses []subkegiatan.IndikatorResponse
+				for _, subIndikator := range subIndikators {
+					subTargets, err := service.SubKegiatanRepository.FindTargetByIndikatorId(ctx, tx, subIndikator.Id)
+					if err != nil && err != sql.ErrNoRows {
+						return nil, fmt.Errorf("gagal mengambil target subkegiatan: %v", err)
+					}
+
+					var subTargetResponses []subkegiatan.TargetResponse
+					for _, subTarget := range subTargets {
+						subTargetResponses = append(subTargetResponses, subkegiatan.TargetResponse{
+							Id:              subTarget.Id,
+							IndikatorId:     subTarget.IndikatorId,
+							TargetIndikator: subTarget.Target,
+							SatuanIndikator: subTarget.Satuan,
+						})
+					}
+
+					subIndikatorResponses = append(subIndikatorResponses, subkegiatan.IndikatorResponse{
+						Id:            subIndikator.Id,
+						NamaIndikator: subIndikator.Indikator,
+						Target:        subTargetResponses,
+					})
+				}
+
+				subKegiatanResponses = append(subKegiatanResponses, subkegiatan.SubKegiatanResponse{
+					KodeSubKegiatan: subKegiatan.KodeSubKegiatan,
+					NamaSubKegiatan: subKegiatan.NamaSubKegiatan,
+					Indikator:       subIndikatorResponses,
 				})
 			}
-
-			subIndikatorResponses = append(subIndikatorResponses, subkegiatan.IndikatorResponse{
-				Id:            subIndikator.Id,
-				NamaIndikator: subIndikator.Indikator,
-				Target:        subTargetResponses,
-			})
 		}
 
 		usulanMusrebang, _ := service.UsulanMusrebangRepository.FindAll(ctx, tx, &pegawaiId, nil, &rencanaKinerja.Id)
@@ -553,12 +670,11 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 				KodeOpd: opd.KodeOpd,
 				NamaOpd: opd.NamaOpd,
 			},
-			PegawaiId: rencanaKinerja.PegawaiId,
-			Indikator: indikatorResponses,
-			// SubKegiatan: subkegiatan.SubKegiatanResponse{
-			// 	KodeSubKegiatan: subKegiatan.KodeSubKegiatan,
-			// 	NamaSubKegiatan: subKegiatan.NamaSubKegiatan,
-			// },
+			PegawaiId:   rencanaKinerja.PegawaiId,
+			NamaPegawai: pegawai.NamaPegawai,
+			IdPohon:     rencanaKinerja.IdPohon,
+			NamaPohon:   pohon.NamaPohon,
+			Indikator:   indikatorResponses,
 		}
 
 		// Tambahkan ke responses
@@ -570,15 +686,9 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 			UsulanPokokPikiran: helper.ToUsulanPokokPikiranResponses(usulanPokokPikiran),
 			UsulanInisiatif:    helper.ToUsulanInisiatifResponses(usulanInisiatif),
 			DasarHukum:         helper.ToDasarHukumResponses(dasarHukum),
-			SubKegiatan: []subkegiatan.SubKegiatanResponse{
-				{
-					KodeSubKegiatan: subKegiatan.KodeSubKegiatan,
-					NamaSubKegiatan: subKegiatan.NamaSubKegiatan,
-					Indikator:       subIndikatorResponses,
-				},
-			},
-			GambaranUmum: helper.ToGambaranUmumResponses(gambaranUmum),
-			Inovasi:      helper.ToInovasiResponses(inovasi),
+			SubKegiatan:        subKegiatanResponses,
+			GambaranUmum:       helper.ToGambaranUmumResponses(gambaranUmum),
+			Inovasi:            helper.ToInovasiResponses(inovasi),
 		})
 	}
 

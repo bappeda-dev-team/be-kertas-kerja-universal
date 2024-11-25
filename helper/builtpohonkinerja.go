@@ -189,7 +189,7 @@ func BuildTacticalResponse(pohonMap map[int]map[int][]domain.PohonKinerja, tacti
 	// Tambahkan operational ke childs
 	if operationals := pohonMap[6][tactical.Id]; len(operationals) > 0 {
 		for _, operational := range operationals {
-			operationalResp := BuildOperationalResponse(operational)
+			operationalResp := BuildOperationalResponse(pohonMap, operational)
 			childs = append(childs, operationalResp)
 		}
 	}
@@ -198,7 +198,7 @@ func BuildTacticalResponse(pohonMap map[int]map[int][]domain.PohonKinerja, tacti
 	return tacticalResp
 }
 
-func BuildOperationalResponse(operational domain.PohonKinerja) pohonkinerja.OperationalResponse {
+func BuildOperationalResponse(pohonMap map[int]map[int][]domain.PohonKinerja, operational domain.PohonKinerja) pohonkinerja.OperationalResponse {
 	operationalResp := pohonkinerja.OperationalResponse{
 		Id:         operational.Id,
 		Parent:     operational.Parent,
@@ -217,7 +217,62 @@ func BuildOperationalResponse(operational domain.PohonKinerja) pohonkinerja.Oper
 		}
 	}
 
+	var childs []interface{}
+
+	// Cek level berikutnya (operational-n)
+	nextLevel := operational.LevelPohon + 1
+	if operationalNs := pohonMap[nextLevel][operational.Id]; len(operationalNs) > 0 {
+		// Urutkan berdasarkan Id
+		sort.Slice(operationalNs, func(i, j int) bool {
+			return operationalNs[i].Id < operationalNs[j].Id
+		})
+
+		for _, opN := range operationalNs {
+			operationalNResp := BuildOperationalNResponse(pohonMap, opN)
+			childs = append(childs, operationalNResp)
+		}
+	}
+
+	operationalResp.Childs = childs
 	return operationalResp
+}
+
+func BuildOperationalNResponse(pohonMap map[int]map[int][]domain.PohonKinerja, operationalN domain.PohonKinerja) pohonkinerja.OperationalNResponse {
+	operationalNResp := pohonkinerja.OperationalNResponse{
+		Id:         operationalN.Id,
+		Parent:     operationalN.Parent,
+		Strategi:   operationalN.NamaPohon,
+		JenisPohon: operationalN.JenisPohon,
+		LevelPohon: operationalN.LevelPohon,
+		Keterangan: &operationalN.Keterangan,
+		Indikators: ConvertToIndikatorResponses(operationalN.Indikator),
+	}
+
+	// Tambahkan data OPD jika ada
+	if operationalN.KodeOpd != "" {
+		operationalNResp.KodeOpd = &opdmaster.OpdResponseForAll{
+			KodeOpd: operationalN.KodeOpd,
+			NamaOpd: operationalN.NamaOpd,
+		}
+	}
+
+	// Cek level berikutnya secara rekursif
+	nextLevel := operationalN.LevelPohon + 1
+	if nextOperationalNs := pohonMap[nextLevel][operationalN.Id]; len(nextOperationalNs) > 0 {
+		// Urutkan berdasarkan Id
+		sort.Slice(nextOperationalNs, func(i, j int) bool {
+			return nextOperationalNs[i].Id < nextOperationalNs[j].Id
+		})
+
+		var childs []pohonkinerja.OperationalNResponse
+		for _, nextOpN := range nextOperationalNs {
+			childResp := BuildOperationalNResponse(pohonMap, nextOpN)
+			childs = append(childs, childResp)
+		}
+		operationalNResp.Childs = childs
+	}
+
+	return operationalNResp
 }
 
 func BuildSubTematikResponseLimited(pohonMap map[int]map[int][]domain.PohonKinerja, subTematik domain.PohonKinerja) pohonkinerja.SubtematikResponse {

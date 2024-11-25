@@ -13,7 +13,7 @@ var jwtSecretKey = []byte(os.Getenv("JWT_SECRET_KEY"))
 var jwtIssuer = os.Getenv("JWT_ISSUER")
 var jwtExpiration = os.Getenv("JWT_EXPIRATION")
 
-func CreateNewJWT(userId int, pegawaiId string, email string, nip string, roles []string) string {
+func CreateNewJWT(userId int, pegawaiId string, email string, nip string, kodeOpd string, roles []string) string {
 	exp := 24 * time.Hour
 	if jwtExpiration != "" {
 		if duration, err := time.ParseDuration(jwtExpiration + "h"); err == nil {
@@ -27,6 +27,7 @@ func CreateNewJWT(userId int, pegawaiId string, email string, nip string, roles 
 		"pegawai_id": pegawaiId,
 		"email":      email,
 		"nip":        nip,
+		"kode_opd":   kodeOpd,
 		"roles":      roles,
 		"iat":        time.Now().Unix(),
 		"exp":        time.Now().Add(exp).Unix(),
@@ -66,15 +67,56 @@ func ValidateJWT(tokenString string) web.JWTClaim {
 			}
 		}
 
+		userId := 0
+		if id, ok := claims["user_id"].(float64); ok {
+			userId = int(id)
+		}
+
+		pegawaiId := ""
+		if id, ok := claims["pegawai_id"].(string); ok {
+			pegawaiId = id
+		}
+
+		email := ""
+		if e, ok := claims["email"].(string); ok {
+			email = e
+		}
+
+		nip := ""
+		if n, ok := claims["nip"].(string); ok {
+			nip = n
+		}
+
+		issuer := ""
+		if iss, ok := claims["iss"].(string); ok {
+			issuer = iss
+		}
+
+		iat := int64(0)
+		if issuedAt, ok := claims["iat"].(float64); ok {
+			iat = int64(issuedAt)
+		}
+
+		exp := int64(0)
+		if expiry, ok := claims["exp"].(float64); ok {
+			exp = int64(expiry)
+		}
+
+		kodeOpd := ""
+		if opd, ok := claims["kode_opd"].(string); ok {
+			kodeOpd = opd
+		}
+
 		return web.JWTClaim{
-			Issuer:    claims["iss"].(string),
-			UserId:    int(claims["user_id"].(float64)),
-			PegawaiId: int(claims["pegawai_id"].(float64)),
-			Email:     claims["email"].(string),
-			Nip:       claims["nip"].(string),
+			Issuer:    issuer,
+			UserId:    userId,
+			PegawaiId: pegawaiId,
+			KodeOpd:   kodeOpd,
+			Email:     email,
+			Nip:       nip,
 			Roles:     roles,
-			Iat:       int64(claims["iat"].(float64)),
-			Exp:       int64(claims["exp"].(float64)),
+			Iat:       iat,
+			Exp:       exp,
 		}
 	}
 

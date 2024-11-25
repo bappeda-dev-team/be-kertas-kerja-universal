@@ -57,6 +57,19 @@ type OperationalOpdResponse struct {
 	Keterangan string                      `json:"keterangan"`
 	KodeOpd    opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
 	Pelaksana  []PelaksanaOpdResponse      `json:"pelaksana"`
+	Childs     []OperationalNOpdResponse   `json:"childs,omitempty"`
+}
+
+type OperationalNOpdResponse struct {
+	Id         int                         `json:"id"`
+	Parent     int                         `json:"parent"`
+	Strategi   string                      `json:"nama_pohon"`
+	JenisPohon string                      `json:"jenis_pohon"`
+	LevelPohon int                         `json:"level_pohon"`
+	Keterangan string                      `json:"keterangan"`
+	KodeOpd    opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
+	Pelaksana  []PelaksanaOpdResponse      `json:"pelaksana"`
+	Childs     []OperationalNOpdResponse   `json:"childs,omitempty"`
 }
 
 type PelaksanaOpdResponse struct {

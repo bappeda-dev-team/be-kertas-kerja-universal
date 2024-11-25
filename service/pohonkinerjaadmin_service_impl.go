@@ -358,21 +358,25 @@ func (service *PohonKinerjaAdminServiceImpl) FindAll(ctx context.Context, tahun 
 
 	// Buat map untuk menyimpan data berdasarkan level dan parent
 	pohonMap := make(map[int]map[int][]domain.PohonKinerja)
-	for i := 0; i <= 6; i++ {
-		pohonMap[i] = make(map[int][]domain.PohonKinerja)
-	}
 
 	// Kelompokkan data dan ambil data OPD untuk setiap pohon kinerja
 	for i := range pokins {
+		level := pokins[i].LevelPohon
+
+		// Inisialisasi map untuk level jika belum ada
+		if pohonMap[level] == nil {
+			pohonMap[level] = make(map[int][]domain.PohonKinerja)
+		}
+
 		if pokins[i].KodeOpd != "" {
 			opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, pokins[i].KodeOpd)
 			if err == nil {
-				// Update data pohon kinerja dengan nama OPD
 				pokins[i].NamaOpd = opd.NamaOpd
 			}
 		}
-		pohonMap[pokins[i].LevelPohon][pokins[i].Parent] = append(
-			pohonMap[pokins[i].LevelPohon][pokins[i].Parent],
+
+		pohonMap[level][pokins[i].Parent] = append(
+			pohonMap[level][pokins[i].Parent],
 			pokins[i],
 		)
 	}
@@ -500,19 +504,23 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinAdminByIdHierarki(ctx cont
 
 	// Buat map untuk menyimpan data berdasarkan level dan parent
 	pohonMap := make(map[int]map[int][]domain.PohonKinerja)
-	for i := 0; i <= 6; i++ {
-		pohonMap[i] = make(map[int][]domain.PohonKinerja)
-	}
 
 	// Kelompokkan data
 	for _, p := range pokins {
+		level := p.LevelPohon
+
+		// Inisialisasi map untuk level jika belum ada
+		if pohonMap[level] == nil {
+			pohonMap[level] = make(map[int][]domain.PohonKinerja)
+		}
+
 		if p.KodeOpd != "" {
 			opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, p.KodeOpd)
 			if err == nil {
 				p.NamaOpd = opd.NamaOpd
 			}
 		}
-		pohonMap[p.LevelPohon][p.Parent] = append(pohonMap[p.LevelPohon][p.Parent], p)
+		pohonMap[level][p.Parent] = append(pohonMap[level][p.Parent], p)
 	}
 
 	// Bangun response hierarki

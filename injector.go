@@ -6,6 +6,7 @@ package main
 import (
 	"ekak_kabupaten_madiun/app"
 	"ekak_kabupaten_madiun/controller"
+	"ekak_kabupaten_madiun/dataseeder"
 	"ekak_kabupaten_madiun/middleware"
 	"ekak_kabupaten_madiun/repository"
 	"ekak_kabupaten_madiun/service"
@@ -240,6 +241,17 @@ var userSet = wire.NewSet(
 	wire.Bind(new(controller.UserController), new(*controller.UserControllerImpl)),
 )
 
+var seederProviderSet = wire.NewSet(
+	dataseeder.NewSeederImpl,
+	wire.Bind(new(dataseeder.Seeder), new(*dataseeder.SeederImpl)),
+	dataseeder.NewRoleSeederImpl,
+	wire.Bind(new(dataseeder.RoleSeeder), new(*dataseeder.RoleSeederImpl)),
+	dataseeder.NewUserSeederImpl,
+	wire.Bind(new(dataseeder.UserSeeder), new(*dataseeder.UserSeederImpl)),
+	dataseeder.NewPegawaiSeederImpl,
+	wire.Bind(new(dataseeder.PegawaiSeeder), new(*dataseeder.PegawaiSeederImpl)),
+)
+
 func InitializeServer() *http.Server {
 
 	wire.Build(
@@ -277,5 +289,16 @@ func InitializeServer() *http.Server {
 		NewServer,
 	)
 
+	return nil
+}
+
+func InitializeSeeder() dataseeder.Seeder {
+	wire.Build(
+		app.GetConnection,
+		roleSet,
+		userSet,
+		pegawaiSet,
+		seederProviderSet,
+	)
 	return nil
 }

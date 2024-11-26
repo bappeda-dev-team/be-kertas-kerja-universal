@@ -229,3 +229,50 @@ func (controller *PohonKinerjaOpdControllerImpl) DeletePelaksana(writer http.Res
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *PohonKinerjaOpdControllerImpl) FindPokinByPelaksana(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	pelaksanaId := params.ByName("pegawai_id")
+	tahun := params.ByName("tahun")
+
+	// Validasi parameter
+	if pelaksanaId == "" {
+		webResponse := web.WebResponse{
+			Code:   400,
+			Status: "Bad Request",
+			Data:   "ID Pegawai harus diisi",
+		}
+		writer.WriteHeader(http.StatusBadRequest)
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	if tahun == "" {
+		webResponse := web.WebResponse{
+			Code:   400,
+			Status: "Bad Request",
+			Data:   "Parameter tahun harus diisi",
+		}
+		writer.WriteHeader(http.StatusBadRequest)
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	pohonKinerjaResponse, err := controller.PohonKinerjaOpdService.FindPokinByPelaksana(request.Context(), pelaksanaId, tahun)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   404,
+			Status: "Not Found",
+			Data:   err.Error(),
+		}
+		writer.WriteHeader(http.StatusNotFound)
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   200,
+		Status: "Berhasil Mendapatkan Pohon Kinerja",
+		Data:   pohonKinerjaResponse,
+	}
+	helper.WriteToResponseBody(writer, webResponse)
+}

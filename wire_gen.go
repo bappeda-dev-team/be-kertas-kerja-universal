@@ -9,6 +9,7 @@ package main
 import (
 	"ekak_kabupaten_madiun/app"
 	"ekak_kabupaten_madiun/controller"
+	"ekak_kabupaten_madiun/dataseeder"
 	"ekak_kabupaten_madiun/middleware"
 	"ekak_kabupaten_madiun/repository"
 	"ekak_kabupaten_madiun/service"
@@ -35,7 +36,9 @@ func InitializeServer() *http.Server {
 	gambaranUmumRepositoryImpl := repository.NewGambaranUmumRepositoryImpl()
 	inovasiRepositoryImpl := repository.NewInovasiRepositoryImpl()
 	pelaksanaanRencanaAksiRepositoryImpl := repository.NewPelaksanaanRencanaAksiRepositoryImpl()
-	rencanaKinerjaServiceImpl := service.NewRencanaKinerjaServiceImpl(rencanaKinerjaRepositoryImpl, db, validate, opdRepositoryImpl, rencanaAksiRepositoryImpl, usulanMusrebangRepositoryImpl, usulanMandatoriRepositoryImpl, usulanPokokPikiranRepositoryImpl, usulanInisiatifRepositoryImpl, subKegiatanRepositoryImpl, dasarHukumRepositoryImpl, gambaranUmumRepositoryImpl, inovasiRepositoryImpl, pelaksanaanRencanaAksiRepositoryImpl)
+	pegawaiRepositoryImpl := repository.NewPegawaiRepositoryImpl()
+	pohonKinerjaRepositoryImpl := repository.NewPohonKinerjaRepositoryImpl()
+	rencanaKinerjaServiceImpl := service.NewRencanaKinerjaServiceImpl(rencanaKinerjaRepositoryImpl, db, validate, opdRepositoryImpl, rencanaAksiRepositoryImpl, usulanMusrebangRepositoryImpl, usulanMandatoriRepositoryImpl, usulanPokokPikiranRepositoryImpl, usulanInisiatifRepositoryImpl, subKegiatanRepositoryImpl, dasarHukumRepositoryImpl, gambaranUmumRepositoryImpl, inovasiRepositoryImpl, pelaksanaanRencanaAksiRepositoryImpl, pegawaiRepositoryImpl, pohonKinerjaRepositoryImpl)
 	rencanaKinerjaControllerImpl := controller.NewRencanaKinerjaControllerImpl(rencanaKinerjaServiceImpl)
 	rencanaAksiServiceImpl := service.NewRencanaAksiServiceImpl(rencanaAksiRepositoryImpl, db, validate, pelaksanaanRencanaAksiRepositoryImpl)
 	rencanaAksiControllerImpl := controller.NewRencanaAksiControllerImpl(rencanaAksiServiceImpl)
@@ -63,8 +66,6 @@ func InitializeServer() *http.Server {
 	subKegiatanTerpilihRepositoryImpl := repository.NewSubKegiatanTerpilihRepositoryImpl()
 	subKegiatanTerpilihServiceImpl := service.NewSubKegiatanTerpilihServiceImpl(rencanaKinerjaRepositoryImpl, subKegiatanRepositoryImpl, subKegiatanTerpilihRepositoryImpl, db)
 	subKegiatanTerpilihControllerImpl := controller.NewSubKegiatanTerpilihControllerImpl(subKegiatanTerpilihServiceImpl)
-	pohonKinerjaRepositoryImpl := repository.NewPohonKinerjaRepositoryImpl()
-	pegawaiRepositoryImpl := repository.NewPegawaiRepositoryImpl()
 	pohonKinerjaOpdServiceImpl := service.NewPohonKinerjaOpdServiceImpl(pohonKinerjaRepositoryImpl, opdRepositoryImpl, pegawaiRepositoryImpl, db)
 	pohonKinerjaOpdControllerImpl := controller.NewPohonKinerjaOpdControllerImpl(pohonKinerjaOpdServiceImpl)
 	pegawaiServiceImpl := service.NewPegawaiServiceImpl(pegawaiRepositoryImpl, opdRepositoryImpl, db)
@@ -106,6 +107,18 @@ func InitializeServer() *http.Server {
 var (
 	_wireValue = []validator.Option{}
 )
+
+func InitializeSeeder() dataseeder.Seeder {
+	db := app.GetConnection()
+	roleRepositoryImpl := repository.NewRoleRepositoryImpl()
+	roleSeederImpl := dataseeder.NewRoleSeederImpl(roleRepositoryImpl)
+	userRepositoryImpl := repository.NewUserRepositoryImpl()
+	userSeederImpl := dataseeder.NewUserSeederImpl(userRepositoryImpl, roleRepositoryImpl)
+	pegawaiRepositoryImpl := repository.NewPegawaiRepositoryImpl()
+	pegawaiSeederImpl := dataseeder.NewPegawaiSeederImpl(db, pegawaiRepositoryImpl)
+	seederImpl := dataseeder.NewSeederImpl(db, roleSeederImpl, userSeederImpl, pegawaiSeederImpl)
+	return seederImpl
+}
 
 // injector.go:
 
@@ -158,3 +171,5 @@ var kegiatanSet = wire.NewSet(repository.NewKegiatanRepositoryImpl, wire.Bind(ne
 var roleSet = wire.NewSet(repository.NewRoleRepositoryImpl, wire.Bind(new(repository.RoleRepository), new(*repository.RoleRepositoryImpl)), service.NewRoleServiceImpl, wire.Bind(new(service.RoleService), new(*service.RoleServiceImpl)), controller.NewRoleControllerImpl, wire.Bind(new(controller.RoleController), new(*controller.RoleControllerImpl)))
 
 var userSet = wire.NewSet(repository.NewUserRepositoryImpl, wire.Bind(new(repository.UserRepository), new(*repository.UserRepositoryImpl)), service.NewUserServiceImpl, wire.Bind(new(service.UserService), new(*service.UserServiceImpl)), controller.NewUserControllerImpl, wire.Bind(new(controller.UserController), new(*controller.UserControllerImpl)))
+
+var seederProviderSet = wire.NewSet(dataseeder.NewSeederImpl, wire.Bind(new(dataseeder.Seeder), new(*dataseeder.SeederImpl)), dataseeder.NewRoleSeederImpl, wire.Bind(new(dataseeder.RoleSeeder), new(*dataseeder.RoleSeederImpl)), dataseeder.NewUserSeederImpl, wire.Bind(new(dataseeder.UserSeeder), new(*dataseeder.UserSeederImpl)), dataseeder.NewPegawaiSeederImpl, wire.Bind(new(dataseeder.PegawaiSeeder), new(*dataseeder.PegawaiSeederImpl)))

@@ -6,6 +6,8 @@ import (
 	"ekak_kabupaten_madiun/model/domain"
 	"errors"
 	"fmt"
+
+	"github.com/google/uuid"
 )
 
 type UsulanTerpilihRepositoryImpl struct {
@@ -28,6 +30,38 @@ func (repository *UsulanTerpilihRepositoryImpl) Create(ctx context.Context, tx *
 	switch usulan.JenisUsulan {
 	case "mandatori":
 		updateQuery = "UPDATE tb_usulan_mandatori SET is_active = true, status = 'usulan telah diambil', rekin_id = ? WHERE id = ?"
+
+		// Ambil data usulan mandatori
+		var mandatoriUsulan domain.UsulanMandatori
+		err := tx.QueryRowContext(ctx, `
+			SELECT peraturan_terkait, pegawai_id, kode_opd 
+			FROM tb_usulan_mandatori 
+			WHERE id = ?`, usulan.UsulanId).Scan(&mandatoriUsulan.PeraturanTerkait, &mandatoriUsulan.PegawaiId, &mandatoriUsulan.KodeOpd)
+		if err != nil {
+			return domain.UsulanTerpilih{}, fmt.Errorf("gagal mengambil data usulan mandatori: %v", err)
+		}
+
+		// Dapatkan urutan terakhir
+		var lastUrutan int
+		err = tx.QueryRowContext(ctx, "SELECT COALESCE(MAX(urutan), 0) FROM tb_dasar_hukum").Scan(&lastUrutan)
+		if err != nil {
+			return domain.UsulanTerpilih{}, fmt.Errorf("gagal mendapatkan urutan terakhir: %v", err)
+		}
+
+		// Insert ke tb_dasar_hukum
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO tb_dasar_hukum (id, rekin_id, pegawai_id, kode_opd, urutan, peraturan_terkait, uraian)
+			VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			uuid.New().String(),
+			usulan.RekinId,
+			mandatoriUsulan.PegawaiId,
+			mandatoriUsulan.KodeOpd,
+			lastUrutan+1,
+			mandatoriUsulan.PeraturanTerkait,
+			"Dasar hukum dari usulan mandatori")
+		if err != nil {
+			return domain.UsulanTerpilih{}, fmt.Errorf("gagal menyimpan dasar hukum: %v", err)
+		}
 	case "musrebang":
 		updateQuery = "UPDATE tb_usulan_musrebang SET is_active = true, status = 'usulan telah diambil', rekin_id = ? WHERE id = ?"
 	case "inisiatif":
@@ -65,13 +99,13 @@ func (repository *UsulanTerpilihRepositoryImpl) Delete(ctx context.Context, tx *
 	var updateQuery string
 	switch jenisUsulan {
 	case "mandatori":
-		updateQuery = "UPDATE tb_usulan_mandatori SET is_active = false, status = 'usulan dibatalkan', rekin_id = '' WHERE id = ?"
+		updateQuery = "UPDATE tb_usulan_mandatori SET is_active = false, status = 'usulan belum diambil', rekin_id = '' WHERE id = ?"
 	case "musrebang":
-		updateQuery = "UPDATE tb_usulan_musrebang SET is_active = false, status = 'usulan dibatalkan', rekin_id = '' WHERE id = ?"
+		updateQuery = "UPDATE tb_usulan_musrebang SET is_active = false, status = 'usulan belum diambil', rekin_id = '' WHERE id = ?"
 	case "inisiatif":
-		updateQuery = "UPDATE tb_usulan_inisiatif SET is_active = false, status = 'usulan dibatalkan', rekin_id = '' WHERE id = ?"
+		updateQuery = "UPDATE tb_usulan_inisiatif SET is_active = false, status = 'usulan belum diambil', rekin_id = '' WHERE id = ?"
 	case "pokok_pikiran":
-		updateQuery = "UPDATE tb_usulan_pokok_pikiran SET is_active = false, status = 'usulan dibatalkan', rekin_id = '' WHERE id = ?"
+		updateQuery = "UPDATE tb_usulan_pokok_pikiran SET is_active = false, status = 'usulan belum diambil', rekin_id = '' WHERE id = ?"
 	default:
 		return fmt.Errorf("jenis usulan tidak valid: %s", jenisUsulan)
 	}

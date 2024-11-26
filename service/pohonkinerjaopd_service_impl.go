@@ -10,6 +10,7 @@ import (
 	"ekak_kabupaten_madiun/repository"
 	"errors"
 	"fmt"
+	"log"
 	"sort"
 	"strconv"
 
@@ -566,4 +567,67 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalResponse(ctx context.
 	}
 
 	return operationalResp
+}
+
+func (service *PohonKinerjaOpdServiceImpl) FindPokinByPelaksana(ctx context.Context, pegawaiId string, tahun string) ([]pohonkinerja.PohonKinerjaOpdResponse, error) {
+	log.Printf("Memulai proses FindPokinByPelaksana untuk pegawai ID: %s", pegawaiId)
+
+	tx, err := service.DB.Begin()
+	if err != nil {
+		log.Printf("Gagal memulai transaksi: %v", err)
+		return nil, fmt.Errorf("gagal memulai transaksi: %v", err)
+	}
+	defer helper.CommitOrRollback(tx)
+
+	// Validasi pegawai
+	pegawai, err := service.pegawaiRepository.FindById(ctx, tx, pegawaiId)
+	if err != nil {
+		log.Printf("Pegawai tidak ditemukan: %v", err)
+		return nil, fmt.Errorf("pegawai tidak ditemukan: %v", err)
+	}
+
+	// Ambil data pohon kinerja berdasarkan pegawai
+	pokinList, err := service.pohonKinerjaOpdRepository.FindPokinByPelaksana(ctx, tx, pegawaiId, tahun)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("Tidak ada pohon kinerja untuk pegawai ID: %s", pegawaiId)
+			return []pohonkinerja.PohonKinerjaOpdResponse{}, nil
+		}
+		log.Printf("Gagal mengambil data pohon kinerja: %v", err)
+		return nil, fmt.Errorf("gagal mengambil data pohon kinerja: %v", err)
+	}
+
+	var responses []pohonkinerja.PohonKinerjaOpdResponse
+	for _, pokin := range pokinList {
+		// Ambil data OPD
+		opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, pokin.KodeOpd)
+		if err != nil {
+			log.Printf("Gagal mengambil data OPD: %v", err)
+			return nil, fmt.Errorf("gagal mengambil data OPD: %v", err)
+		}
+
+		// Buat response pelaksana hanya untuk pegawai yang bersangkutan
+		pelaksanaResponse := pohonkinerja.PelaksanaOpdResponse{
+			Id:             pokin.Pelaksana[0].Id, // Mengambil ID pelaksana pertama karena sudah difilter di repository
+			PohonKinerjaId: fmt.Sprint(pokin.Id),
+			PegawaiId:      pegawaiId,
+			NamaPegawai:    pegawai.NamaPegawai,
+		}
+
+		responses = append(responses, pohonkinerja.PohonKinerjaOpdResponse{
+			Id:         pokin.Id,
+			Parent:     fmt.Sprint(pokin.Parent),
+			NamaPohon:  pokin.NamaPohon,
+			JenisPohon: pokin.JenisPohon,
+			LevelPohon: pokin.LevelPohon,
+			KodeOpd:    opd.KodeOpd,
+			NamaOpd:    opd.NamaOpd,
+			Keterangan: pokin.Keterangan,
+			Tahun:      pokin.Tahun,
+			Pelaksana:  []pohonkinerja.PelaksanaOpdResponse{pelaksanaResponse}, // Hanya menampilkan pelaksana yang sesuai
+		})
+	}
+
+	log.Printf("Berhasil mengambil %d pohon kinerja untuk pegawai %s", len(responses), pegawai.NamaPegawai)
+	return responses, nil
 }

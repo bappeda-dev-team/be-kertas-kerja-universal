@@ -9,6 +9,7 @@ package main
 import (
 	"ekak_kabupaten_madiun/app"
 	"ekak_kabupaten_madiun/controller"
+	"ekak_kabupaten_madiun/dataseeder"
 	"ekak_kabupaten_madiun/middleware"
 	"ekak_kabupaten_madiun/repository"
 	"ekak_kabupaten_madiun/service"
@@ -107,6 +108,18 @@ var (
 	_wireValue = []validator.Option{}
 )
 
+func InitializeSeeder() dataseeder.Seeder {
+	db := app.GetConnection()
+	roleRepositoryImpl := repository.NewRoleRepositoryImpl()
+	roleSeederImpl := dataseeder.NewRoleSeederImpl(roleRepositoryImpl)
+	userRepositoryImpl := repository.NewUserRepositoryImpl()
+	userSeederImpl := dataseeder.NewUserSeederImpl(userRepositoryImpl, roleRepositoryImpl)
+	pegawaiRepositoryImpl := repository.NewPegawaiRepositoryImpl()
+	pegawaiSeederImpl := dataseeder.NewPegawaiSeederImpl(db, pegawaiRepositoryImpl)
+	seederImpl := dataseeder.NewSeederImpl(db, roleSeederImpl, userSeederImpl, pegawaiSeederImpl)
+	return seederImpl
+}
+
 // injector.go:
 
 var rencanaKinerjaSet = wire.NewSet(repository.NewRencanaKinerjaRepositoryImpl, wire.Bind(new(repository.RencanaKinerjaRepository), new(*repository.RencanaKinerjaRepositoryImpl)), service.NewRencanaKinerjaServiceImpl, wire.Bind(new(service.RencanaKinerjaService), new(*service.RencanaKinerjaServiceImpl)), controller.NewRencanaKinerjaControllerImpl, wire.Bind(new(controller.RencanaKinerjaController), new(*controller.RencanaKinerjaControllerImpl)))
@@ -158,3 +171,5 @@ var kegiatanSet = wire.NewSet(repository.NewKegiatanRepositoryImpl, wire.Bind(ne
 var roleSet = wire.NewSet(repository.NewRoleRepositoryImpl, wire.Bind(new(repository.RoleRepository), new(*repository.RoleRepositoryImpl)), service.NewRoleServiceImpl, wire.Bind(new(service.RoleService), new(*service.RoleServiceImpl)), controller.NewRoleControllerImpl, wire.Bind(new(controller.RoleController), new(*controller.RoleControllerImpl)))
 
 var userSet = wire.NewSet(repository.NewUserRepositoryImpl, wire.Bind(new(repository.UserRepository), new(*repository.UserRepositoryImpl)), service.NewUserServiceImpl, wire.Bind(new(service.UserService), new(*service.UserServiceImpl)), controller.NewUserControllerImpl, wire.Bind(new(controller.UserController), new(*controller.UserControllerImpl)))
+
+var seederProviderSet = wire.NewSet(dataseeder.NewSeederImpl, wire.Bind(new(dataseeder.Seeder), new(*dataseeder.SeederImpl)), dataseeder.NewRoleSeederImpl, wire.Bind(new(dataseeder.RoleSeeder), new(*dataseeder.RoleSeederImpl)), dataseeder.NewUserSeederImpl, wire.Bind(new(dataseeder.UserSeeder), new(*dataseeder.UserSeederImpl)), dataseeder.NewPegawaiSeederImpl, wire.Bind(new(dataseeder.PegawaiSeeder), new(*dataseeder.PegawaiSeederImpl)))

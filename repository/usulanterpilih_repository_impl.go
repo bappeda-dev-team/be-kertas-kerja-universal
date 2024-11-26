@@ -99,13 +99,13 @@ func (repository *UsulanTerpilihRepositoryImpl) Delete(ctx context.Context, tx *
 	var updateQuery string
 	switch jenisUsulan {
 	case "mandatori":
-		updateQuery = "UPDATE tb_usulan_mandatori SET is_active = false, status = 'usulan dibatalkan', rekin_id = '' WHERE id = ?"
+		updateQuery = "UPDATE tb_usulan_mandatori SET is_active = false, status = 'usulan belum diambil', rekin_id = '' WHERE id = ?"
 	case "musrebang":
-		updateQuery = "UPDATE tb_usulan_musrebang SET is_active = false, status = 'usulan dibatalkan', rekin_id = '' WHERE id = ?"
+		updateQuery = "UPDATE tb_usulan_musrebang SET is_active = false, status = 'usulan belum diambil', rekin_id = '' WHERE id = ?"
 	case "inisiatif":
-		updateQuery = "UPDATE tb_usulan_inisiatif SET is_active = false, status = 'usulan dibatalkan', rekin_id = '' WHERE id = ?"
+		updateQuery = "UPDATE tb_usulan_inisiatif SET is_active = false, status = 'usulan belum diambil', rekin_id = '' WHERE id = ?"
 	case "pokok_pikiran":
-		updateQuery = "UPDATE tb_usulan_pokok_pikiran SET is_active = false, status = 'usulan dibatalkan', rekin_id = '' WHERE id = ?"
+		updateQuery = "UPDATE tb_usulan_pokok_pikiran SET is_active = false, status = 'usulan belum diambil', rekin_id = '' WHERE id = ?"
 	default:
 		return fmt.Errorf("jenis usulan tidak valid: %s", jenisUsulan)
 	}

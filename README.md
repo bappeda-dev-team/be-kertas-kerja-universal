@@ -38,4 +38,10 @@ ketikkan perintah:
 go run main.go
 ```
 
+untuk menjalankan seeder, ketikkan perintah:
+
+```sh
+go run main.go -seed
+```
+
 untuk menghentikan server, tekan Ctrl + c

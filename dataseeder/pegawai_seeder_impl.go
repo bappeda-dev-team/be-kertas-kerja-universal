@@ -422,7 +422,7 @@ func (pegawai *PegawaiSeederImpl) Seed(ctx context.Context, tx *sql.Tx) error {
 		if err != nil {
 			return err
 		}
-		log.Println("Pegawai dua puluh dua berhasil di-seed")
+		log.Println("Pegawai dua puluh tiga berhasil di-seed")
 	}
 
 	_, err = pegawai.PegawaiRepository.FindByNip(ctx, tx, "admin_puskesmas_madiun")
@@ -680,7 +680,7 @@ func (pegawai *PegawaiSeederImpl) Seed(ctx context.Context, tx *sql.Tx) error {
 		log.Println("Pegawai tiga puluh sembilan berhasil di-seed")
 	}
 
-	_, err = pegawai.PegawaiRepository.FindByNip(ctx, tx, "admin_disdukcapil")
+	_, err = pegawai.PegawaiRepository.FindByNip(ctx, tx, "admin_dpmd")
 	if err == sql.ErrNoRows {
 		adminDpmd := domainmaster.Pegawai{
 			Id:          "ADMIN-DPMD-" + uuid.New().String()[:4],
@@ -1451,7 +1451,7 @@ func (pegawai *PegawaiSeederImpl) Seed(ctx context.Context, tx *sql.Tx) error {
 	_, err = pegawai.PegawaiRepository.FindByNip(ctx, tx, "admin_bakesbangpol")
 	if err == sql.ErrNoRows {
 		adminBakesbangpol := domainmaster.Pegawai{
-			Id:          "ADMIN-KEL-WONOSARI-" + uuid.New().String()[:4],
+			Id:          "ADMIN-BAKESBANGPOL-" + uuid.New().String()[:4],
 			NamaPegawai: "admin bakesbangpol",
 			Nip:         "admin_bakesbangpol",
 			KodeOpd:     "8.01.0.00.0.00.01.0000",

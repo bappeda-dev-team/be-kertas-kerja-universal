@@ -9,7 +9,9 @@ type PohonKinerjaUpdateRequest struct {
 	KodeOpd     string                   `json:"kode_opd"`
 	Keterangan  string                   `json:"keterangan"`
 	Tahun       string                   `json:"tahun"`
+	Status      string                   `json:"status"`
 	PelaksanaId []PelaksanaUpdateRequest `json:"pelaksana"`
+	Indikator   []IndikatorUpdateRequest `json:"indikator"`
 }
 
 type PelaksanaUpdateRequest struct {
@@ -25,6 +27,7 @@ type PohonKinerjaAdminUpdateRequest struct {
 	LevelPohon int                      `json:"level_pohon"`
 	Keterangan string                   `json:"keterangan"`
 	Tahun      string                   `json:"tahun"`
+	Status     string                   `json:"status"`
 	Indikator  []IndikatorUpdateRequest `json:"indikator"`
 }
 

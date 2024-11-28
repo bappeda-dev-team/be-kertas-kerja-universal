@@ -85,15 +85,64 @@ func (service *PohonKinerjaOpdServiceImpl) Create(ctx context.Context, request p
 		})
 	}
 
+	// Validasi dan persiapan data indikator dan target
+	var indikatorList []domain.Indikator
+	var indikatorResponses []pohonkinerja.IndikatorResponse
+
+	for _, indikatorReq := range request.Indikator {
+		// Generate ID untuk indikator
+		indikatorId := fmt.Sprintf("IND-%s", uuid.New().String()[:8])
+
+		var targetList []domain.Target
+		var targetResponses []pohonkinerja.TargetResponse
+
+		// Proses target untuk setiap indikator
+		for _, targetReq := range indikatorReq.Target {
+			targetId := fmt.Sprintf("TRG-%s", uuid.New().String()[:8])
+
+			target := domain.Target{
+				Id:          targetId,
+				IndikatorId: indikatorId,
+				Target:      targetReq.Target,
+				Satuan:      targetReq.Satuan,
+				Tahun:       request.Tahun,
+			}
+			targetList = append(targetList, target)
+
+			targetResponses = append(targetResponses, pohonkinerja.TargetResponse{
+				Id:              targetId,
+				IndikatorId:     indikatorId,
+				TargetIndikator: targetReq.Target,
+				SatuanIndikator: targetReq.Satuan,
+			})
+		}
+
+		indikator := domain.Indikator{
+			Id:        indikatorId,
+			Indikator: indikatorReq.NamaIndikator,
+			Target:    targetList,
+		}
+		indikatorList = append(indikatorList, indikator)
+
+		indikatorResponses = append(indikatorResponses, pohonkinerja.IndikatorResponse{
+			Id:            indikatorId,
+			NamaIndikator: indikatorReq.NamaIndikator,
+			Target:        targetResponses,
+		})
+	}
+
 	pohonKinerja := domain.PohonKinerja{
-		NamaPohon:  request.NamaPohon,
-		Parent:     request.Parent,
+		NamaPohon: request.NamaPohon,
+		Parent:    request.Parent,
+
 		JenisPohon: request.JenisPohon,
 		LevelPohon: request.LevelPohon,
 		KodeOpd:    request.KodeOpd,
 		Keterangan: request.Keterangan,
 		Tahun:      request.Tahun,
+		Status:     request.Status,
 		Pelaksana:  pelaksanaList,
+		Indikator:  indikatorList,
 	}
 
 	result, err := service.pohonKinerjaOpdRepository.Create(ctx, tx, pohonKinerja)
@@ -111,7 +160,9 @@ func (service *PohonKinerjaOpdServiceImpl) Create(ctx context.Context, request p
 		NamaOpd:    opd.NamaOpd,
 		Keterangan: result.Keterangan,
 		Tahun:      result.Tahun,
+		Status:     result.Status,
 		Pelaksana:  pelaksanaResponses,
+		Indikator:  indikatorResponses,
 	}
 
 	return response, nil
@@ -278,7 +329,37 @@ func (service *PohonKinerjaOpdServiceImpl) FindById(ctx context.Context, id int)
 		})
 	}
 
-	// 6. Susun response
+	// 6. Ambil data indikator dan target
+	var indikatorResponses []pohonkinerja.IndikatorResponse
+	indikatorList, err := service.pohonKinerjaOpdRepository.FindIndikatorByPokinId(ctx, tx, fmt.Sprint(pokin.Id))
+	if err == nil {
+		for _, indikator := range indikatorList {
+			// Ambil target untuk setiap indikator
+			targetList, err := service.pohonKinerjaOpdRepository.FindTargetByIndikatorId(ctx, tx, indikator.Id)
+			if err != nil {
+				continue
+			}
+
+			var targetResponses []pohonkinerja.TargetResponse
+			for _, target := range targetList {
+				targetResponses = append(targetResponses, pohonkinerja.TargetResponse{
+					Id:              target.Id,
+					IndikatorId:     target.IndikatorId,
+					TargetIndikator: target.Target,
+					SatuanIndikator: target.Satuan,
+				})
+			}
+
+			indikatorResponses = append(indikatorResponses, pohonkinerja.IndikatorResponse{
+				Id:            indikator.Id,
+				IdPokin:       indikator.PokinId,
+				NamaIndikator: indikator.Indikator,
+				Target:        targetResponses,
+			})
+		}
+	}
+
+	// 7. Susun response
 	response := pohonkinerja.PohonKinerjaOpdResponse{
 		Id:         pokin.Id,
 		Parent:     strconv.Itoa(pokin.Parent),
@@ -289,7 +370,9 @@ func (service *PohonKinerjaOpdServiceImpl) FindById(ctx context.Context, id int)
 		NamaOpd:    opd.NamaOpd,
 		Keterangan: pokin.Keterangan,
 		Tahun:      pokin.Tahun,
+		Status:     pokin.Status,
 		Pelaksana:  pelaksanaResponses,
+		Indikator:  indikatorResponses,
 	}
 
 	return response, nil
@@ -314,11 +397,12 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 		return pohonkinerja.PohonKinerjaOpdAllResponse{}, err
 	}
 
-	// Buat map untuk menyimpan data berdasarkan level dan parent
+	// Buat map untuk menyimpan data
 	pohonMap := make(map[int]map[int][]domain.PohonKinerja)
 	pelaksanaMap := make(map[int][]pohonkinerja.PelaksanaOpdResponse)
+	indikatorMap := make(map[int][]pohonkinerja.IndikatorResponse)
 
-	// Kelompokkan data dan ambil data pelaksana
+	// Kelompokkan data dan ambil data pelaksana & indikator
 	maxLevel := 0
 	for _, p := range pokins {
 		if p.LevelPohon >= 4 {
@@ -355,6 +439,37 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 				}
 				pelaksanaMap[p.Id] = pelaksanaResponses
 			}
+
+			// Ambil data indikator dan target
+			indikatorList, err := service.pohonKinerjaOpdRepository.FindIndikatorByPokinId(ctx, tx, fmt.Sprint(p.Id))
+			if err == nil {
+				var indikatorResponses []pohonkinerja.IndikatorResponse
+				for _, indikator := range indikatorList {
+					// Ambil target untuk setiap indikator
+					targetList, err := service.pohonKinerjaOpdRepository.FindTargetByIndikatorId(ctx, tx, indikator.Id)
+					if err != nil {
+						continue
+					}
+
+					var targetResponses []pohonkinerja.TargetResponse
+					for _, target := range targetList {
+						targetResponses = append(targetResponses, pohonkinerja.TargetResponse{
+							Id:              target.Id,
+							IndikatorId:     target.IndikatorId,
+							TargetIndikator: target.Target,
+							SatuanIndikator: target.Satuan,
+						})
+					}
+
+					indikatorResponses = append(indikatorResponses, pohonkinerja.IndikatorResponse{
+						Id:            indikator.Id,
+						IdPokin:       indikator.PokinId,
+						NamaIndikator: indikator.Indikator,
+						Target:        targetResponses,
+					})
+				}
+				indikatorMap[p.Id] = indikatorResponses
+			}
 		}
 	}
 
@@ -367,7 +482,7 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 			})
 
 			for _, strategic := range strategicsByParent {
-				strategicResp := service.buildStrategicResponse(ctx, tx, pohonMap, strategic, pelaksanaMap)
+				strategicResp := service.buildStrategicResponse(ctx, tx, pohonMap, strategic, pelaksanaMap, indikatorMap)
 				strategics = append(strategics, strategicResp)
 			}
 		}
@@ -472,7 +587,7 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalNResponse(ctx context
 }
 
 // Helper functions untuk membangun response
-func (service *PohonKinerjaOpdServiceImpl) buildStrategicResponse(ctx context.Context, tx *sql.Tx, pohonMap map[int]map[int][]domain.PohonKinerja, strategic domain.PohonKinerja, pelaksanaMap map[int][]pohonkinerja.PelaksanaOpdResponse) pohonkinerja.StrategicOpdResponse {
+func (service *PohonKinerjaOpdServiceImpl) buildStrategicResponse(ctx context.Context, tx *sql.Tx, pohonMap map[int]map[int][]domain.PohonKinerja, strategic domain.PohonKinerja, pelaksanaMap map[int][]pohonkinerja.PelaksanaOpdResponse, indikatorMap map[int][]pohonkinerja.IndikatorResponse) pohonkinerja.StrategicOpdResponse {
 	strategicResp := pohonkinerja.StrategicOpdResponse{
 		Id:         strategic.Id,
 		Parent:     nil,
@@ -480,11 +595,13 @@ func (service *PohonKinerjaOpdServiceImpl) buildStrategicResponse(ctx context.Co
 		JenisPohon: strategic.JenisPohon,
 		LevelPohon: strategic.LevelPohon,
 		Keterangan: strategic.Keterangan,
+		Status:     strategic.Status,
 		KodeOpd: opdmaster.OpdResponseForAll{
 			KodeOpd: strategic.KodeOpd,
 			NamaOpd: strategic.NamaOpd,
 		},
 		Pelaksana: pelaksanaMap[strategic.Id],
+		Indikator: indikatorMap[strategic.Id],
 	}
 
 	// Build tactical (level 5)
@@ -495,7 +612,7 @@ func (service *PohonKinerjaOpdServiceImpl) buildStrategicResponse(ctx context.Co
 		})
 
 		for _, tactical := range tacticalList {
-			tacticalResp := service.buildTacticalResponse(ctx, tx, pohonMap, tactical, pelaksanaMap)
+			tacticalResp := service.buildTacticalResponse(ctx, tx, pohonMap, tactical, pelaksanaMap, indikatorMap)
 			tacticals = append(tacticals, tacticalResp)
 		}
 		strategicResp.Tacticals = tacticals
@@ -504,7 +621,12 @@ func (service *PohonKinerjaOpdServiceImpl) buildStrategicResponse(ctx context.Co
 	return strategicResp
 }
 
-func (service *PohonKinerjaOpdServiceImpl) buildTacticalResponse(ctx context.Context, tx *sql.Tx, pohonMap map[int]map[int][]domain.PohonKinerja, tactical domain.PohonKinerja, pelaksanaMap map[int][]pohonkinerja.PelaksanaOpdResponse) pohonkinerja.TacticalOpdResponse {
+func (service *PohonKinerjaOpdServiceImpl) buildTacticalResponse(ctx context.Context, tx *sql.Tx,
+	pohonMap map[int]map[int][]domain.PohonKinerja,
+	tactical domain.PohonKinerja,
+	pelaksanaMap map[int][]pohonkinerja.PelaksanaOpdResponse,
+	indikatorMap map[int][]pohonkinerja.IndikatorResponse) pohonkinerja.TacticalOpdResponse {
+
 	tacticalResp := pohonkinerja.TacticalOpdResponse{
 		Id:         tactical.Id,
 		Parent:     tactical.Parent,
@@ -512,11 +634,13 @@ func (service *PohonKinerjaOpdServiceImpl) buildTacticalResponse(ctx context.Con
 		JenisPohon: tactical.JenisPohon,
 		LevelPohon: tactical.LevelPohon,
 		Keterangan: tactical.Keterangan,
+		Status:     tactical.Status,
 		KodeOpd: opdmaster.OpdResponseForAll{
 			KodeOpd: tactical.KodeOpd,
 			NamaOpd: tactical.NamaOpd,
 		},
 		Pelaksana: pelaksanaMap[tactical.Id],
+		Indikator: indikatorMap[tactical.Id],
 	}
 
 	// Build operational (level 6)
@@ -527,7 +651,7 @@ func (service *PohonKinerjaOpdServiceImpl) buildTacticalResponse(ctx context.Con
 		})
 
 		for _, operational := range operationalList {
-			operationalResp := service.buildOperationalResponse(ctx, tx, pohonMap, operational, pelaksanaMap)
+			operationalResp := service.buildOperationalResponse(ctx, tx, pohonMap, operational, pelaksanaMap, indikatorMap)
 			operationals = append(operationals, operationalResp)
 		}
 		tacticalResp.Operationals = operationals
@@ -536,7 +660,7 @@ func (service *PohonKinerjaOpdServiceImpl) buildTacticalResponse(ctx context.Con
 	return tacticalResp
 }
 
-func (service *PohonKinerjaOpdServiceImpl) buildOperationalResponse(ctx context.Context, tx *sql.Tx, pohonMap map[int]map[int][]domain.PohonKinerja, operational domain.PohonKinerja, pelaksanaMap map[int][]pohonkinerja.PelaksanaOpdResponse) pohonkinerja.OperationalOpdResponse {
+func (service *PohonKinerjaOpdServiceImpl) buildOperationalResponse(ctx context.Context, tx *sql.Tx, pohonMap map[int]map[int][]domain.PohonKinerja, operational domain.PohonKinerja, pelaksanaMap map[int][]pohonkinerja.PelaksanaOpdResponse, indikatorMap map[int][]pohonkinerja.IndikatorResponse) pohonkinerja.OperationalOpdResponse {
 	operationalResp := pohonkinerja.OperationalOpdResponse{
 		Id:         operational.Id,
 		Parent:     operational.Parent,
@@ -549,6 +673,7 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalResponse(ctx context.
 			NamaOpd: operational.NamaOpd,
 		},
 		Pelaksana: pelaksanaMap[operational.Id],
+		Indikator: indikatorMap[operational.Id],
 	}
 
 	// Build operational-n untuk level > 6

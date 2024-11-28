@@ -8,7 +8,9 @@ type PohonKinerjaCreateRequest struct {
 	KodeOpd     string                   `json:"kode_opd"`
 	Keterangan  string                   `json:"keterangan"`
 	Tahun       string                   `json:"tahun"`
+	Status      string                   `json:"status"`
 	PelaksanaId []PelaksanaCreateRequest `json:"pelaksana"`
+	Indikator   []IndikatorCreateRequest `json:"indikator"`
 }
 
 type PelaksanaCreateRequest struct {

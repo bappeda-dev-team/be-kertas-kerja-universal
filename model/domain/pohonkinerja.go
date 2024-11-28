@@ -15,4 +15,5 @@ type PohonKinerja struct {
 	CreatedAt  time.Time
 	Indikator  []Indikator
 	Pelaksana  []PelaksanaPokin
+	Status     string
 }

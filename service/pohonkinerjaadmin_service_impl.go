@@ -22,13 +22,15 @@ import (
 type PohonKinerjaAdminServiceImpl struct {
 	pohonKinerjaRepository repository.PohonKinerjaRepository
 	opdRepository          repository.OpdRepository
+	pegawaiRepository      repository.PegawaiRepository
 	DB                     *sql.DB
 }
 
-func NewPohonKinerjaAdminServiceImpl(pohonKinerjaRepository repository.PohonKinerjaRepository, opdRepository repository.OpdRepository, DB *sql.DB) *PohonKinerjaAdminServiceImpl {
+func NewPohonKinerjaAdminServiceImpl(pohonKinerjaRepository repository.PohonKinerjaRepository, opdRepository repository.OpdRepository, DB *sql.DB, pegawaiRepository repository.PegawaiRepository) *PohonKinerjaAdminServiceImpl {
 	return &PohonKinerjaAdminServiceImpl{
 		pohonKinerjaRepository: pohonKinerjaRepository,
 		opdRepository:          opdRepository,
+		pegawaiRepository:      pegawaiRepository,
 		DB:                     DB,
 	}
 }
@@ -42,6 +44,35 @@ func (service *PohonKinerjaAdminServiceImpl) Create(ctx context.Context, request
 		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
 	}
 	defer helper.CommitOrRollback(tx)
+
+	// Persiapkan data pelaksana
+	var pelaksanaList []domain.PelaksanaPokin
+	var pelaksanaResponses []pohonkinerja.PelaksanaOpdResponse
+
+	for _, pelaksanaReq := range request.Pelaksana {
+		// Generate ID untuk pelaksana
+		pelaksanaId := fmt.Sprintf("PLKS-%s", uuid.New().String()[:8])
+
+		// Validasi pegawai
+		pegawai, err := service.pegawaiRepository.FindById(ctx, tx, pelaksanaReq.PegawaiId)
+		if err != nil {
+			log.Printf("Error: pegawai dengan ID %s tidak ditemukan", pelaksanaReq.PegawaiId)
+			return pohonkinerja.PohonKinerjaAdminResponseData{}, fmt.Errorf("pegawai tidak ditemukan: %v", err)
+		}
+
+		pelaksana := domain.PelaksanaPokin{
+			Id:        pelaksanaId,
+			PegawaiId: pelaksanaReq.PegawaiId,
+		}
+		pelaksanaList = append(pelaksanaList, pelaksana)
+
+		pelaksanaResponse := pohonkinerja.PelaksanaOpdResponse{
+			Id:          pelaksanaId,
+			PegawaiId:   pegawai.Id,
+			NamaPegawai: pegawai.NamaPegawai,
+		}
+		pelaksanaResponses = append(pelaksanaResponses, pelaksanaResponse)
+	}
 
 	// Logging persiapan indikator
 	log.Printf("Mempersiapkan %d indikator", len(request.Indikator))
@@ -81,6 +112,8 @@ func (service *PohonKinerjaAdminServiceImpl) Create(ctx context.Context, request
 		KodeOpd:    helper.EmptyStringIfNull(request.KodeOpd),
 		Keterangan: request.Keterangan,
 		Tahun:      request.Tahun,
+		Status:     request.Status,
+		Pelaksana:  pelaksanaList,
 		Indikator:  indikators,
 	}
 
@@ -124,6 +157,8 @@ func (service *PohonKinerjaAdminServiceImpl) Create(ctx context.Context, request
 		KodeOpd:    result.KodeOpd,
 		Keterangan: result.Keterangan,
 		Tahun:      result.Tahun,
+		Status:     result.Status,
+		Pelaksana:  pelaksanaResponses,
 		Indikators: indikatorResponses,
 	}
 
@@ -144,23 +179,38 @@ func (service *PohonKinerjaAdminServiceImpl) Update(ctx context.Context, request
 		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
 	}
 
+	// Persiapkan data pelaksana
+	var pelaksanaList []domain.PelaksanaPokin
+	for _, p := range request.Pelaksana {
+		pelaksanaId := "PLKS-" + uuid.New().String()[:8]
+		pelaksana := domain.PelaksanaPokin{
+			Id:        pelaksanaId,
+			PegawaiId: p.PegawaiId,
+		}
+		pelaksanaList = append(pelaksanaList, pelaksana)
+	}
+
 	// Persiapkan data indikator dan target
 	var indikators []domain.Indikator
 	for _, ind := range request.Indikator {
-		indikatorId := ""
-		if ind.Id != "" {
-			indikatorId = ind.Id
+		var indikatorId string
+		if ind.Id == "" {
+			// Buat ID baru jika ID tidak dicantumkan
+			indikatorId = "IND-POKIN-" + uuid.New().String()[:8]
 		} else {
-			indikatorId = "IND-POKIN-" + uuid.New().String()[:4]
+			// Gunakan ID yang ada jika dicantumkan
+			indikatorId = ind.Id
 		}
 
 		var targets []domain.Target
 		for _, t := range ind.Target {
-			targetId := ""
-			if t.Id != "" {
-				targetId = t.Id
+			var targetId string
+			if t.Id == "" {
+				// Buat ID baru jika ID tidak dicantumkan
+				targetId = "TRGT-IND-POKIN-" + uuid.New().String()[:8]
 			} else {
-				targetId = "TRGT-IND-POKIN-" + uuid.New().String()[:4]
+				// Gunakan ID yang ada jika dicantumkan
+				targetId = t.Id
 			}
 
 			target := domain.Target{
@@ -191,12 +241,31 @@ func (service *PohonKinerjaAdminServiceImpl) Update(ctx context.Context, request
 		KodeOpd:    helper.EmptyStringIfNull(request.KodeOpd),
 		Keterangan: request.Keterangan,
 		Tahun:      request.Tahun,
+		Status:     request.Status,
+		Pelaksana:  pelaksanaList,
 		Indikator:  indikators,
 	}
 
 	result, err := service.pohonKinerjaRepository.UpdatePokinAdmin(ctx, tx, pohonKinerja)
 	if err != nil {
 		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	// Konversi pelaksana domain ke PelaksanaResponse
+	var pelaksanaResponses []pohonkinerja.PelaksanaOpdResponse
+	for _, p := range result.Pelaksana {
+		// Ambil data pegawai
+		pegawai, err := service.pegawaiRepository.FindById(ctx, tx, p.PegawaiId)
+		if err != nil {
+			continue // Skip jika pegawai tidak ditemukan
+		}
+
+		pelaksanaResponse := pohonkinerja.PelaksanaOpdResponse{
+			Id:          p.Id,
+			PegawaiId:   pegawai.Id,
+			NamaPegawai: pegawai.NamaPegawai,
+		}
+		pelaksanaResponses = append(pelaksanaResponses, pelaksanaResponse)
 	}
 
 	// Konversi indikator domain ke IndikatorResponse
@@ -230,6 +299,8 @@ func (service *PohonKinerjaAdminServiceImpl) Update(ctx context.Context, request
 		KodeOpd:    result.KodeOpd,
 		Keterangan: result.Keterangan,
 		Tahun:      result.Tahun,
+		Status:     result.Status,
+		Pelaksana:  pelaksanaResponses,
 		Indikators: indikatorResponses,
 	}
 
@@ -327,6 +398,28 @@ func (service *PohonKinerjaAdminServiceImpl) FindById(ctx context.Context, id in
 		indikatorResponses = append(indikatorResponses, indikatorResponse)
 	}
 
+	// Tambahkan pengambilan data pelaksana
+	var pelaksanaResponses []pohonkinerja.PelaksanaOpdResponse
+	if pokin.LevelPohon >= 4 { // Hanya ambil pelaksana untuk level 4 ke atas
+		pelaksanas, err := service.pohonKinerjaRepository.FindPelaksanaPokin(ctx, tx, pokinIdStr)
+		if err != nil {
+			log.Printf("Error saat mengambil data pelaksana: %v", err)
+		} else {
+			for _, p := range pelaksanas {
+				// Ambil detail pegawai untuk setiap pelaksana
+				pegawai, err := service.pegawaiRepository.FindById(ctx, tx, p.PegawaiId)
+				if err == nil {
+					pelaksanaResponse := pohonkinerja.PelaksanaOpdResponse{
+						Id:          p.Id,
+						PegawaiId:   pegawai.Id,
+						NamaPegawai: pegawai.NamaPegawai,
+					}
+					pelaksanaResponses = append(pelaksanaResponses, pelaksanaResponse)
+				}
+			}
+		}
+	}
+
 	response := pohonkinerja.PohonKinerjaAdminResponseData{
 		Id:         pokin.Id,
 		Parent:     pokin.Parent,
@@ -337,6 +430,8 @@ func (service *PohonKinerjaAdminServiceImpl) FindById(ctx context.Context, id in
 		KodeOpd:    pokin.KodeOpd,
 		Keterangan: pokin.Keterangan,
 		Tahun:      pokin.Tahun,
+		Status:     pokin.Status,
+		Pelaksana:  pelaksanaResponses,
 		Indikators: indikatorResponses,
 	}
 
@@ -514,12 +609,29 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinAdminByIdHierarki(ctx cont
 			pohonMap[level] = make(map[int][]domain.PohonKinerja)
 		}
 
+		// Ambil data OPD jika ada
 		if p.KodeOpd != "" {
 			opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, p.KodeOpd)
 			if err == nil {
 				p.NamaOpd = opd.NamaOpd
 			}
 		}
+
+		// Ambil data pelaksana untuk level 4 ke atas (strategic, tactical, operational)
+		if p.LevelPohon >= 4 {
+			pelaksanas, err := service.pohonKinerjaRepository.FindPelaksanaPokin(ctx, tx, fmt.Sprint(p.Id))
+			if err == nil {
+				for i := range pelaksanas {
+					// Ambil detail pegawai untuk setiap pelaksana
+					pegawai, err := service.pegawaiRepository.FindById(ctx, tx, pelaksanas[i].PegawaiId)
+					if err == nil {
+						pelaksanas[i].NamaPegawai = pegawai.NamaPegawai
+					}
+				}
+				p.Pelaksana = pelaksanas
+			}
+		}
+
 		pohonMap[level][p.Parent] = append(pohonMap[level][p.Parent], p)
 	}
 
@@ -530,7 +642,6 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinAdminByIdHierarki(ctx cont
 
 		// Tambahkan strategic langsung ke childs jika ada
 		if strategics := pohonMap[4][tematik[0].Id]; len(strategics) > 0 {
-			// Urutkan strategic berdasarkan Id
 			sort.Slice(strategics, func(i, j int) bool {
 				return strategics[i].Id < strategics[j].Id
 			})
@@ -543,7 +654,6 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinAdminByIdHierarki(ctx cont
 
 		// Tambahkan subtematik ke childs
 		if subTematiks := pohonMap[1][tematik[0].Id]; len(subTematiks) > 0 {
-			// Urutkan subtematik berdasarkan Id
 			sort.Slice(subTematiks, func(i, j int) bool {
 				return subTematiks[i].Id < subTematiks[j].Id
 			})
@@ -846,4 +956,32 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinByOperational(ctx context.
 	}
 
 	return result, nil
+}
+
+func (service *PohonKinerjaAdminServiceImpl) FindPokinByStatus(ctx context.Context, kodeOpd string, tahun string) ([]pohonkinerja.PohonKinerjaAdminResponseData, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	pokins, err := service.pohonKinerjaRepository.FindPokinByStatus(ctx, tx, kodeOpd, tahun, "menunggu_disetujui")
+	if err != nil {
+		return nil, err
+	}
+
+	var pokinResponses []pohonkinerja.PohonKinerjaAdminResponseData
+	for _, pokin := range pokins {
+		pokinResponses = append(pokinResponses, pohonkinerja.PohonKinerjaAdminResponseData{
+			Id:         pokin.Id,
+			Parent:     pokin.Parent,
+			NamaPohon:  pokin.NamaPohon,
+			JenisPohon: pokin.JenisPohon,
+			LevelPohon: pokin.LevelPohon,
+			KodeOpd:    pokin.KodeOpd,
+			Tahun:      pokin.Tahun,
+		})
+	}
+
+	return pokinResponses, nil
 }

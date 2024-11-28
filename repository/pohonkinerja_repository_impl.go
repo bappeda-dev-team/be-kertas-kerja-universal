@@ -561,7 +561,7 @@ func (repository *PohonKinerjaRepositoryImpl) UpdatePokinAdmin(ctx context.Conte
 		return pokinAdmin, err
 	}
 
-	// Insert indikator baru
+	// Insert indikator dan target baru
 	for _, indikator := range pokinAdmin.Indikator {
 		scriptIndikator := "INSERT INTO tb_indikator (id, pokin_id, indikator, tahun) VALUES (?, ?, ?, ?)"
 		_, err := tx.ExecContext(ctx, scriptIndikator,
@@ -573,7 +573,7 @@ func (repository *PohonKinerjaRepositoryImpl) UpdatePokinAdmin(ctx context.Conte
 			return pokinAdmin, err
 		}
 
-		// Insert target baru untuk setiap indikator
+		// Insert target untuk setiap indikator
 		for _, target := range indikator.Target {
 			scriptTarget := "INSERT INTO tb_target (id, indikator_id, target, satuan, tahun) VALUES (?, ?, ?, ?, ?)"
 			_, err := tx.ExecContext(ctx, scriptTarget,
@@ -1126,7 +1126,7 @@ func (repository *PohonKinerjaRepositoryImpl) InsertClonedTarget(ctx context.Con
 }
 
 func (repository *PohonKinerjaRepositoryImpl) FindPokinByJenisPohon(ctx context.Context, tx *sql.Tx, jenisPohon string, levelPohon int, tahun string, kodeOpd string) ([]domain.PohonKinerja, error) {
-	script := "SELECT id, nama_pohon, jenis_pohon, level_pohon, kode_opd, tahun FROM tb_pohon_kinerja WHERE 1=1"
+	script := "SELECT id, nama_pohon, jenis_pohon, level_pohon, kode_opd, tahun, status FROM tb_pohon_kinerja WHERE 1=1"
 	parameters := []interface{}{}
 	if jenisPohon != "" {
 		script += " AND jenis_pohon = ?"
@@ -1155,7 +1155,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinByJenisPohon(ctx context.
 	var pokins []domain.PohonKinerja
 	for rows.Next() {
 		var pokin domain.PohonKinerja
-		err := rows.Scan(&pokin.Id, &pokin.NamaPohon, &pokin.JenisPohon, &pokin.LevelPohon, &pokin.KodeOpd, &pokin.Tahun)
+		err := rows.Scan(&pokin.Id, &pokin.NamaPohon, &pokin.JenisPohon, &pokin.LevelPohon, &pokin.KodeOpd, &pokin.Tahun, &pokin.Status)
 		if err != nil {
 			return nil, err
 		}
@@ -1277,4 +1277,35 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinByPelaksana(ctx context.C
 	}
 
 	return result, nil
+}
+
+func (repository *PohonKinerjaRepositoryImpl) FindPokinByStatus(ctx context.Context, tx *sql.Tx, kodeOpd string, tahun string, status string) ([]domain.PohonKinerja, error) {
+	SQL := `SELECT id, kode_opd, tahun, jenis_pohon, level_pohon, parent, status 
+            FROM tb_pohon_kinerja 
+            WHERE kode_opd = ? AND tahun = ? AND status = ?`
+
+	rows, err := tx.QueryContext(ctx, SQL, kodeOpd, tahun, status)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var pokins []domain.PohonKinerja
+	for rows.Next() {
+		pokin := domain.PohonKinerja{}
+		err := rows.Scan(
+			&pokin.Id,
+			&pokin.KodeOpd,
+			&pokin.Tahun,
+			&pokin.JenisPohon,
+			&pokin.LevelPohon,
+			&pokin.Parent,
+			&pokin.Status,
+		)
+		if err != nil {
+			return nil, err
+		}
+		pokins = append(pokins, pokin)
+	}
+	return pokins, nil
 }

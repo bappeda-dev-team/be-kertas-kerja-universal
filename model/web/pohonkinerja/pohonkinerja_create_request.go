@@ -25,6 +25,8 @@ type PohonKinerjaAdminCreateRequest struct {
 	LevelPohon int                      `json:"level_pohon"`
 	Keterangan string                   `json:"keterangan"`
 	Tahun      string                   `json:"tahun"`
+	Status     string                   `json:"status"`
+	Pelaksana  []PelaksanaCreateRequest `json:"pelaksana"`
 	Indikator  []IndikatorCreateRequest `json:"indikator"`
 }
 

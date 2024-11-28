@@ -4,4 +4,5 @@ type PelaksanaPokin struct {
 	Id             string
 	PohonKinerjaId string
 	PegawaiId      string
+	NamaPegawai    string
 }

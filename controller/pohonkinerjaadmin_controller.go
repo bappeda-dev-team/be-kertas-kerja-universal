@@ -19,4 +19,5 @@ type PohonKinerjaAdminController interface {
 	FindPokinByStrategic(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindPokinByTactical(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindPokinByOperational(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	FindPokinByStatus(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 }

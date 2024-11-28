@@ -152,6 +152,7 @@ func NewRouter(
 	router.GET("/pohon_kinerja_opd/findall/:kode_opd/:tahun", pohonKinerjaOpdController.FindAll)
 	router.GET("/pohon_kinerja_opd/strategic_no_parent/:kode_opd/:tahun", pohonKinerjaOpdController.FindStrategicNoParent)
 	router.DELETE("/pohon_kinerja_opd/delete_pelaksana/:id", pohonKinerjaOpdController.DeletePelaksana)
+
 	//pohon kinerja admin
 	router.POST("/pohon_kinerja_admin/create", pohonKinerjaAdminController.Create)
 	router.PUT("/pohon_kinerja_admin/update/:pohonKinerjaId", pohonKinerjaAdminController.Update)
@@ -167,6 +168,7 @@ func NewRouter(
 	router.GET("/pohon_kinerja/strategic/:kode_opd/:tahun", pohonKinerjaAdminController.FindPokinByStrategic)
 	router.GET("/pohon_kinerja/tactical/:kode_opd/:tahun", pohonKinerjaAdminController.FindPokinByTactical)
 	router.GET("/pohon_kinerja/operational/:kode_opd/:tahun", pohonKinerjaAdminController.FindPokinByOperational)
+	router.GET("/pohon_kinerja/status/:kode_opd/:tahun", pohonKinerjaAdminController.FindPokinByStatus)
 
 	//DATA MASTER
 	//pegawai

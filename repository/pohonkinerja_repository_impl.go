@@ -220,7 +220,6 @@ func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *s
         WHERE 
             pk.kode_opd = ? 
             AND pk.tahun = ?
-            AND pk.status = 'disetujui'
         ORDER BY 
             pk.level_pohon, pk.id, pk.created_at asc
     `

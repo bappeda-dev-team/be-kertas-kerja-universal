@@ -1280,7 +1280,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinByPelaksana(ctx context.C
 }
 
 func (repository *PohonKinerjaRepositoryImpl) FindPokinByStatus(ctx context.Context, tx *sql.Tx, kodeOpd string, tahun string, status string) ([]domain.PohonKinerja, error) {
-	SQL := `SELECT id, kode_opd, tahun, jenis_pohon, level_pohon, parent, status 
+	SQL := `SELECT id, nama_pohon, kode_opd, tahun, jenis_pohon, level_pohon, parent, status 
             FROM tb_pohon_kinerja 
             WHERE kode_opd = ? AND tahun = ? AND status = ?`
 
@@ -1295,6 +1295,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinByStatus(ctx context.Cont
 		pokin := domain.PohonKinerja{}
 		err := rows.Scan(
 			&pokin.Id,
+			&pokin.NamaPohon,
 			&pokin.KodeOpd,
 			&pokin.Tahun,
 			&pokin.JenisPohon,

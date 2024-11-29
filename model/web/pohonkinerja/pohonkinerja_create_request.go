@@ -14,7 +14,8 @@ type PohonKinerjaCreateRequest struct {
 }
 
 type PelaksanaCreateRequest struct {
-	PegawaiId string `json:"pegawai_id"`
+	IdPelaksana string `json:"id_pelaksana"`
+	PegawaiId   string `json:"pegawai_id"`
 }
 
 type PohonKinerjaAdminCreateRequest struct {

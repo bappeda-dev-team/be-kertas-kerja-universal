@@ -1002,7 +1002,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindTargetByIndikatorId(ctx contex
 }
 
 func (repository *PohonKinerjaRepositoryImpl) FindPokinToClone(ctx context.Context, tx *sql.Tx, id int) (domain.PohonKinerja, error) {
-	script := "SELECT id, nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun FROM tb_pohon_kinerja WHERE id = ?"
+	script := "SELECT id, nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun, status FROM tb_pohon_kinerja WHERE id = ?"
 	rows, err := tx.QueryContext(ctx, script, id)
 	if err != nil {
 		return domain.PohonKinerja{}, fmt.Errorf("gagal memeriksa data yang akan di-clone: %v", err)
@@ -1020,6 +1020,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinToClone(ctx context.Conte
 			&existingPokin.KodeOpd,
 			&existingPokin.Keterangan,
 			&existingPokin.Tahun,
+			&existingPokin.Status,
 		)
 		if err != nil {
 			return domain.PohonKinerja{}, fmt.Errorf("gagal membaca data yang akan di-clone: %v", err)
@@ -1307,4 +1308,50 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinByStatus(ctx context.Cont
 		pokins = append(pokins, pokin)
 	}
 	return pokins, nil
+}
+
+func (repository *PohonKinerjaRepositoryImpl) UpdatePokinStatus(ctx context.Context, tx *sql.Tx, id int, status string) error {
+	script := "UPDATE tb_pohon_kinerja SET status = ? WHERE id = ?"
+	_, err := tx.ExecContext(ctx, script, status, id)
+	if err != nil {
+		return fmt.Errorf("gagal mengupdate status: %v", err)
+	}
+	return nil
+}
+
+func (repository *PohonKinerjaRepositoryImpl) CheckPokinStatus(ctx context.Context, tx *sql.Tx, id int) (string, error) {
+	script := "SELECT status FROM tb_pohon_kinerja WHERE id = ?"
+	var status string
+	err := tx.QueryRowContext(ctx, script, id).Scan(&status)
+	if err != nil {
+		return "", fmt.Errorf("gagal mengecek status: %v", err)
+	}
+	return status, nil
+}
+
+func (repository *PohonKinerjaRepositoryImpl) InsertClonedPokinWithStatus(ctx context.Context, tx *sql.Tx, pokin domain.PohonKinerja) (int64, error) {
+	script := "INSERT INTO tb_pohon_kinerja (nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+	result, err := tx.ExecContext(ctx, script,
+		pokin.NamaPohon,
+		pokin.Parent,
+		pokin.JenisPohon,
+		pokin.LevelPohon,
+		pokin.KodeOpd,
+		pokin.Keterangan,
+		pokin.Tahun,
+		pokin.Status,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("gagal menyimpan data pohon kinerja yang di-clone: %v", err)
+	}
+	return result.LastInsertId()
+}
+
+func (repository *PohonKinerjaRepositoryImpl) UpdatePokinStatusTolak(ctx context.Context, tx *sql.Tx, id int, status string) error {
+	script := "UPDATE tb_pohon_kinerja SET status = ? WHERE id = ?"
+	_, err := tx.ExecContext(ctx, script, status, id)
+	if err != nil {
+		return fmt.Errorf("gagal mengupdate status dan alasan: %v", err)
+	}
+	return nil
 }

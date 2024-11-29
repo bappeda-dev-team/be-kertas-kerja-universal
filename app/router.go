@@ -162,6 +162,8 @@ func NewRouter(
 	router.GET("/pohon_kinerja_admin/subtematik/:tahun", pohonKinerjaAdminController.FindSubTematik)
 	router.GET("/pohon_kinerja_admin/tematik/:idPokin", pohonKinerjaAdminController.FindPokinAdminByIdHierarki)
 	router.POST("/pohon_kinerja_admin/clone_strategic/create", pohonKinerjaAdminController.CreateStrategicAdmin)
+	router.POST("/pohon_kinerja_admin/clone_pokin_pemda/create", pohonKinerjaAdminController.CloneStrategiFromPemda)
+	router.PUT("/pohon_kinerja_admin/tolak_pokin/:pohonKinerjaId", pohonKinerjaAdminController.UpdatePokinStatusTolak)
 
 	//pohon kinerja for dropdown
 	router.GET("/pohon_kinerja/tematik/:tahun", pohonKinerjaAdminController.FindPokinByTematik)

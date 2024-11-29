@@ -236,7 +236,6 @@ func (controller *PohonKinerjaAdminControllerImpl) FindPokinAdminByIdHierarki(wr
 }
 
 func (controller *PohonKinerjaAdminControllerImpl) CreateStrategicAdmin(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	// Decode request body
 	pohonKinerjaCreateRequest := pohonkinerja.PohonKinerjaAdminStrategicCreateRequest{}
 	helper.ReadFromRequestBody(request, &pohonKinerjaCreateRequest)
 
@@ -376,6 +375,69 @@ func (controller *PohonKinerjaAdminControllerImpl) FindPokinByStatus(writer http
 		Code:   http.StatusOK,
 		Status: "Success Get Pokin By Status",
 		Data:   pokinResponse,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *PohonKinerjaAdminControllerImpl) CloneStrategiFromPemda(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	pohonKinerjaCreateRequest := pohonkinerja.PohonKinerjaAdminStrategicCreateRequest{}
+	helper.ReadFromRequestBody(request, &pohonKinerjaCreateRequest)
+
+	// Panggil service create
+	pohonKinerjaResponse, err := controller.pohonKinerjaAdminService.CloneStrategiFromPemda(request.Context(), pohonKinerjaCreateRequest)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	// Buat response sukses
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "Success Clone Pohon Kinerja From Pemda",
+		Data:   pohonKinerjaResponse,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *PohonKinerjaAdminControllerImpl) UpdatePokinStatusTolak(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	pohonKinerjaUpdateRequest := pohonkinerja.PohonKinerjaAdminTolakRequest{}
+	helper.ReadFromRequestBody(request, &pohonKinerjaUpdateRequest)
+
+	pohonKinerjaId := params.ByName("pohonKinerjaId")
+	id, err := strconv.Atoi(pohonKinerjaId)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   "Invalid ID format",
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+	pohonKinerjaUpdateRequest.Id = id
+
+	err = controller.pohonKinerjaAdminService.TolakPokin(request.Context(), pohonKinerjaUpdateRequest)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "Success",
+		Data:   "Pohon kinerja ditolak",
 	}
 
 	helper.WriteToResponseBody(writer, webResponse)

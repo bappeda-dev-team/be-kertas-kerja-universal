@@ -776,6 +776,144 @@ func (service *PohonKinerjaAdminServiceImpl) CreateStrategicAdmin(ctx context.Co
 	return response, nil
 }
 
+func (service *PohonKinerjaAdminServiceImpl) CloneStrategiFromPemda(ctx context.Context, request pohonkinerja.PohonKinerjaAdminStrategicCreateRequest) (pohonkinerja.PohonKinerjaAdminResponseData, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	// Cek status pokin yang akan diclone
+	status, err := service.pohonKinerjaRepository.CheckPokinStatus(ctx, tx, request.IdToClone)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	if status != "menunggu_disetujui" {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, errors.New("hanya pohon kinerja dengan status menunggu_disetujui yang dapat diclone")
+	}
+
+	existingPokin, err := service.pohonKinerjaRepository.FindPokinToClone(ctx, tx, request.IdToClone)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	// Update status pokin yang diclone menjadi disetujui
+	err = service.pohonKinerjaRepository.UpdatePokinStatus(ctx, tx, request.IdToClone, "disetujui")
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	// Dapatkan pelaksana dari pokin yang akan diclone
+	pelaksanas, err := service.pohonKinerjaRepository.FindPelaksanaPokin(ctx, tx, fmt.Sprint(request.IdToClone))
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	// Generate ID baru untuk setiap pelaksana
+	var newPelaksanas []domain.PelaksanaPokin
+	for _, pelaksana := range pelaksanas {
+		newPelaksana := domain.PelaksanaPokin{
+			Id:        "PLKS-" + uuid.New().String()[:8], // Generate ID baru
+			PegawaiId: pelaksana.PegawaiId,               // Gunakan pegawai_id yang sama
+		}
+		newPelaksanas = append(newPelaksanas, newPelaksana)
+	}
+
+	// Buat pokin baru dengan status "pokin dari pemda"
+	newPokin := domain.PohonKinerja{
+		Parent:     request.Parent,
+		NamaPohon:  existingPokin.NamaPohon,
+		JenisPohon: request.JenisPohon,
+		LevelPohon: existingPokin.LevelPohon,
+		KodeOpd:    existingPokin.KodeOpd,
+		Keterangan: existingPokin.Keterangan,
+		Tahun:      existingPokin.Tahun,
+		Status:     "pokin dari pemda",
+		Pelaksana:  newPelaksanas, // Gunakan pelaksana dengan ID baru
+	}
+
+	// Gunakan InsertClonedPokinWithStatus yang baru
+	newPokinId, err := service.pohonKinerjaRepository.InsertClonedPokinWithStatus(ctx, tx, newPokin)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	indikators, err := service.pohonKinerjaRepository.FindIndikatorToClone(ctx, tx, request.IdToClone)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	var indikatorResponses []pohonkinerja.IndikatorResponse
+
+	for _, indikator := range indikators {
+		newIndikatorId := "IND-POKIN-" + uuid.New().String()[:6]
+
+		err = service.pohonKinerjaRepository.InsertClonedIndikator(ctx, tx, newIndikatorId, newPokinId, indikator)
+		if err != nil {
+			return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+		}
+
+		targets, err := service.pohonKinerjaRepository.FindTargetToClone(ctx, tx, indikator.Id)
+		if err != nil {
+			return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+		}
+
+		var targetResponses []pohonkinerja.TargetResponse
+
+		for _, target := range targets {
+			newTargetId := "TRGT-IND-POKIN-" + uuid.New().String()[:5]
+			err = service.pohonKinerjaRepository.InsertClonedTarget(ctx, tx, newTargetId, newIndikatorId, target)
+			if err != nil {
+				return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+			}
+
+			targetResponses = append(targetResponses, pohonkinerja.TargetResponse{
+				Id:              newTargetId,
+				IndikatorId:     newIndikatorId,
+				TargetIndikator: target.Target,
+				SatuanIndikator: target.Satuan,
+			})
+		}
+
+		indikatorResponses = append(indikatorResponses, pohonkinerja.IndikatorResponse{
+			Id:            newIndikatorId,
+			IdPokin:       fmt.Sprint(newPokinId),
+			NamaIndikator: indikator.Indikator,
+			Target:        targetResponses,
+		})
+	}
+
+	var pelaksanaResponses []pohonkinerja.PelaksanaOpdResponse
+	for _, pelaksana := range newPelaksanas {
+		// Ambil detail pegawai
+		pegawai, err := service.pegawaiRepository.FindById(ctx, tx, pelaksana.PegawaiId)
+		if err == nil {
+			pelaksanaResponses = append(pelaksanaResponses, pohonkinerja.PelaksanaOpdResponse{
+				Id:          pelaksana.Id,
+				PegawaiId:   pelaksana.PegawaiId,
+				NamaPegawai: pegawai.NamaPegawai,
+			})
+		}
+	}
+
+	response := pohonkinerja.PohonKinerjaAdminResponseData{
+		Id:         int(newPokinId),
+		Parent:     existingPokin.Parent,
+		NamaPohon:  existingPokin.NamaPohon,
+		JenisPohon: request.JenisPohon,
+		LevelPohon: existingPokin.LevelPohon,
+		KodeOpd:    existingPokin.KodeOpd,
+		Keterangan: existingPokin.Keterangan,
+		Tahun:      existingPokin.Tahun,
+		Status:     existingPokin.Status,
+		Indikators: indikatorResponses,
+		Pelaksana:  pelaksanaResponses, // Tambahkan pelaksana ke response
+	}
+
+	return response, nil
+}
+
 func (service *PohonKinerjaAdminServiceImpl) FindPokinByTematik(ctx context.Context, tahun string) ([]pohonkinerja.PohonKinerjaAdminResponseData, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
@@ -984,4 +1122,28 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinByStatus(ctx context.Conte
 	}
 
 	return pokinResponses, nil
+}
+
+func (service *PohonKinerjaAdminServiceImpl) TolakPokin(ctx context.Context, request pohonkinerja.PohonKinerjaAdminTolakRequest) error {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	status, err := service.pohonKinerjaRepository.CheckPokinStatus(ctx, tx, request.Id)
+	if err != nil {
+		return err
+	}
+
+	if status != "menunggu_disetujui" {
+		return errors.New("hanya pohon kinerja dengan status menunggu_disetujui yang dapat ditolak")
+	}
+
+	err = service.pohonKinerjaRepository.UpdatePokinStatusTolak(ctx, tx, request.Id, "ditolak")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

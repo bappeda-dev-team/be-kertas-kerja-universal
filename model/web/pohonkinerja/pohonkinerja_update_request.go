@@ -45,3 +45,7 @@ type TargetUpdateRequest struct {
 	Target      string `json:"target"`
 	Satuan      string `json:"satuan"`
 }
+
+type PohonKinerjaAdminTolakRequest struct {
+	Id int `json:"id" validate:"required"`
+}

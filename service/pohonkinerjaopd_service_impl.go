@@ -226,6 +226,62 @@ func (service *PohonKinerjaOpdServiceImpl) Update(ctx context.Context, request p
 		})
 	}
 
+	// Validasi dan persiapan data indikator
+	var indikatorList []domain.Indikator
+	var indikatorResponses []pohonkinerja.IndikatorResponse
+
+	for _, indikatorReq := range request.Indikator {
+		// Generate ID untuk indikator baru jika belum ada
+		indikatorId := indikatorReq.Id
+		if indikatorId == "" {
+			indikatorId = fmt.Sprintf("IND-%s", uuid.New().String()[:8])
+		}
+
+		var targetList []domain.Target
+		var targetResponses []pohonkinerja.TargetResponse
+
+		// Proses target untuk setiap indikator
+		for _, targetReq := range indikatorReq.Target {
+			// Generate ID untuk target baru jika belum ada
+			targetId := targetReq.Id
+			if targetId == "" {
+				targetId = fmt.Sprintf("TRG-%s", uuid.New().String()[:8])
+			}
+
+			target := domain.Target{
+				Id:          targetId,
+				IndikatorId: indikatorId,
+				Target:      targetReq.Target,
+				Satuan:      targetReq.Satuan,
+				Tahun:       request.Tahun,
+			}
+			targetList = append(targetList, target)
+
+			targetResponses = append(targetResponses, pohonkinerja.TargetResponse{
+				Id:              targetId,
+				IndikatorId:     indikatorId,
+				TargetIndikator: targetReq.Target,
+				SatuanIndikator: targetReq.Satuan,
+			})
+		}
+
+		indikator := domain.Indikator{
+			Id:        indikatorId,
+			PokinId:   fmt.Sprint(request.Id),
+			Indikator: indikatorReq.NamaIndikator,
+			Tahun:     request.Tahun,
+			Target:    targetList,
+		}
+		indikatorList = append(indikatorList, indikator)
+
+		indikatorResponses = append(indikatorResponses, pohonkinerja.IndikatorResponse{
+			Id:            indikatorId,
+			IdPokin:       fmt.Sprint(request.Id),
+			NamaIndikator: indikatorReq.NamaIndikator,
+			Target:        targetResponses,
+		})
+	}
+
 	pohonKinerja := domain.PohonKinerja{
 		Id:         request.Id,
 		NamaPohon:  request.NamaPohon,
@@ -235,7 +291,9 @@ func (service *PohonKinerjaOpdServiceImpl) Update(ctx context.Context, request p
 		KodeOpd:    request.KodeOpd,
 		Keterangan: request.Keterangan,
 		Tahun:      request.Tahun,
+		Status:     request.Status,
 		Pelaksana:  pelaksanaList,
+		Indikator:  indikatorList,
 	}
 
 	result, err := service.pohonKinerjaOpdRepository.Update(ctx, tx, pohonKinerja)
@@ -253,7 +311,9 @@ func (service *PohonKinerjaOpdServiceImpl) Update(ctx context.Context, request p
 		NamaOpd:    opd.NamaOpd,
 		Keterangan: result.Keterangan,
 		Tahun:      result.Tahun,
+		Status:     result.Status,
 		Pelaksana:  pelaksanaResponses,
+		Indikator:  indikatorResponses,
 	}, nil
 }
 

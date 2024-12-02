@@ -18,7 +18,7 @@ func NewPohonKinerjaRepositoryImpl() *PohonKinerjaRepositoryImpl {
 }
 
 func (repository *PohonKinerjaRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, pohonKinerja domain.PohonKinerja) (domain.PohonKinerja, error) {
-	scriptPokin := "INSERT INTO tb_pohon_kinerja (nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun) VALUES (?, ?, ?, ?, ?, ?, ?)"
+	scriptPokin := "INSERT INTO tb_pohon_kinerja (nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
 	result, err := tx.ExecContext(ctx, scriptPokin,
 		pohonKinerja.NamaPohon,
 		pohonKinerja.Parent,
@@ -26,7 +26,8 @@ func (repository *PohonKinerjaRepositoryImpl) Create(ctx context.Context, tx *sq
 		pohonKinerja.LevelPohon,
 		pohonKinerja.KodeOpd,
 		pohonKinerja.Keterangan,
-		pohonKinerja.Tahun)
+		pohonKinerja.Tahun,
+		pohonKinerja.Status)
 	if err != nil {
 		return pohonKinerja, err
 	}
@@ -48,12 +49,39 @@ func (repository *PohonKinerjaRepositoryImpl) Create(ctx context.Context, tx *sq
 		}
 	}
 
+	// Insert indikator
+	for _, indikator := range pohonKinerja.Indikator {
+		scriptIndikator := "INSERT INTO tb_indikator (id, pokin_id, indikator, tahun) VALUES (?, ?, ?, ?)"
+		_, err := tx.ExecContext(ctx, scriptIndikator,
+			indikator.Id,
+			pohonKinerja.Id,
+			indikator.Indikator,
+			indikator.Tahun)
+		if err != nil {
+			return pohonKinerja, err
+		}
+
+		// Insert target untuk setiap indikator
+		for _, target := range indikator.Target {
+			scriptTarget := "INSERT INTO tb_target (id, indikator_id, target, satuan, tahun) VALUES (?, ?, ?, ?, ?)"
+			_, err := tx.ExecContext(ctx, scriptTarget,
+				target.Id,
+				indikator.Id,
+				target.Target,
+				target.Satuan,
+				target.Tahun)
+			if err != nil {
+				return pohonKinerja, err
+			}
+		}
+	}
+
 	return pohonKinerja, nil
 }
 
 func (repository *PohonKinerjaRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, pohonKinerja domain.PohonKinerja) (domain.PohonKinerja, error) {
 	// Update tb_pohon_kinerja
-	scriptPokin := "UPDATE tb_pohon_kinerja SET nama_pohon = ?, parent = ?, jenis_pohon = ?, level_pohon = ?, kode_opd = ?, keterangan = ?, tahun = ? WHERE id = ?"
+	scriptPokin := "UPDATE tb_pohon_kinerja SET nama_pohon = ?, parent = ?, jenis_pohon = ?, level_pohon = ?, kode_opd = ?, keterangan = ?, tahun = ?, status = ? WHERE id = ?"
 	_, err := tx.ExecContext(ctx, scriptPokin,
 		pohonKinerja.NamaPohon,
 		pohonKinerja.Parent,
@@ -62,6 +90,7 @@ func (repository *PohonKinerjaRepositoryImpl) Update(ctx context.Context, tx *sq
 		pohonKinerja.KodeOpd,
 		pohonKinerja.Keterangan,
 		pohonKinerja.Tahun,
+		pohonKinerja.Status,
 		pohonKinerja.Id)
 	if err != nil {
 		return pohonKinerja, err
@@ -86,6 +115,46 @@ func (repository *PohonKinerjaRepositoryImpl) Update(ctx context.Context, tx *sq
 		}
 	}
 
+	// Hapus indikator dan target yang lama
+	scriptDeleteTarget := "DELETE FROM tb_target WHERE indikator_id IN (SELECT id FROM tb_indikator WHERE pokin_id = ?)"
+	_, err = tx.ExecContext(ctx, scriptDeleteTarget, pohonKinerja.Id)
+	if err != nil {
+		return pohonKinerja, err
+	}
+
+	scriptDeleteIndikator := "DELETE FROM tb_indikator WHERE pokin_id = ?"
+	_, err = tx.ExecContext(ctx, scriptDeleteIndikator, pohonKinerja.Id)
+	if err != nil {
+		return pohonKinerja, err
+	}
+
+	// Insert indikator baru
+	for _, indikator := range pohonKinerja.Indikator {
+		scriptIndikator := "INSERT INTO tb_indikator (id, pokin_id, indikator, tahun) VALUES (?, ?, ?, ?)"
+		_, err := tx.ExecContext(ctx, scriptIndikator,
+			indikator.Id,
+			pohonKinerja.Id,
+			indikator.Indikator,
+			indikator.Tahun)
+		if err != nil {
+			return pohonKinerja, err
+		}
+
+		// Insert target baru untuk setiap indikator
+		for _, target := range indikator.Target {
+			scriptTarget := "INSERT INTO tb_target (id, indikator_id, target, satuan, tahun) VALUES (?, ?, ?, ?, ?)"
+			_, err := tx.ExecContext(ctx, scriptTarget,
+				target.Id,
+				indikator.Id,
+				target.Target,
+				target.Satuan,
+				target.Tahun)
+			if err != nil {
+				return pohonKinerja, err
+			}
+		}
+	}
+
 	return pohonKinerja, nil
 }
 
@@ -99,7 +168,8 @@ func (repository *PohonKinerjaRepositoryImpl) FindById(ctx context.Context, tx *
             pk.level_pohon, 
             pk.kode_opd, 
             pk.keterangan, 
-            pk.tahun
+            pk.tahun,
+            pk.status
         FROM 
             tb_pohon_kinerja pk 
         WHERE 
@@ -122,6 +192,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindById(ctx context.Context, tx *
 			&pohonKinerja.KodeOpd,
 			&pohonKinerja.Keterangan,
 			&pohonKinerja.Tahun,
+			&pohonKinerja.Status,
 		)
 		if err != nil {
 			return domain.PohonKinerja{}, err
@@ -142,12 +213,14 @@ func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *s
             pk.kode_opd,
             pk.keterangan,
             pk.tahun,
-            pk.created_at
+            pk.created_at,
+            pk.status
         FROM 
             tb_pohon_kinerja pk
         WHERE 
             pk.kode_opd = ? 
             AND pk.tahun = ?
+			AND (pk.status = '' OR pk.status = 'disetujui')
         ORDER BY 
             pk.level_pohon, pk.id, pk.created_at asc
     `
@@ -171,6 +244,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *s
 			&pokin.Keterangan,
 			&pokin.Tahun,
 			&pokin.CreatedAt,
+			&pokin.Status,
 		)
 		if err != nil {
 			return nil, err
@@ -180,9 +254,10 @@ func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *s
 
 	// Query untuk mendapatkan data pelaksana
 	for i, pokin := range result {
+		// Query pelaksana
 		scriptPelaksana := `
             SELECT 
-                pegawai_id
+                id, pegawai_id
             FROM 
                 tb_pelaksana_pokin
             WHERE 
@@ -199,6 +274,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *s
 		for pelaksanaRows.Next() {
 			var pelaksana domain.PelaksanaPokin
 			err := pelaksanaRows.Scan(
+				&pelaksana.Id,
 				&pelaksana.PegawaiId,
 			)
 			if err != nil {
@@ -206,27 +282,98 @@ func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *s
 			}
 			pelaksanaList = append(pelaksanaList, pelaksana)
 		}
-
 		result[i].Pelaksana = pelaksanaList
+
+		// Query indikator dan target
+		scriptIndikator := `
+            SELECT 
+                i.id,
+                i.indikator,
+                i.tahun,
+                t.id as target_id,
+                t.target,
+                t.satuan,
+                t.tahun as target_tahun
+            FROM 
+                tb_indikator i
+            LEFT JOIN 
+                tb_target t ON i.id = t.indikator_id
+            WHERE 
+                i.pokin_id = ?
+        `
+
+		indikatorRows, err := tx.QueryContext(ctx, scriptIndikator, pokin.Id)
+		if err != nil {
+			return nil, err
+		}
+		defer indikatorRows.Close()
+
+		indikatorMap := make(map[string]domain.Indikator)
+		for indikatorRows.Next() {
+			var (
+				indikatorId, indikatorNama, indikatorTahun string
+				targetId, target, satuan, targetTahun      sql.NullString
+			)
+
+			err := indikatorRows.Scan(
+				&indikatorId,
+				&indikatorNama,
+				&indikatorTahun,
+				&targetId,
+				&target,
+				&satuan,
+				&targetTahun,
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			indikator, exists := indikatorMap[indikatorId]
+			if !exists {
+				indikator = domain.Indikator{
+					Id:        indikatorId,
+					PokinId:   fmt.Sprint(pokin.Id),
+					Indikator: indikatorNama,
+					Tahun:     indikatorTahun,
+				}
+			}
+
+			if targetId.Valid && target.Valid && satuan.Valid && targetTahun.Valid {
+				targetObj := domain.Target{
+					Id:          targetId.String,
+					IndikatorId: indikatorId,
+					Target:      target.String,
+					Satuan:      satuan.String,
+					Tahun:       targetTahun.String,
+				}
+				indikator.Target = append(indikator.Target, targetObj)
+			}
+
+			indikatorMap[indikatorId] = indikator
+		}
+
+		// Convert indikator map to slice
+		var indikatorList []domain.Indikator
+		for _, indikator := range indikatorMap {
+			indikatorList = append(indikatorList, indikator)
+		}
+		result[i].Indikator = indikatorList
 	}
 
 	// Modifikasi bagian pemrosesan data
 	pohonMap := make(map[int]map[int][]domain.PohonKinerja)
 	maxLevel := 0
 
-	// Tentukan level maksimal yang ada
 	for _, pokin := range result {
 		if pokin.LevelPohon > maxLevel {
 			maxLevel = pokin.LevelPohon
 		}
 	}
 
-	// Inisialisasi map untuk semua level
 	for i := 4; i <= maxLevel; i++ {
 		pohonMap[i] = make(map[int][]domain.PohonKinerja)
 	}
 
-	// Kelompokkan data berdasarkan level dan parent
 	for _, p := range result {
 		if p.LevelPohon >= 4 {
 			pohonMap[p.LevelPohon][p.Parent] = append(
@@ -260,14 +407,28 @@ func (repository *PohonKinerjaRepositoryImpl) FindStrategicNoParent(ctx context.
 }
 
 func (repository *PohonKinerjaRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, id string) error {
-	// Hapus data pelaksana terlebih dahulu
+	scriptDeleteTarget := `
+        DELETE FROM tb_target 
+        WHERE indikator_id IN (
+            SELECT id FROM tb_indikator WHERE pokin_id = ?
+        )`
+	_, err := tx.ExecContext(ctx, scriptDeleteTarget, id)
+	if err != nil {
+		return fmt.Errorf("gagal menghapus data target: %v", err)
+	}
+
+	scriptDeleteIndikator := "DELETE FROM tb_indikator WHERE pokin_id = ?"
+	_, err = tx.ExecContext(ctx, scriptDeleteIndikator, id)
+	if err != nil {
+		return fmt.Errorf("gagal menghapus data indikator: %v", err)
+	}
+
 	scriptDeletePelaksana := "DELETE FROM tb_pelaksana_pokin WHERE pohon_kinerja_id = ?"
-	_, err := tx.ExecContext(ctx, scriptDeletePelaksana, id)
+	_, err = tx.ExecContext(ctx, scriptDeletePelaksana, id)
 	if err != nil {
 		return fmt.Errorf("gagal menghapus data pelaksana: %v", err)
 	}
 
-	// Hapus data pohon kinerja
 	scriptDeletePokin := "DELETE FROM tb_pohon_kinerja WHERE id = ?"
 	_, err = tx.ExecContext(ctx, scriptDeletePokin, id)
 	if err != nil {
@@ -302,9 +463,9 @@ func (repository *PohonKinerjaRepositoryImpl) DeletePelaksanaPokin(ctx context.C
 // admin pokin
 func (repository *PohonKinerjaRepositoryImpl) CreatePokinAdmin(ctx context.Context, tx *sql.Tx, pokinAdmin domain.PohonKinerja) (domain.PohonKinerja, error) {
 	// Insert pohon kinerja tanpa ID
-	scriptPokin := "INSERT INTO tb_pohon_kinerja (nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun) VALUES (?, ?, ?, ?, ?, ?, ?)"
+	scriptPokin := "INSERT INTO tb_pohon_kinerja (nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
 	result, err := tx.ExecContext(ctx, scriptPokin,
-		pokinAdmin.NamaPohon, pokinAdmin.Parent, pokinAdmin.JenisPohon, pokinAdmin.LevelPohon, pokinAdmin.KodeOpd, pokinAdmin.Keterangan, pokinAdmin.Tahun)
+		pokinAdmin.NamaPohon, pokinAdmin.Parent, pokinAdmin.JenisPohon, pokinAdmin.LevelPohon, pokinAdmin.KodeOpd, pokinAdmin.Keterangan, pokinAdmin.Tahun, pokinAdmin.Status)
 	if err != nil {
 		return pokinAdmin, err
 	}
@@ -315,6 +476,18 @@ func (repository *PohonKinerjaRepositoryImpl) CreatePokinAdmin(ctx context.Conte
 		return pokinAdmin, err
 	}
 	pokinAdmin.Id = int(lastInsertId)
+
+	// Tambahkan insert pelaksana
+	scriptPelaksana := "INSERT INTO tb_pelaksana_pokin (id, pohon_kinerja_id, pegawai_id) VALUES (?, ?, ?)"
+	for _, pelaksana := range pokinAdmin.Pelaksana {
+		_, err = tx.ExecContext(ctx, scriptPelaksana,
+			pelaksana.Id,
+			fmt.Sprint(pokinAdmin.Id),
+			pelaksana.PegawaiId)
+		if err != nil {
+			return pokinAdmin, err
+		}
+	}
 
 	// Insert indikator
 	for _, indikator := range pokinAdmin.Indikator {
@@ -341,7 +514,7 @@ func (repository *PohonKinerjaRepositoryImpl) CreatePokinAdmin(ctx context.Conte
 
 func (repository *PohonKinerjaRepositoryImpl) UpdatePokinAdmin(ctx context.Context, tx *sql.Tx, pokinAdmin domain.PohonKinerja) (domain.PohonKinerja, error) {
 	// Update data pohon kinerja
-	scriptPokin := "UPDATE tb_pohon_kinerja SET nama_pohon = ?, parent = ?, jenis_pohon = ?, level_pohon = ?, kode_opd = ?, keterangan = ?, tahun = ? WHERE id = ?"
+	scriptPokin := "UPDATE tb_pohon_kinerja SET nama_pohon = ?, parent = ?, jenis_pohon = ?, level_pohon = ?, kode_opd = ?, keterangan = ?, tahun = ?, status = ? WHERE id = ?"
 	_, err := tx.ExecContext(ctx, scriptPokin,
 		pokinAdmin.NamaPohon,
 		pokinAdmin.Parent,
@@ -350,9 +523,29 @@ func (repository *PohonKinerjaRepositoryImpl) UpdatePokinAdmin(ctx context.Conte
 		pokinAdmin.KodeOpd,
 		pokinAdmin.Keterangan,
 		pokinAdmin.Tahun,
+		pokinAdmin.Status,
 		pokinAdmin.Id)
 	if err != nil {
 		return pokinAdmin, err
+	}
+
+	// Hapus data pelaksana yang lama
+	scriptDeletePelaksana := "DELETE FROM tb_pelaksana_pokin WHERE pohon_kinerja_id = ?"
+	_, err = tx.ExecContext(ctx, scriptDeletePelaksana, fmt.Sprint(pokinAdmin.Id))
+	if err != nil {
+		return pokinAdmin, err
+	}
+
+	// Insert data pelaksana baru
+	for _, pelaksana := range pokinAdmin.Pelaksana {
+		scriptPelaksana := "INSERT INTO tb_pelaksana_pokin (id, pohon_kinerja_id, pegawai_id) VALUES (?, ?, ?)"
+		_, err := tx.ExecContext(ctx, scriptPelaksana,
+			pelaksana.Id,
+			fmt.Sprint(pokinAdmin.Id),
+			pelaksana.PegawaiId)
+		if err != nil {
+			return pokinAdmin, err
+		}
 	}
 
 	// Hapus indikator dan target yang lama
@@ -368,7 +561,7 @@ func (repository *PohonKinerjaRepositoryImpl) UpdatePokinAdmin(ctx context.Conte
 		return pokinAdmin, err
 	}
 
-	// Insert indikator baru
+	// Insert indikator dan target baru
 	for _, indikator := range pokinAdmin.Indikator {
 		scriptIndikator := "INSERT INTO tb_indikator (id, pokin_id, indikator, tahun) VALUES (?, ?, ?, ?)"
 		_, err := tx.ExecContext(ctx, scriptIndikator,
@@ -380,7 +573,7 @@ func (repository *PohonKinerjaRepositoryImpl) UpdatePokinAdmin(ctx context.Conte
 			return pokinAdmin, err
 		}
 
-		// Insert target baru untuk setiap indikator
+		// Insert target untuk setiap indikator
 		for _, target := range indikator.Target {
 			scriptTarget := "INSERT INTO tb_target (id, indikator_id, target, satuan, tahun) VALUES (?, ?, ?, ?, ?)"
 			_, err := tx.ExecContext(ctx, scriptTarget,
@@ -455,6 +648,13 @@ func (repository *PohonKinerjaRepositoryImpl) DeletePokinAdmin(ctx context.Conte
 	_, err = tx.ExecContext(ctx, scriptDeleteIndikator, idsToDelete...)
 	if err != nil {
 		return fmt.Errorf("gagal menghapus indikator: %v", err)
+	}
+
+	// Hapus pelaksana
+	scriptDeletePelaksana := fmt.Sprintf("DELETE FROM tb_pelaksana_pokin WHERE pohon_kinerja_id IN (%s)", inClause)
+	_, err = tx.ExecContext(ctx, scriptDeletePelaksana, idsToDelete...)
+	if err != nil {
+		return fmt.Errorf("gagal menghapus pelaksana: %v", err)
 	}
 
 	// Hapus pohon kinerja
@@ -607,14 +807,14 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinAdminByIdHierarki(ctx con
 	script := `
         WITH RECURSIVE pohon_hierarki AS (
             -- Base case: pilih node yang diminta
-            SELECT id, nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun
+            SELECT id, nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun, status
             FROM tb_pohon_kinerja 
             WHERE id = ?
             
             UNION ALL
             
             -- Recursive case: ambil semua child nodes
-            SELECT pk.id, pk.nama_pohon, pk.parent, pk.jenis_pohon, pk.level_pohon, pk.kode_opd, pk.keterangan, pk.tahun
+            SELECT pk.id, pk.nama_pohon, pk.parent, pk.jenis_pohon, pk.level_pohon, pk.kode_opd, pk.keterangan, pk.tahun, pk.status
             FROM tb_pohon_kinerja pk
             INNER JOIN pohon_hierarki ph ON pk.parent = ph.id
         )
@@ -627,19 +827,24 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinAdminByIdHierarki(ctx con
             ph.kode_opd,
             ph.keterangan,
             ph.tahun,
+            ph.status,
             i.id as indikator_id,
             i.indikator as nama_indikator,
             t.id as target_id,
             t.target as target_value,
-            t.satuan as target_satuan
+            t.satuan as target_satuan,
+            pp.id as pelaksana_id,
+            pp.pegawai_id
         FROM 
             pohon_hierarki ph
         LEFT JOIN 
             tb_indikator i ON ph.id = i.pokin_id
         LEFT JOIN 
             tb_target t ON i.id = t.indikator_id
+        LEFT JOIN 
+            tb_pelaksana_pokin pp ON ph.id = pp.pohon_kinerja_id
         ORDER BY 
-            ph.level_pohon, ph.id, i.id, t.id
+            ph.level_pohon, ph.id, i.id, t.id, pp.id
     `
 
 	rows, err := tx.QueryContext(ctx, script, idPokin)
@@ -654,17 +859,19 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinAdminByIdHierarki(ctx con
 
 	for rows.Next() {
 		var (
-			pokinId, parent, levelPohon                            int
-			namaPohon, jenisPohon, kodeOpd, keterangan, tahunPokin string
-			indikatorId, namaIndikator                             sql.NullString
-			targetId, targetValue, targetSatuan                    sql.NullString
+			pokinId, parent, levelPohon                                    int
+			namaPohon, jenisPohon, kodeOpd, keterangan, tahunPokin, status string
+			indikatorId, namaIndikator                                     sql.NullString
+			targetId, targetValue, targetSatuan                            sql.NullString
+			pelaksanaId, pegawaiId                                         sql.NullString
 		)
 
 		err := rows.Scan(
 			&pokinId, &namaPohon, &parent, &jenisPohon, &levelPohon,
-			&kodeOpd, &keterangan, &tahunPokin,
+			&kodeOpd, &keterangan, &tahunPokin, &status,
 			&indikatorId, &namaIndikator,
 			&targetId, &targetValue, &targetSatuan,
+			&pelaksanaId, &pegawaiId,
 		)
 		if err != nil {
 			return nil, err
@@ -682,8 +889,27 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinAdminByIdHierarki(ctx con
 				KodeOpd:    kodeOpd,
 				Keterangan: keterangan,
 				Tahun:      tahunPokin,
+				Status:     status,
 			}
-			pokinMap[pokinId] = pokin
+		}
+
+		// Proses Pelaksana jika ada
+		if pelaksanaId.Valid && pegawaiId.Valid {
+			pelaksana := domain.PelaksanaPokin{
+				Id:        pelaksanaId.String,
+				PegawaiId: pegawaiId.String,
+			}
+			// Cek duplikasi pelaksana
+			isDuplicate := false
+			for _, p := range pokin.Pelaksana {
+				if p.Id == pelaksana.Id {
+					isDuplicate = true
+					break
+				}
+			}
+			if !isDuplicate {
+				pokin.Pelaksana = append(pokin.Pelaksana, pelaksana)
+			}
 		}
 
 		// Proses Indikator jika ada
@@ -714,8 +940,9 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinAdminByIdHierarki(ctx con
 
 			// Update indikator di pokin
 			pokin.Indikator = append(pokin.Indikator, indikator)
-			pokinMap[pokinId] = pokin
 		}
+
+		pokinMap[pokinId] = pokin
 	}
 
 	// Konversi map ke slice
@@ -776,7 +1003,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindTargetByIndikatorId(ctx contex
 }
 
 func (repository *PohonKinerjaRepositoryImpl) FindPokinToClone(ctx context.Context, tx *sql.Tx, id int) (domain.PohonKinerja, error) {
-	script := "SELECT id, nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun FROM tb_pohon_kinerja WHERE id = ?"
+	script := "SELECT id, nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun, status FROM tb_pohon_kinerja WHERE id = ?"
 	rows, err := tx.QueryContext(ctx, script, id)
 	if err != nil {
 		return domain.PohonKinerja{}, fmt.Errorf("gagal memeriksa data yang akan di-clone: %v", err)
@@ -794,6 +1021,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinToClone(ctx context.Conte
 			&existingPokin.KodeOpd,
 			&existingPokin.Keterangan,
 			&existingPokin.Tahun,
+			&existingPokin.Status,
 		)
 		if err != nil {
 			return domain.PohonKinerja{}, fmt.Errorf("gagal membaca data yang akan di-clone: %v", err)
@@ -864,7 +1092,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindTargetToClone(ctx context.Cont
 }
 
 func (repository *PohonKinerjaRepositoryImpl) InsertClonedPokin(ctx context.Context, tx *sql.Tx, pokin domain.PohonKinerja) (int64, error) {
-	script := "INSERT INTO tb_pohon_kinerja (nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun) VALUES (?, ?, ?, ?, ?, ?, ?)"
+	script := "INSERT INTO tb_pohon_kinerja (nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
 	result, err := tx.ExecContext(ctx, script,
 		pokin.NamaPohon,
 		pokin.Parent,
@@ -873,6 +1101,7 @@ func (repository *PohonKinerjaRepositoryImpl) InsertClonedPokin(ctx context.Cont
 		pokin.KodeOpd,
 		pokin.Keterangan,
 		pokin.Tahun,
+		pokin.Status,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("gagal menyimpan data pohon kinerja yang di-clone: %v", err)
@@ -899,7 +1128,7 @@ func (repository *PohonKinerjaRepositoryImpl) InsertClonedTarget(ctx context.Con
 }
 
 func (repository *PohonKinerjaRepositoryImpl) FindPokinByJenisPohon(ctx context.Context, tx *sql.Tx, jenisPohon string, levelPohon int, tahun string, kodeOpd string) ([]domain.PohonKinerja, error) {
-	script := "SELECT id, nama_pohon, jenis_pohon, level_pohon, kode_opd, tahun FROM tb_pohon_kinerja WHERE 1=1"
+	script := "SELECT id, nama_pohon, jenis_pohon, level_pohon, kode_opd, tahun, status FROM tb_pohon_kinerja WHERE 1=1"
 	parameters := []interface{}{}
 	if jenisPohon != "" {
 		script += " AND jenis_pohon = ?"
@@ -928,7 +1157,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinByJenisPohon(ctx context.
 	var pokins []domain.PohonKinerja
 	for rows.Next() {
 		var pokin domain.PohonKinerja
-		err := rows.Scan(&pokin.Id, &pokin.NamaPohon, &pokin.JenisPohon, &pokin.LevelPohon, &pokin.KodeOpd, &pokin.Tahun)
+		err := rows.Scan(&pokin.Id, &pokin.NamaPohon, &pokin.JenisPohon, &pokin.LevelPohon, &pokin.KodeOpd, &pokin.Tahun, &pokin.Status)
 		if err != nil {
 			return nil, err
 		}
@@ -1050,4 +1279,82 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinByPelaksana(ctx context.C
 	}
 
 	return result, nil
+}
+
+func (repository *PohonKinerjaRepositoryImpl) FindPokinByStatus(ctx context.Context, tx *sql.Tx, kodeOpd string, tahun string, status string) ([]domain.PohonKinerja, error) {
+	SQL := `SELECT id, nama_pohon, kode_opd, tahun, jenis_pohon, level_pohon, parent, status 
+            FROM tb_pohon_kinerja 
+            WHERE kode_opd = ? AND tahun = ? AND status = ?`
+
+	rows, err := tx.QueryContext(ctx, SQL, kodeOpd, tahun, status)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var pokins []domain.PohonKinerja
+	for rows.Next() {
+		pokin := domain.PohonKinerja{}
+		err := rows.Scan(
+			&pokin.Id,
+			&pokin.NamaPohon,
+			&pokin.KodeOpd,
+			&pokin.Tahun,
+			&pokin.JenisPohon,
+			&pokin.LevelPohon,
+			&pokin.Parent,
+			&pokin.Status,
+		)
+		if err != nil {
+			return nil, err
+		}
+		pokins = append(pokins, pokin)
+	}
+	return pokins, nil
+}
+
+func (repository *PohonKinerjaRepositoryImpl) UpdatePokinStatus(ctx context.Context, tx *sql.Tx, id int, status string) error {
+	script := "UPDATE tb_pohon_kinerja SET status = ? WHERE id = ?"
+	_, err := tx.ExecContext(ctx, script, status, id)
+	if err != nil {
+		return fmt.Errorf("gagal mengupdate status: %v", err)
+	}
+	return nil
+}
+
+func (repository *PohonKinerjaRepositoryImpl) CheckPokinStatus(ctx context.Context, tx *sql.Tx, id int) (string, error) {
+	script := "SELECT status FROM tb_pohon_kinerja WHERE id = ?"
+	var status string
+	err := tx.QueryRowContext(ctx, script, id).Scan(&status)
+	if err != nil {
+		return "", fmt.Errorf("gagal mengecek status: %v", err)
+	}
+	return status, nil
+}
+
+func (repository *PohonKinerjaRepositoryImpl) InsertClonedPokinWithStatus(ctx context.Context, tx *sql.Tx, pokin domain.PohonKinerja) (int64, error) {
+	script := "INSERT INTO tb_pohon_kinerja (nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+	result, err := tx.ExecContext(ctx, script,
+		pokin.NamaPohon,
+		pokin.Parent,
+		pokin.JenisPohon,
+		pokin.LevelPohon,
+		pokin.KodeOpd,
+		pokin.Keterangan,
+		pokin.Tahun,
+		pokin.Status,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("gagal menyimpan data pohon kinerja yang di-clone: %v", err)
+	}
+	return result.LastInsertId()
+}
+
+func (repository *PohonKinerjaRepositoryImpl) UpdatePokinStatusTolak(ctx context.Context, tx *sql.Tx, id int, status string) error {
+	script := "UPDATE tb_pohon_kinerja SET status = ? WHERE id = ?"
+	_, err := tx.ExecContext(ctx, script, status, id)
+	if err != nil {
+		return fmt.Errorf("gagal mengupdate status dan alasan: %v", err)
+	}
+	return nil
 }

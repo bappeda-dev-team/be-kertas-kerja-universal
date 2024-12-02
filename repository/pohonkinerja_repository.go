@@ -33,7 +33,13 @@ type PohonKinerjaRepository interface {
 	InsertClonedIndikator(ctx context.Context, tx *sql.Tx, indikatorId string, pokinId int64, indikator domain.Indikator) error
 	InsertClonedTarget(ctx context.Context, tx *sql.Tx, targetId string, indikatorId string, target domain.Target) error
 	GetChildNodes(ctx context.Context, tx *sql.Tx, parentId int) ([]domain.PohonKinerja, error)
+	UpdatePokinStatus(ctx context.Context, tx *sql.Tx, id int, status string) error
+	CheckPokinStatus(ctx context.Context, tx *sql.Tx, id int) (string, error)
+	InsertClonedPokinWithStatus(ctx context.Context, tx *sql.Tx, pokin domain.PohonKinerja) (int64, error)
+	UpdatePokinStatusTolak(ctx context.Context, tx *sql.Tx, id int, status string) error
+
 	//find pokin for dropdown
 	FindPokinByJenisPohon(ctx context.Context, tx *sql.Tx, jenisPohon string, levelPohon int, tahun string, kodeOpd string) ([]domain.PohonKinerja, error)
 	FindPokinByPelaksana(ctx context.Context, tx *sql.Tx, pelaksanaId string, tahun string) ([]domain.PohonKinerja, error)
+	FindPokinByStatus(ctx context.Context, tx *sql.Tx, kodeOpd string, tahun string, status string) ([]domain.PohonKinerja, error)
 }

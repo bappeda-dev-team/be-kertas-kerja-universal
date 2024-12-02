@@ -8,16 +8,18 @@ type PohonKinerjaAdminResponse struct {
 }
 
 type PohonKinerjaAdminResponseData struct {
-	Id         int                 `json:"id"`
-	Parent     int                 `json:"parent,omitempty"`
-	NamaPohon  string              `json:"nama_pohon"`
-	KodeOpd    string              `json:"kode_opd,omitempty"`
-	NamaOpd    string              `json:"nama_opd,omitempty"`
-	Keterangan string              `json:"keterangan,omitempty"`
-	Tahun      string              `json:"tahun"`
-	JenisPohon string              `json:"jenis_pohon"`
-	LevelPohon int                 `json:"level_pohon"`
-	Indikators []IndikatorResponse `json:"indikators,omitempty"`
+	Id         int                    `json:"id"`
+	Parent     int                    `json:"parent,omitempty"`
+	NamaPohon  string                 `json:"nama_pohon"`
+	KodeOpd    string                 `json:"kode_opd,omitempty"`
+	NamaOpd    string                 `json:"nama_opd,omitempty"`
+	Keterangan string                 `json:"keterangan,omitempty"`
+	Tahun      string                 `json:"tahun"`
+	JenisPohon string                 `json:"jenis_pohon"`
+	LevelPohon int                    `json:"level_pohon"`
+	Status     string                 `json:"status"`
+	Pelaksana  []PelaksanaOpdResponse `json:"pelaksana,omitempty"`
+	Indikators []IndikatorResponse    `json:"indikators,omitempty"`
 	// SubTematiks []SubtematikResponse `json:"sub_tematiks,omitempty"`
 }
 
@@ -68,22 +70,7 @@ type SuperSubTematikResponse struct {
 	LevelPohon int                 `json:"level_pohon"`
 	Keterangan string              `json:"keterangan"`
 	Indikators []IndikatorResponse `json:"indikators"`
-	// Strategics []StrategicResponse `json:"childs,omitempty"`
-	Childs []interface{} `json:"childs,omitempty"`
-}
-
-type IndikatorResponse struct {
-	Id            string           `json:"id_indikator"`
-	IdPokin       string           `json:"id_pokin"`
-	NamaIndikator string           `json:"nama_indikator"`
-	Target        []TargetResponse `json:"targets"`
-}
-
-type TargetResponse struct {
-	Id              string `json:"id_target"`
-	IndikatorId     string `json:"indikator_id"`
-	TargetIndikator string `json:"target"`
-	SatuanIndikator string `json:"satuan"`
+	Childs     []interface{}       `json:"childs,omitempty"`
 }
 
 type StrategicResponse struct {
@@ -93,10 +80,11 @@ type StrategicResponse struct {
 	JenisPohon string                       `json:"jenis_pohon"`
 	LevelPohon int                          `json:"level_pohon"`
 	Keterangan string                       `json:"keterangan"`
+	Status     string                       `json:"status"`
 	KodeOpd    *opdmaster.OpdResponseForAll `json:"perangkat_daerah,omitempty"`
+	Pelaksana  []PelaksanaOpdResponse       `json:"pelaksana,omitempty"`
 	Indikators []IndikatorResponse          `json:"indikators"`
-	// Tacticals  []TacticalResponse           `json:"childs,omitempty"`
-	Childs []interface{} `json:"childs,omitempty"`
+	Childs     []interface{}                `json:"childs,omitempty"`
 }
 
 type TacticalResponse struct {
@@ -106,10 +94,11 @@ type TacticalResponse struct {
 	JenisPohon string                       `json:"jenis_pohon"`
 	LevelPohon int                          `json:"level_pohon"`
 	Keterangan *string                      `json:"keterangan"`
+	Status     string                       `json:"status"`
 	KodeOpd    *opdmaster.OpdResponseForAll `json:"perangkat_daerah,omitempty"`
+	Pelaksana  []PelaksanaOpdResponse       `json:"pelaksana,omitempty"`
 	Indikators []IndikatorResponse          `json:"indikators"`
-	// Operationals []OperationalResponse        `json:"childs"`
-	Childs []interface{} `json:"childs,omitempty"`
+	Childs     []interface{}                `json:"childs,omitempty"`
 }
 
 type OperationalResponse struct {
@@ -119,7 +108,9 @@ type OperationalResponse struct {
 	JenisPohon string                       `json:"jenis_pohon"`
 	LevelPohon int                          `json:"level_pohon"`
 	Keterangan *string                      `json:"keterangan"`
+	Status     string                       `json:"status"`
 	KodeOpd    *opdmaster.OpdResponseForAll `json:"perangkat_daerah,omitempty"`
+	Pelaksana  []PelaksanaOpdResponse       `json:"pelaksana,omitempty"`
 	Indikators []IndikatorResponse          `json:"indikators"`
 	Childs     []interface{}                `json:"childs,omitempty"`
 }
@@ -131,7 +122,9 @@ type OperationalNResponse struct {
 	JenisPohon string                       `json:"jenis_pohon"`
 	LevelPohon int                          `json:"level_pohon"`
 	Keterangan *string                      `json:"keterangan"`
+	Status     string                       `json:"status"`
 	KodeOpd    *opdmaster.OpdResponseForAll `json:"perangkat_daerah,omitempty"`
+	Pelaksana  []PelaksanaOpdResponse       `json:"pelaksana,omitempty"`
 	Indikators []IndikatorResponse          `json:"indikators"`
 	Childs     []OperationalNResponse       `json:"childs,omitempty"`
 }

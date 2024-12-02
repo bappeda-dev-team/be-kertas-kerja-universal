@@ -1092,7 +1092,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindTargetToClone(ctx context.Cont
 }
 
 func (repository *PohonKinerjaRepositoryImpl) InsertClonedPokin(ctx context.Context, tx *sql.Tx, pokin domain.PohonKinerja) (int64, error) {
-	script := "INSERT INTO tb_pohon_kinerja (nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun) VALUES (?, ?, ?, ?, ?, ?, ?)"
+	script := "INSERT INTO tb_pohon_kinerja (nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
 	result, err := tx.ExecContext(ctx, script,
 		pokin.NamaPohon,
 		pokin.Parent,
@@ -1101,6 +1101,7 @@ func (repository *PohonKinerjaRepositoryImpl) InsertClonedPokin(ctx context.Cont
 		pokin.KodeOpd,
 		pokin.Keterangan,
 		pokin.Tahun,
+		pokin.Status,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("gagal menyimpan data pohon kinerja yang di-clone: %v", err)

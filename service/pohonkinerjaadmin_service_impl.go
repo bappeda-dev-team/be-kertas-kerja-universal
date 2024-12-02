@@ -709,6 +709,7 @@ func (service *PohonKinerjaAdminServiceImpl) CreateStrategicAdmin(ctx context.Co
 		KodeOpd:    existingPokin.KodeOpd,
 		Keterangan: existingPokin.Keterangan,
 		Tahun:      existingPokin.Tahun,
+		Status:     "",
 	}
 
 	newPokinId, err := service.pohonKinerjaRepository.InsertClonedPokin(ctx, tx, newPokin)

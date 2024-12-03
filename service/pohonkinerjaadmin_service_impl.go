@@ -719,6 +719,14 @@ func (service *PohonKinerjaAdminServiceImpl) CreateStrategicAdmin(ctx context.Co
 		return pohonkinerja.PohonKinerjaAdminResponseData{}, errors.New("jenis pohon tidak boleh kosong")
 	}
 
+	var namaOpd string
+	if existingPokin.KodeOpd != "" {
+		opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, existingPokin.KodeOpd)
+		if err == nil {
+			namaOpd = opd.NamaOpd
+		}
+	}
+
 	newPokin := domain.PohonKinerja{
 		Parent:     request.Parent,
 		NamaPohon:  existingPokin.NamaPohon,
@@ -787,6 +795,7 @@ func (service *PohonKinerjaAdminServiceImpl) CreateStrategicAdmin(ctx context.Co
 		JenisPohon: request.JenisPohon,
 		LevelPohon: existingPokin.LevelPohon,
 		KodeOpd:    existingPokin.KodeOpd,
+		NamaOpd:    namaOpd,
 		Keterangan: existingPokin.Keterangan,
 		Tahun:      existingPokin.Tahun,
 		Indikators: indikatorResponses,

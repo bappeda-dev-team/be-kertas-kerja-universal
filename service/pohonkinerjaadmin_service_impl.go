@@ -148,6 +148,14 @@ func (service *PohonKinerjaAdminServiceImpl) Create(ctx context.Context, request
 		indikatorResponses = append(indikatorResponses, indikatorResponse)
 	}
 
+	var namaOpd string
+	if request.KodeOpd != "" {
+		opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, request.KodeOpd)
+		if err == nil {
+			namaOpd = opd.NamaOpd
+		}
+	}
+
 	response := pohonkinerja.PohonKinerjaAdminResponseData{
 		Id:         result.Id,
 		Parent:     result.Parent,
@@ -155,6 +163,7 @@ func (service *PohonKinerjaAdminServiceImpl) Create(ctx context.Context, request
 		JenisPohon: result.JenisPohon,
 		LevelPohon: result.LevelPohon,
 		KodeOpd:    result.KodeOpd,
+		NamaOpd:    namaOpd,
 		Keterangan: result.Keterangan,
 		Tahun:      result.Tahun,
 		Status:     result.Status,
@@ -290,6 +299,14 @@ func (service *PohonKinerjaAdminServiceImpl) Update(ctx context.Context, request
 		indikatorResponses = append(indikatorResponses, indikatorResponse)
 	}
 
+	var namaOpd string
+	if request.KodeOpd != "" {
+		opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, request.KodeOpd)
+		if err == nil {
+			namaOpd = opd.NamaOpd
+		}
+	}
+
 	response := pohonkinerja.PohonKinerjaAdminResponseData{
 		Id:         result.Id,
 		Parent:     result.Parent,
@@ -297,6 +314,7 @@ func (service *PohonKinerjaAdminServiceImpl) Update(ctx context.Context, request
 		JenisPohon: result.JenisPohon,
 		LevelPohon: result.LevelPohon,
 		KodeOpd:    result.KodeOpd,
+		NamaOpd:    namaOpd,
 		Keterangan: result.Keterangan,
 		Tahun:      result.Tahun,
 		Status:     result.Status,
@@ -900,7 +918,7 @@ func (service *PohonKinerjaAdminServiceImpl) CloneStrategiFromPemda(ctx context.
 
 	response := pohonkinerja.PohonKinerjaAdminResponseData{
 		Id:         int(newPokinId),
-		Parent:     existingPokin.Parent,
+		Parent:     request.Parent,
 		NamaPohon:  existingPokin.NamaPohon,
 		JenisPohon: request.JenisPohon,
 		LevelPohon: existingPokin.LevelPohon,

@@ -916,6 +916,14 @@ func (service *PohonKinerjaAdminServiceImpl) CloneStrategiFromPemda(ctx context.
 		}
 	}
 
+	var namaOpd string
+	if existingPokin.KodeOpd != "" {
+		opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, existingPokin.KodeOpd)
+		if err == nil {
+			namaOpd = opd.NamaOpd
+		}
+	}
+
 	response := pohonkinerja.PohonKinerjaAdminResponseData{
 		Id:         int(newPokinId),
 		Parent:     request.Parent,
@@ -923,11 +931,12 @@ func (service *PohonKinerjaAdminServiceImpl) CloneStrategiFromPemda(ctx context.
 		JenisPohon: request.JenisPohon,
 		LevelPohon: existingPokin.LevelPohon,
 		KodeOpd:    existingPokin.KodeOpd,
+		NamaOpd:    namaOpd,
 		Keterangan: existingPokin.Keterangan,
 		Tahun:      existingPokin.Tahun,
 		Status:     existingPokin.Status,
 		Indikators: indikatorResponses,
-		Pelaksana:  pelaksanaResponses, // Tambahkan pelaksana ke response
+		Pelaksana:  pelaksanaResponses,
 	}
 
 	return response, nil

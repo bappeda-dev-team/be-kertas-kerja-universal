@@ -613,7 +613,11 @@ func (service *PohonKinerjaOpdServiceImpl) DeletePelaksana(ctx context.Context, 
 }
 
 // Tambahkan fungsi helper untuk membangun OperationalN response
-func (service *PohonKinerjaOpdServiceImpl) buildOperationalNResponse(ctx context.Context, tx *sql.Tx, pohonMap map[int]map[int][]domain.PohonKinerja, operationalN domain.PohonKinerja, pelaksanaMap map[int][]pohonkinerja.PelaksanaOpdResponse) pohonkinerja.OperationalNOpdResponse {
+func (service *PohonKinerjaOpdServiceImpl) buildOperationalNResponse(ctx context.Context, tx *sql.Tx, pohonMap map[int]map[int][]domain.PohonKinerja, operationalN domain.PohonKinerja, pelaksanaMap map[int][]pohonkinerja.PelaksanaOpdResponse, indikatorMap map[int][]pohonkinerja.IndikatorResponse) pohonkinerja.OperationalNOpdResponse {
+	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, operationalN.KodeOpd)
+	if err == nil {
+		operationalN.NamaOpd = opd.NamaOpd
+	}
 	operationalNResp := pohonkinerja.OperationalNOpdResponse{
 		Id:         operationalN.Id,
 		Parent:     operationalN.Parent,
@@ -621,11 +625,13 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalNResponse(ctx context
 		JenisPohon: operationalN.JenisPohon,
 		LevelPohon: operationalN.LevelPohon,
 		Keterangan: operationalN.Keterangan,
+		Status:     operationalN.Status,
 		KodeOpd: opdmaster.OpdResponseForAll{
 			KodeOpd: operationalN.KodeOpd,
 			NamaOpd: operationalN.NamaOpd,
 		},
 		Pelaksana: pelaksanaMap[operationalN.Id],
+		Indikator: indikatorMap[operationalN.Id],
 	}
 
 	// Build child nodes secara rekursif
@@ -637,7 +643,7 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalNResponse(ctx context
 		})
 
 		for _, nextOpN := range nextOperationalNList {
-			childResp := service.buildOperationalNResponse(ctx, tx, pohonMap, nextOpN, pelaksanaMap)
+			childResp := service.buildOperationalNResponse(ctx, tx, pohonMap, nextOpN, pelaksanaMap, indikatorMap)
 			childs = append(childs, childResp)
 		}
 		operationalNResp.Childs = childs
@@ -681,12 +687,11 @@ func (service *PohonKinerjaOpdServiceImpl) buildStrategicResponse(ctx context.Co
 	return strategicResp
 }
 
-func (service *PohonKinerjaOpdServiceImpl) buildTacticalResponse(ctx context.Context, tx *sql.Tx,
-	pohonMap map[int]map[int][]domain.PohonKinerja,
-	tactical domain.PohonKinerja,
-	pelaksanaMap map[int][]pohonkinerja.PelaksanaOpdResponse,
-	indikatorMap map[int][]pohonkinerja.IndikatorResponse) pohonkinerja.TacticalOpdResponse {
-
+func (service *PohonKinerjaOpdServiceImpl) buildTacticalResponse(ctx context.Context, tx *sql.Tx, pohonMap map[int]map[int][]domain.PohonKinerja, tactical domain.PohonKinerja, pelaksanaMap map[int][]pohonkinerja.PelaksanaOpdResponse, indikatorMap map[int][]pohonkinerja.IndikatorResponse) pohonkinerja.TacticalOpdResponse {
+	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, tactical.KodeOpd)
+	if err == nil {
+		tactical.NamaOpd = opd.NamaOpd
+	}
 	tacticalResp := pohonkinerja.TacticalOpdResponse{
 		Id:         tactical.Id,
 		Parent:     tactical.Parent,
@@ -721,6 +726,10 @@ func (service *PohonKinerjaOpdServiceImpl) buildTacticalResponse(ctx context.Con
 }
 
 func (service *PohonKinerjaOpdServiceImpl) buildOperationalResponse(ctx context.Context, tx *sql.Tx, pohonMap map[int]map[int][]domain.PohonKinerja, operational domain.PohonKinerja, pelaksanaMap map[int][]pohonkinerja.PelaksanaOpdResponse, indikatorMap map[int][]pohonkinerja.IndikatorResponse) pohonkinerja.OperationalOpdResponse {
+	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, operational.KodeOpd)
+	if err == nil {
+		operational.NamaOpd = opd.NamaOpd
+	}
 	operationalResp := pohonkinerja.OperationalOpdResponse{
 		Id:         operational.Id,
 		Parent:     operational.Parent,
@@ -745,7 +754,7 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalResponse(ctx context.
 		})
 
 		for _, opN := range operationalNList {
-			childResp := service.buildOperationalNResponse(ctx, tx, pohonMap, opN, pelaksanaMap)
+			childResp := service.buildOperationalNResponse(ctx, tx, pohonMap, opN, pelaksanaMap, indikatorMap)
 			childs = append(childs, childResp)
 		}
 		operationalResp.Childs = childs

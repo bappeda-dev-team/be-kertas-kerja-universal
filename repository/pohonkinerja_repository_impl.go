@@ -204,36 +204,105 @@ func (repository *PohonKinerjaRepositoryImpl) FindById(ctx context.Context, tx *
 
 func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, kodeOpd, tahun string) ([]domain.PohonKinerja, error) {
 	script := `
-        SELECT 
-            pk.id,
-            pk.nama_pohon,
-            pk.parent,
-            pk.jenis_pohon,
-            pk.level_pohon,
-            pk.kode_opd,
-            pk.keterangan,
-            pk.tahun,
-            pk.created_at,
-            pk.status
+        WITH RECURSIVE pohon_hierarki AS (
+            -- Base case: ambil semua node dari OPD yang diminta
+            SELECT 
+                pk.id,
+                pk.nama_pohon,
+                pk.parent,
+                pk.jenis_pohon,
+                pk.level_pohon,
+                pk.kode_opd,
+                pk.keterangan,
+                pk.tahun,
+                pk.created_at,
+                pk.status
+            FROM 
+                tb_pohon_kinerja pk
+            WHERE 
+                pk.kode_opd = ?
+                AND pk.tahun = ?
+                AND (pk.status = '' OR pk.status = 'disetujui')
+            
+            UNION 
+            
+            -- Recursive case 1: ambil parent nodes
+            SELECT 
+                p.id,
+                p.nama_pohon,
+                p.parent,
+                p.jenis_pohon,
+                p.level_pohon,
+                p.kode_opd,
+                p.keterangan,
+                p.tahun,
+                p.created_at,
+                p.status
+            FROM 
+                tb_pohon_kinerja p
+            INNER JOIN 
+                pohon_hierarki ph ON p.id = ph.parent
+            WHERE 
+                (p.status = '' OR p.status = 'disetujui')
+                AND p.tahun = ?
+
+            UNION
+
+            -- Recursive case 2: ambil semua node level 5 ke atas yang parent-nya sudah ada
+            SELECT 
+                c.id,
+                c.nama_pohon,
+                c.parent,
+                c.jenis_pohon,
+                c.level_pohon,
+                c.kode_opd,
+                c.keterangan,
+                c.tahun,
+                c.created_at,
+                c.status
+            FROM 
+                tb_pohon_kinerja c
+            INNER JOIN 
+                pohon_hierarki ph ON c.parent = ph.id
+            WHERE 
+                c.level_pohon >= 5
+                AND (c.status = '' OR c.status = 'disetujui')
+                AND c.tahun = ?
+        )
+        SELECT DISTINCT 
+            h.id,
+            h.nama_pohon,
+            h.parent,
+            h.jenis_pohon,
+            h.level_pohon,
+            h.kode_opd,
+            h.keterangan,
+            h.tahun,
+            h.created_at,
+            h.status,
+            p.id as pelaksana_id,
+            p.pegawai_id
         FROM 
-            tb_pohon_kinerja pk
-        WHERE 
-            pk.kode_opd = ? 
-            AND pk.tahun = ?
-			AND (pk.status = '' OR pk.status = 'disetujui')
+            pohon_hierarki h
+        LEFT JOIN 
+            tb_pelaksana_pokin p ON h.id = p.pohon_kinerja_id
         ORDER BY 
-            pk.level_pohon, pk.id, pk.created_at asc
+            h.level_pohon, h.id, h.created_at ASC
     `
 
-	rows, err := tx.QueryContext(ctx, script, kodeOpd, tahun)
+	rows, err := tx.QueryContext(ctx, script, kodeOpd, tahun, tahun, tahun)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var result []domain.PohonKinerja
+	pokinMap := make(map[int]domain.PohonKinerja)
+
 	for rows.Next() {
 		var pokin domain.PohonKinerja
+		var pelaksana domain.PelaksanaPokin
+		var pelaksanaID, pegawaiID sql.NullString
+
 		err := rows.Scan(
 			&pokin.Id,
 			&pokin.NamaPohon,
@@ -245,142 +314,40 @@ func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *s
 			&pokin.Tahun,
 			&pokin.CreatedAt,
 			&pokin.Status,
+			&pelaksanaID,
+			&pegawaiID,
 		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("gagal scan data pohon kinerja: %v", err)
 		}
+
+		existingPokin, exists := pokinMap[pokin.Id]
+		if exists {
+			if pelaksanaID.Valid && pegawaiID.Valid {
+				pelaksana.Id = pelaksanaID.String
+				pelaksana.PegawaiId = pegawaiID.String
+				existingPokin.Pelaksana = append(existingPokin.Pelaksana, pelaksana)
+				pokinMap[pokin.Id] = existingPokin
+			}
+		} else {
+			if pelaksanaID.Valid && pegawaiID.Valid {
+				pelaksana.Id = pelaksanaID.String
+				pelaksana.PegawaiId = pegawaiID.String
+				pokin.Pelaksana = []domain.PelaksanaPokin{pelaksana}
+			} else {
+				pokin.Pelaksana = []domain.PelaksanaPokin{}
+			}
+			pokinMap[pokin.Id] = pokin
+		}
+	}
+
+	var result []domain.PohonKinerja
+	for _, pokin := range pokinMap {
 		result = append(result, pokin)
 	}
 
-	// Query untuk mendapatkan data pelaksana
-	for i, pokin := range result {
-		// Query pelaksana
-		scriptPelaksana := `
-            SELECT 
-                id, pegawai_id
-            FROM 
-                tb_pelaksana_pokin
-            WHERE 
-                pohon_kinerja_id = ?
-        `
-
-		pelaksanaRows, err := tx.QueryContext(ctx, scriptPelaksana, fmt.Sprint(pokin.Id))
-		if err != nil {
-			return nil, err
-		}
-		defer pelaksanaRows.Close()
-
-		var pelaksanaList []domain.PelaksanaPokin
-		for pelaksanaRows.Next() {
-			var pelaksana domain.PelaksanaPokin
-			err := pelaksanaRows.Scan(
-				&pelaksana.Id,
-				&pelaksana.PegawaiId,
-			)
-			if err != nil {
-				return nil, err
-			}
-			pelaksanaList = append(pelaksanaList, pelaksana)
-		}
-		result[i].Pelaksana = pelaksanaList
-
-		// Query indikator dan target
-		scriptIndikator := `
-            SELECT 
-                i.id,
-                i.indikator,
-                i.tahun,
-                t.id as target_id,
-                t.target,
-                t.satuan,
-                t.tahun as target_tahun
-            FROM 
-                tb_indikator i
-            LEFT JOIN 
-                tb_target t ON i.id = t.indikator_id
-            WHERE 
-                i.pokin_id = ?
-        `
-
-		indikatorRows, err := tx.QueryContext(ctx, scriptIndikator, pokin.Id)
-		if err != nil {
-			return nil, err
-		}
-		defer indikatorRows.Close()
-
-		indikatorMap := make(map[string]domain.Indikator)
-		for indikatorRows.Next() {
-			var (
-				indikatorId, indikatorNama, indikatorTahun string
-				targetId, target, satuan, targetTahun      sql.NullString
-			)
-
-			err := indikatorRows.Scan(
-				&indikatorId,
-				&indikatorNama,
-				&indikatorTahun,
-				&targetId,
-				&target,
-				&satuan,
-				&targetTahun,
-			)
-			if err != nil {
-				return nil, err
-			}
-
-			indikator, exists := indikatorMap[indikatorId]
-			if !exists {
-				indikator = domain.Indikator{
-					Id:        indikatorId,
-					PokinId:   fmt.Sprint(pokin.Id),
-					Indikator: indikatorNama,
-					Tahun:     indikatorTahun,
-				}
-			}
-
-			if targetId.Valid && target.Valid && satuan.Valid && targetTahun.Valid {
-				targetObj := domain.Target{
-					Id:          targetId.String,
-					IndikatorId: indikatorId,
-					Target:      target.String,
-					Satuan:      satuan.String,
-					Tahun:       targetTahun.String,
-				}
-				indikator.Target = append(indikator.Target, targetObj)
-			}
-
-			indikatorMap[indikatorId] = indikator
-		}
-
-		// Convert indikator map to slice
-		var indikatorList []domain.Indikator
-		for _, indikator := range indikatorMap {
-			indikatorList = append(indikatorList, indikator)
-		}
-		result[i].Indikator = indikatorList
-	}
-
-	// Modifikasi bagian pemrosesan data
-	pohonMap := make(map[int]map[int][]domain.PohonKinerja)
-	maxLevel := 0
-
-	for _, pokin := range result {
-		if pokin.LevelPohon > maxLevel {
-			maxLevel = pokin.LevelPohon
-		}
-	}
-
-	for i := 4; i <= maxLevel; i++ {
-		pohonMap[i] = make(map[int][]domain.PohonKinerja)
-	}
-
-	for _, p := range result {
-		if p.LevelPohon >= 4 {
-			pohonMap[p.LevelPohon][p.Parent] = append(
-				pohonMap[p.LevelPohon][p.Parent],
-				p,
-			)
-		}
+	if len(result) == 0 {
+		return nil, sql.ErrNoRows
 	}
 
 	return result, nil

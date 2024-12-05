@@ -861,7 +861,7 @@ func (service *PohonKinerjaAdminServiceImpl) CreateStrategicAdmin(ctx context.Co
 		KodeOpd:    existingPokin.KodeOpd,
 		Keterangan: existingPokin.Keterangan,
 		Tahun:      existingPokin.Tahun,
-		Status:     "",
+		Status:     "tarik pokin opd",
 		CloneFrom:  cloneReference,
 	}
 
@@ -932,6 +932,7 @@ func (service *PohonKinerjaAdminServiceImpl) CreateStrategicAdmin(ctx context.Co
 		NamaOpd:    namaOpd,
 		Keterangan: existingPokin.Keterangan,
 		Tahun:      existingPokin.Tahun,
+		Status:     "tarik pokin opd",
 		Indikators: indikatorResponses,
 	}
 

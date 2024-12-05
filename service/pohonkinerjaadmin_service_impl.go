@@ -183,9 +183,24 @@ func (service *PohonKinerjaAdminServiceImpl) Update(ctx context.Context, request
 	defer helper.CommitOrRollback(tx)
 
 	// Cek apakah data exists
-	_, err = service.pohonKinerjaRepository.FindPokinAdminById(ctx, tx, request.Id)
+	existingPokin, err := service.pohonKinerjaRepository.FindPokinAdminById(ctx, tx, request.Id)
 	if err != nil {
 		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	// Persiapkan data yang akan diupdate
+	var pokinsToUpdate []domain.PohonKinerja
+
+	// Tambahkan pokin yang sedang diupdate
+	pokinsToUpdate = append(pokinsToUpdate, existingPokin)
+
+	// Jika CloneFrom = 0, cari pokin lain yang memiliki CloneFrom = Id yang sedang diupdate
+	if existingPokin.CloneFrom == 0 {
+		relatedPokins, err := service.pohonKinerjaRepository.FindPokinByCloneFrom(ctx, tx, request.Id)
+		if err != nil {
+			return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+		}
+		pokinsToUpdate = append(pokinsToUpdate, relatedPokins...)
 	}
 
 	// Persiapkan data pelaksana
@@ -199,15 +214,13 @@ func (service *PohonKinerjaAdminServiceImpl) Update(ctx context.Context, request
 		pelaksanaList = append(pelaksanaList, pelaksana)
 	}
 
-	// Persiapkan data indikator dan target
+	// Persiapkan data indikator dan target untuk pokin asli
 	var indikators []domain.Indikator
 	for _, ind := range request.Indikator {
 		var indikatorId string
 		if ind.Id == "" {
-			// Buat ID baru jika ID tidak dicantumkan
 			indikatorId = "IND-POKIN-" + uuid.New().String()[:8]
 		} else {
-			// Gunakan ID yang ada jika dicantumkan
 			indikatorId = ind.Id
 		}
 
@@ -215,10 +228,8 @@ func (service *PohonKinerjaAdminServiceImpl) Update(ctx context.Context, request
 		for _, t := range ind.Target {
 			var targetId string
 			if t.Id == "" {
-				// Buat ID baru jika ID tidak dicantumkan
 				targetId = "TRGT-IND-POKIN-" + uuid.New().String()[:8]
 			} else {
-				// Gunakan ID yang ada jika dicantumkan
 				targetId = t.Id
 			}
 
@@ -241,28 +252,118 @@ func (service *PohonKinerjaAdminServiceImpl) Update(ctx context.Context, request
 		indikators = append(indikators, indikator)
 	}
 
-	pohonKinerja := domain.PohonKinerja{
-		Id:         request.Id,
-		Parent:     request.Parent,
-		NamaPohon:  request.NamaPohon,
-		JenisPohon: request.JenisPohon,
-		LevelPohon: request.LevelPohon,
-		KodeOpd:    helper.EmptyStringIfNull(request.KodeOpd),
-		Keterangan: request.Keterangan,
-		Tahun:      request.Tahun,
-		Status:     request.Status,
-		Pelaksana:  pelaksanaList,
-		Indikator:  indikators,
-	}
+	// Update semua pokin yang terkait
+	var updatedPokin domain.PohonKinerja
+	for _, pokin := range pokinsToUpdate {
+		var pokinIndikators []domain.Indikator
 
-	result, err := service.pohonKinerjaRepository.UpdatePokinAdmin(ctx, tx, pohonKinerja)
-	if err != nil {
-		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+		if pokin.Id == request.Id {
+			// Untuk pokin asli, gunakan indikator dari request
+			pokinIndikators = indikators
+		} else {
+			// Untuk pokin yang diclone
+			existingIndikators, err := service.pohonKinerjaRepository.FindIndikatorByPokinId(ctx, tx, fmt.Sprint(pokin.Id))
+			if err != nil {
+				return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+			}
+
+			// Proses setiap indikator dari pokin asli
+			for _, originalInd := range indikators {
+				var clonedIndikator domain.Indikator
+
+				// Cari indikator yang sudah ada dengan clone_from yang sesuai
+				var existingInd *domain.Indikator
+				for _, ei := range existingIndikators {
+					if ei.CloneFrom == originalInd.Id {
+						existingInd = &ei
+						break
+					}
+				}
+
+				if existingInd != nil {
+					// Gunakan ID yang sudah ada untuk indikator yang di-clone
+					clonedIndikator = *existingInd
+					clonedIndikator.Indikator = originalInd.Indikator
+					clonedIndikator.Tahun = originalInd.Tahun
+				} else {
+					// Buat indikator baru untuk clone
+					clonedIndikator = domain.Indikator{
+						Id:        "IND-POKIN-" + uuid.New().String()[:8],
+						Indikator: originalInd.Indikator,
+						Tahun:     originalInd.Tahun,
+						CloneFrom: originalInd.Id,
+					}
+				}
+
+				// Proses target untuk indikator yang di-clone
+				var clonedTargets []domain.Target
+				for _, originalTarget := range originalInd.Target {
+					var clonedTarget domain.Target
+
+					// Cari target yang sudah ada
+					var existingTarget *domain.Target
+					if existingInd != nil {
+						for _, et := range existingInd.Target {
+							if et.CloneFrom == originalTarget.Id {
+								existingTarget = &et
+								break
+							}
+						}
+					}
+
+					if existingTarget != nil {
+						// Gunakan ID yang sudah ada untuk target yang di-clone
+						clonedTarget = *existingTarget
+						clonedTarget.Target = originalTarget.Target
+						clonedTarget.Satuan = originalTarget.Satuan
+						clonedTarget.Tahun = originalTarget.Tahun
+					} else {
+						// Buat target baru untuk clone
+						clonedTarget = domain.Target{
+							Id:          "TRGT-IND-POKIN-" + uuid.New().String()[:8],
+							IndikatorId: clonedIndikator.Id,
+							Target:      originalTarget.Target,
+							Satuan:      originalTarget.Satuan,
+							Tahun:       originalTarget.Tahun,
+							CloneFrom:   originalTarget.Id,
+						}
+					}
+					clonedTargets = append(clonedTargets, clonedTarget)
+				}
+
+				clonedIndikator.Target = clonedTargets
+				pokinIndikators = append(pokinIndikators, clonedIndikator)
+			}
+		}
+
+		pohonKinerja := domain.PohonKinerja{
+			Id:         pokin.Id,
+			Parent:     pokin.Parent,
+			NamaPohon:  request.NamaPohon,
+			JenisPohon: request.JenisPohon,
+			LevelPohon: request.LevelPohon,
+			KodeOpd:    helper.EmptyStringIfNull(request.KodeOpd),
+			Keterangan: request.Keterangan,
+			Tahun:      request.Tahun,
+			Status:     pokin.Status,
+			CloneFrom:  pokin.CloneFrom,
+			Pelaksana:  pelaksanaList,
+			Indikator:  pokinIndikators,
+		}
+
+		result, err := service.pohonKinerjaRepository.UpdatePokinAdmin(ctx, tx, pohonKinerja)
+		if err != nil {
+			return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+		}
+
+		if pokin.Id == request.Id {
+			updatedPokin = result
+		}
 	}
 
 	// Konversi pelaksana domain ke PelaksanaResponse
 	var pelaksanaResponses []pohonkinerja.PelaksanaOpdResponse
-	for _, p := range result.Pelaksana {
+	for _, p := range updatedPokin.Pelaksana {
 		// Ambil data pegawai
 		pegawai, err := service.pegawaiRepository.FindById(ctx, tx, p.PegawaiId)
 		if err != nil {
@@ -279,7 +380,7 @@ func (service *PohonKinerjaAdminServiceImpl) Update(ctx context.Context, request
 
 	// Konversi indikator domain ke IndikatorResponse
 	var indikatorResponses []pohonkinerja.IndikatorResponse
-	for _, ind := range result.Indikator {
+	for _, ind := range updatedPokin.Indikator {
 		var targetResponses []pohonkinerja.TargetResponse
 		for _, t := range ind.Target {
 			targetResponse := pohonkinerja.TargetResponse{
@@ -308,16 +409,16 @@ func (service *PohonKinerjaAdminServiceImpl) Update(ctx context.Context, request
 	}
 
 	response := pohonkinerja.PohonKinerjaAdminResponseData{
-		Id:         result.Id,
-		Parent:     result.Parent,
-		NamaPohon:  result.NamaPohon,
-		JenisPohon: result.JenisPohon,
-		LevelPohon: result.LevelPohon,
-		KodeOpd:    result.KodeOpd,
+		Id:         updatedPokin.Id,
+		Parent:     updatedPokin.Parent,
+		NamaPohon:  updatedPokin.NamaPohon,
+		JenisPohon: updatedPokin.JenisPohon,
+		LevelPohon: updatedPokin.LevelPohon,
+		KodeOpd:    updatedPokin.KodeOpd,
 		NamaOpd:    namaOpd,
-		Keterangan: result.Keterangan,
-		Tahun:      result.Tahun,
-		Status:     result.Status,
+		Keterangan: updatedPokin.Keterangan,
+		Tahun:      updatedPokin.Tahun,
+		Status:     updatedPokin.Status,
 		Pelaksana:  pelaksanaResponses,
 		Indikators: indikatorResponses,
 	}
@@ -704,6 +805,17 @@ func (service *PohonKinerjaAdminServiceImpl) CreateStrategicAdmin(ctx context.Co
 	}
 	defer helper.CommitOrRollback(tx)
 
+	// Cek apakah pohon kinerja sudah pernah diclone
+	cloneFrom, err := service.pohonKinerjaRepository.CheckCloneFrom(ctx, tx, request.IdToClone)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	cloneReference := request.IdToClone
+	if cloneFrom != 0 {
+		cloneReference = cloneFrom
+	}
+
 	existingPokin, err := service.pohonKinerjaRepository.FindPokinToClone(ctx, tx, request.IdToClone)
 	if err != nil {
 		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
@@ -736,6 +848,7 @@ func (service *PohonKinerjaAdminServiceImpl) CreateStrategicAdmin(ctx context.Co
 		Keterangan: existingPokin.Keterangan,
 		Tahun:      existingPokin.Tahun,
 		Status:     "",
+		CloneFrom:  cloneReference,
 	}
 
 	newPokinId, err := service.pohonKinerjaRepository.InsertClonedPokin(ctx, tx, newPokin)
@@ -753,6 +866,9 @@ func (service *PohonKinerjaAdminServiceImpl) CreateStrategicAdmin(ctx context.Co
 	for _, indikator := range indikators {
 		newIndikatorId := "IND-POKIN-" + uuid.New().String()[:6]
 
+		// Pastikan indikator memiliki clone_from
+		indikator.CloneFrom = indikator.Id // Set clone_from ke ID indikator asli
+
 		err = service.pohonKinerjaRepository.InsertClonedIndikator(ctx, tx, newIndikatorId, newPokinId, indikator)
 		if err != nil {
 			return pohonkinerja.PohonKinerjaAdminResponseData{}, err
@@ -767,6 +883,10 @@ func (service *PohonKinerjaAdminServiceImpl) CreateStrategicAdmin(ctx context.Co
 
 		for _, target := range targets {
 			newTargetId := "TRGT-IND-POKIN-" + uuid.New().String()[:5]
+
+			// Pastikan target memiliki clone_from
+			target.CloneFrom = target.Id // Set clone_from ke ID target asli
+
 			err = service.pohonKinerjaRepository.InsertClonedTarget(ctx, tx, newTargetId, newIndikatorId, target)
 			if err != nil {
 				return pohonkinerja.PohonKinerjaAdminResponseData{}, err
@@ -821,9 +941,31 @@ func (service *PohonKinerjaAdminServiceImpl) CloneStrategiFromPemda(ctx context.
 		return pohonkinerja.PohonKinerjaAdminResponseData{}, errors.New("hanya pohon kinerja dengan status menunggu_disetujui yang dapat diclone")
 	}
 
+	// Cek apakah pohon kinerja sudah pernah diclone
+	cloneFrom, err := service.pohonKinerjaRepository.CheckCloneFrom(ctx, tx, request.IdToClone)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	// Tentukan referensi clone
+	cloneReference := request.IdToClone
+	if cloneFrom != 0 {
+		cloneReference = cloneFrom
+	}
+
 	existingPokin, err := service.pohonKinerjaRepository.FindPokinToClone(ctx, tx, request.IdToClone)
 	if err != nil {
 		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	err = service.pohonKinerjaRepository.ValidateParentLevel(ctx, tx, request.Parent, existingPokin.LevelPohon)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	// Validasi JenisPohon
+	if request.JenisPohon == "" {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, errors.New("jenis pohon tidak boleh kosong")
 	}
 
 	// Update status pokin yang diclone menjadi disetujui
@@ -832,23 +974,14 @@ func (service *PohonKinerjaAdminServiceImpl) CloneStrategiFromPemda(ctx context.
 		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
 	}
 
-	// Dapatkan pelaksana dari pokin yang akan diclone
-	pelaksanas, err := service.pohonKinerjaRepository.FindPelaksanaPokin(ctx, tx, fmt.Sprint(request.IdToClone))
-	if err != nil {
-		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
-	}
-
-	// Generate ID baru untuk setiap pelaksana
-	var newPelaksanas []domain.PelaksanaPokin
-	for _, pelaksana := range pelaksanas {
-		newPelaksana := domain.PelaksanaPokin{
-			Id:        "PLKS-" + uuid.New().String()[:8], // Generate ID baru
-			PegawaiId: pelaksana.PegawaiId,               // Gunakan pegawai_id yang sama
+	var namaOpd string
+	if existingPokin.KodeOpd != "" {
+		opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, existingPokin.KodeOpd)
+		if err == nil {
+			namaOpd = opd.NamaOpd
 		}
-		newPelaksanas = append(newPelaksanas, newPelaksana)
 	}
 
-	// Buat pokin baru dengan status "pokin dari pemda"
 	newPokin := domain.PohonKinerja{
 		Parent:     request.Parent,
 		NamaPohon:  existingPokin.NamaPohon,
@@ -858,10 +991,10 @@ func (service *PohonKinerjaAdminServiceImpl) CloneStrategiFromPemda(ctx context.
 		Keterangan: existingPokin.Keterangan,
 		Tahun:      existingPokin.Tahun,
 		Status:     "pokin dari pemda",
-		Pelaksana:  newPelaksanas, // Gunakan pelaksana dengan ID baru
+		CloneFrom:  cloneReference,
+		Pelaksana:  existingPokin.Pelaksana,
 	}
 
-	// Gunakan InsertClonedPokinWithStatus yang baru
 	newPokinId, err := service.pohonKinerjaRepository.InsertClonedPokinWithStatus(ctx, tx, newPokin)
 	if err != nil {
 		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
@@ -901,6 +1034,7 @@ func (service *PohonKinerjaAdminServiceImpl) CloneStrategiFromPemda(ctx context.
 				IndikatorId:     newIndikatorId,
 				TargetIndikator: target.Target,
 				SatuanIndikator: target.Satuan,
+				// CloneFrom:       target.Id,
 			})
 		}
 
@@ -913,7 +1047,7 @@ func (service *PohonKinerjaAdminServiceImpl) CloneStrategiFromPemda(ctx context.
 	}
 
 	var pelaksanaResponses []pohonkinerja.PelaksanaOpdResponse
-	for _, pelaksana := range newPelaksanas {
+	for _, pelaksana := range existingPokin.Pelaksana {
 		// Ambil detail pegawai
 		pegawai, err := service.pegawaiRepository.FindById(ctx, tx, pelaksana.PegawaiId)
 		if err == nil {
@@ -922,14 +1056,6 @@ func (service *PohonKinerjaAdminServiceImpl) CloneStrategiFromPemda(ctx context.
 				PegawaiId:   pelaksana.PegawaiId,
 				NamaPegawai: pegawai.NamaPegawai,
 			})
-		}
-	}
-
-	var namaOpd string
-	if existingPokin.KodeOpd != "" {
-		opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, existingPokin.KodeOpd)
-		if err == nil {
-			namaOpd = opd.NamaOpd
 		}
 	}
 
@@ -943,7 +1069,7 @@ func (service *PohonKinerjaAdminServiceImpl) CloneStrategiFromPemda(ctx context.
 		NamaOpd:    namaOpd,
 		Keterangan: existingPokin.Keterangan,
 		Tahun:      existingPokin.Tahun,
-		Status:     existingPokin.Status,
+		Status:     "disetujui",
 		Indikators: indikatorResponses,
 		Pelaksana:  pelaksanaResponses,
 	}
@@ -1183,4 +1309,157 @@ func (service *PohonKinerjaAdminServiceImpl) TolakPokin(ctx context.Context, req
 	}
 
 	return nil
+}
+
+func (service *PohonKinerjaAdminServiceImpl) CrosscuttingOpd(ctx context.Context, request pohonkinerja.PohonKinerjaAdminStrategicCreateRequest) (pohonkinerja.PohonKinerjaAdminResponseData, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	// Cek status pokin yang akan diclone
+	status, err := service.pohonKinerjaRepository.CheckPokinStatus(ctx, tx, request.IdToClone)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	if status != "menunggu_disetujui" {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, errors.New("hanya pohon kinerja dengan status menunggu_disetujui yang dapat diclone")
+	}
+
+	// Cek apakah pohon kinerja sudah pernah diclone
+	cloneFrom, err := service.pohonKinerjaRepository.CheckCloneFrom(ctx, tx, request.IdToClone)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	// Tentukan referensi clone
+	cloneReference := request.IdToClone
+	if cloneFrom != 0 {
+		cloneReference = cloneFrom
+	}
+
+	existingPokin, err := service.pohonKinerjaRepository.FindPokinToClone(ctx, tx, request.IdToClone)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	err = service.pohonKinerjaRepository.ValidateParentLevel(ctx, tx, request.Parent, existingPokin.LevelPohon)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	// Validasi JenisPohon
+	if request.JenisPohon == "" {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, errors.New("jenis pohon tidak boleh kosong")
+	}
+
+	// Update status pokin yang diclone menjadi disetujui
+	err = service.pohonKinerjaRepository.UpdatePokinStatus(ctx, tx, request.IdToClone, "disetujui")
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	var namaOpd string
+	if existingPokin.KodeOpd != "" {
+		opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, existingPokin.KodeOpd)
+		if err == nil {
+			namaOpd = opd.NamaOpd
+		}
+	}
+
+	newPokin := domain.PohonKinerja{
+		Parent:     request.Parent,
+		NamaPohon:  existingPokin.NamaPohon,
+		JenisPohon: request.JenisPohon,
+		LevelPohon: existingPokin.LevelPohon,
+		KodeOpd:    existingPokin.KodeOpd,
+		Keterangan: existingPokin.Keterangan,
+		Tahun:      existingPokin.Tahun,
+		Status:     "pokin dari pemda",
+		CloneFrom:  cloneReference,
+		Pelaksana:  existingPokin.Pelaksana,
+	}
+
+	newPokinId, err := service.pohonKinerjaRepository.InsertClonedPokinWithStatus(ctx, tx, newPokin)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	indikators, err := service.pohonKinerjaRepository.FindIndikatorToClone(ctx, tx, request.IdToClone)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+	}
+
+	var indikatorResponses []pohonkinerja.IndikatorResponse
+
+	for _, indikator := range indikators {
+		newIndikatorId := "IND-POKIN-" + uuid.New().String()[:6]
+
+		err = service.pohonKinerjaRepository.InsertClonedIndikator(ctx, tx, newIndikatorId, newPokinId, indikator)
+		if err != nil {
+			return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+		}
+
+		targets, err := service.pohonKinerjaRepository.FindTargetToClone(ctx, tx, indikator.Id)
+		if err != nil {
+			return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+		}
+
+		var targetResponses []pohonkinerja.TargetResponse
+
+		for _, target := range targets {
+			newTargetId := "TRGT-IND-POKIN-" + uuid.New().String()[:5]
+			err = service.pohonKinerjaRepository.InsertClonedTarget(ctx, tx, newTargetId, newIndikatorId, target)
+			if err != nil {
+				return pohonkinerja.PohonKinerjaAdminResponseData{}, err
+			}
+
+			targetResponses = append(targetResponses, pohonkinerja.TargetResponse{
+				Id:              newTargetId,
+				IndikatorId:     newIndikatorId,
+				TargetIndikator: target.Target,
+				SatuanIndikator: target.Satuan,
+				// CloneFrom:       target.Id,
+			})
+		}
+
+		indikatorResponses = append(indikatorResponses, pohonkinerja.IndikatorResponse{
+			Id:            newIndikatorId,
+			IdPokin:       fmt.Sprint(newPokinId),
+			NamaIndikator: indikator.Indikator,
+			Target:        targetResponses,
+		})
+	}
+
+	var pelaksanaResponses []pohonkinerja.PelaksanaOpdResponse
+	for _, pelaksana := range existingPokin.Pelaksana {
+		// Ambil detail pegawai
+		pegawai, err := service.pegawaiRepository.FindById(ctx, tx, pelaksana.PegawaiId)
+		if err == nil {
+			pelaksanaResponses = append(pelaksanaResponses, pohonkinerja.PelaksanaOpdResponse{
+				Id:          pelaksana.Id,
+				PegawaiId:   pelaksana.PegawaiId,
+				NamaPegawai: pegawai.NamaPegawai,
+			})
+		}
+	}
+
+	response := pohonkinerja.PohonKinerjaAdminResponseData{
+		Id:         int(newPokinId),
+		Parent:     request.Parent,
+		NamaPohon:  existingPokin.NamaPohon,
+		JenisPohon: request.JenisPohon,
+		LevelPohon: existingPokin.LevelPohon,
+		KodeOpd:    existingPokin.KodeOpd,
+		NamaOpd:    namaOpd,
+		Keterangan: existingPokin.Keterangan,
+		Tahun:      existingPokin.Tahun,
+		Status:     "crosscutting opd",
+		Indikators: indikatorResponses,
+		Pelaksana:  pelaksanaResponses,
+	}
+
+	return response, nil
 }

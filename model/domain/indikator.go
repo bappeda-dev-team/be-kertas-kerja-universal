@@ -9,5 +9,6 @@ type Indikator struct {
 	SubKegiatanId    string
 	Indikator        string
 	Tahun            string
+	CloneFrom        string
 	Target           []Target
 }

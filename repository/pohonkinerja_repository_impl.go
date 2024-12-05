@@ -1158,12 +1158,27 @@ func (repository *PohonKinerjaRepositoryImpl) ValidateParentLevel(ctx context.Co
 		return fmt.Errorf("level pohon tidak boleh kurang dari 4")
 	}
 
-	// Khusus untuk level 4, boleh memiliki parent 0
+	// Untuk level 4, parent bisa memiliki level 0 hingga 3
 	if levelPohon == 4 {
 		if parentId == 0 {
 			return nil
 		}
-		return fmt.Errorf("level pohon 4 harus memiliki parent 0")
+		// Cek level parentnya
+		script := "SELECT level_pohon FROM tb_pohon_kinerja WHERE id = ?"
+		var parentLevel int
+		err := tx.QueryRowContext(ctx, script, parentId).Scan(&parentLevel)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return fmt.Errorf("parent dengan ID %d tidak ditemukan", parentId)
+			}
+			return fmt.Errorf("gagal memeriksa level parent: %v", err)
+		}
+
+		// Validasi level parent untuk level 4
+		if parentLevel < 0 || parentLevel > 3 {
+			return fmt.Errorf("level pohon 4 harus memiliki parent dengan level 0 hingga 3, bukan level %d", parentLevel)
+		}
+		return nil
 	}
 
 	// Untuk level > 4, parent tidak boleh 0
@@ -1171,7 +1186,7 @@ func (repository *PohonKinerjaRepositoryImpl) ValidateParentLevel(ctx context.Co
 		return fmt.Errorf("level pohon %d harus memiliki parent", levelPohon)
 	}
 
-	// Cek level parent
+	// Cek level parent untuk level > 4
 	script := "SELECT level_pohon FROM tb_pohon_kinerja WHERE id = ?"
 	var parentLevel int
 	err := tx.QueryRowContext(ctx, script, parentId).Scan(&parentLevel)

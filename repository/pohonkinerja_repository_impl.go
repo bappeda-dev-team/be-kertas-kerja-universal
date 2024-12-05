@@ -276,7 +276,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *s
             WHERE 
                 pk.kode_opd = ?
                 AND pk.tahun = ?
-                AND (pk.status = '' OR pk.status = 'disetujui')
+                AND (pk.status = '' OR pk.status = 'pokin dari pemda')
             
             UNION 
             
@@ -923,7 +923,9 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinAdminByIdHierarki(ctx con
 
 	// Map untuk menyimpan pohon kinerja yang sudah diproses
 	pokinMap := make(map[int]domain.PohonKinerja)
-	indikatorMap := make(map[string]domain.Indikator)
+
+	// Gunakan map untuk melacak indikator yang sudah diproses
+	processedIndikators := make(map[string]bool)
 
 	for rows.Next() {
 		var (
@@ -982,32 +984,37 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinAdminByIdHierarki(ctx con
 
 		// Proses Indikator jika ada
 		if indikatorId.Valid && namaIndikator.Valid {
-			indikator, exists := indikatorMap[indikatorId.String]
-			if !exists {
-				indikator = domain.Indikator{
+			// Cek apakah indikator sudah diproses
+			if !processedIndikators[indikatorId.String] {
+				processedIndikators[indikatorId.String] = true
+
+				indikator := domain.Indikator{
 					Id:        indikatorId.String,
 					PokinId:   fmt.Sprint(pokinId),
 					Indikator: namaIndikator.String,
 					Tahun:     tahunPokin,
 				}
-			}
 
-			// Proses Target jika ada
-			if targetId.Valid && targetValue.Valid && targetSatuan.Valid {
-				target := domain.Target{
-					Id:          targetId.String,
-					IndikatorId: indikatorId.String,
-					Target:      targetValue.String,
-					Satuan:      targetSatuan.String,
-					Tahun:       tahunPokin,
+				// Gunakan map untuk melacak target yang unik
+				processedTargets := make(map[string]bool)
+
+				// Proses Target jika ada
+				if targetId.Valid && targetValue.Valid && targetSatuan.Valid {
+					if !processedTargets[targetId.String] {
+						processedTargets[targetId.String] = true
+						target := domain.Target{
+							Id:          targetId.String,
+							IndikatorId: indikatorId.String,
+							Target:      targetValue.String,
+							Satuan:      targetSatuan.String,
+							Tahun:       tahunPokin,
+						}
+						indikator.Target = append(indikator.Target, target)
+					}
 				}
-				indikator.Target = append(indikator.Target, target)
+
+				pokin.Indikator = append(pokin.Indikator, indikator)
 			}
-
-			indikatorMap[indikatorId.String] = indikator
-
-			// Update indikator di pokin
-			pokin.Indikator = append(pokin.Indikator, indikator)
 		}
 
 		pokinMap[pokinId] = pokin

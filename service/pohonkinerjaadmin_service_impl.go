@@ -754,6 +754,9 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinAdminByIdHierarki(ctx cont
 		pohonMap[level][p.Parent] = append(pohonMap[level][p.Parent], p)
 	}
 
+	// Tambahkan map untuk melacak indikator yang sudah diproses
+	processedIndikators := make(map[string]bool)
+
 	// Bangun response hierarki
 	var tematikResponse pohonkinerja.TematikResponse
 	if tematik, exists := pohonMap[0][0]; exists && len(tematik) > 0 {
@@ -783,6 +786,17 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinAdminByIdHierarki(ctx cont
 			}
 		}
 
+		// Konversi indikator dengan pengecekan duplikasi
+		var uniqueIndikators []pohonkinerja.IndikatorResponse
+		for _, ind := range tematik[0].Indikator {
+			// Cek apakah indikator sudah diproses
+			if !processedIndikators[ind.Id] {
+				processedIndikators[ind.Id] = true
+				indResp := helper.ConvertToIndikatorResponse(ind)
+				uniqueIndikators = append(uniqueIndikators, indResp)
+			}
+		}
+
 		tematikResponse = pohonkinerja.TematikResponse{
 			Id:         tematik[0].Id,
 			Parent:     nil,
@@ -790,7 +804,7 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinAdminByIdHierarki(ctx cont
 			JenisPohon: tematik[0].JenisPohon,
 			LevelPohon: tematik[0].LevelPohon,
 			Keterangan: tematik[0].Keterangan,
-			Indikators: helper.ConvertToIndikatorResponses(tematik[0].Indikator),
+			Indikators: uniqueIndikators, // Gunakan indikator yang sudah difilter
 			Child:      childs,
 		}
 	}
@@ -1010,6 +1024,9 @@ func (service *PohonKinerjaAdminServiceImpl) CloneStrategiFromPemda(ctx context.
 	for _, indikator := range indikators {
 		newIndikatorId := "IND-POKIN-" + uuid.New().String()[:6]
 
+		// Set clone_from untuk indikator
+		indikator.CloneFrom = indikator.Id // Simpan ID indikator asli sebagai clone_from
+
 		err = service.pohonKinerjaRepository.InsertClonedIndikator(ctx, tx, newIndikatorId, newPokinId, indikator)
 		if err != nil {
 			return pohonkinerja.PohonKinerjaAdminResponseData{}, err
@@ -1024,6 +1041,10 @@ func (service *PohonKinerjaAdminServiceImpl) CloneStrategiFromPemda(ctx context.
 
 		for _, target := range targets {
 			newTargetId := "TRGT-IND-POKIN-" + uuid.New().String()[:5]
+
+			// Set clone_from untuk target
+			target.CloneFrom = target.Id // Simpan ID target asli sebagai clone_from
+
 			err = service.pohonKinerjaRepository.InsertClonedTarget(ctx, tx, newTargetId, newIndikatorId, target)
 			if err != nil {
 				return pohonkinerja.PohonKinerjaAdminResponseData{}, err
@@ -1034,7 +1055,6 @@ func (service *PohonKinerjaAdminServiceImpl) CloneStrategiFromPemda(ctx context.
 				IndikatorId:     newIndikatorId,
 				TargetIndikator: target.Target,
 				SatuanIndikator: target.Satuan,
-				// CloneFrom:       target.Id,
 			})
 		}
 
@@ -1421,7 +1441,6 @@ func (service *PohonKinerjaAdminServiceImpl) CrosscuttingOpd(ctx context.Context
 				IndikatorId:     newIndikatorId,
 				TargetIndikator: target.Target,
 				SatuanIndikator: target.Satuan,
-				// CloneFrom:       target.Id,
 			})
 		}
 

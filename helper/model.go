@@ -615,3 +615,23 @@ func ConvertToIndikatorResponses(indikators []domain.Indikator) []pohonkinerja.I
 	}
 	return responses
 }
+
+func ConvertToIndikatorResponse(indikator domain.Indikator) pohonkinerja.IndikatorResponse {
+	var targetResponses []pohonkinerja.TargetResponse
+	for _, t := range indikator.Target {
+		targetResponse := pohonkinerja.TargetResponse{
+			Id:              t.Id,
+			IndikatorId:     t.IndikatorId,
+			TargetIndikator: t.Target,
+			SatuanIndikator: t.Satuan,
+		}
+		targetResponses = append(targetResponses, targetResponse)
+	}
+
+	return pohonkinerja.IndikatorResponse{
+		Id:            indikator.Id,
+		IdPokin:       indikator.PokinId,
+		NamaIndikator: indikator.Indikator,
+		Target:        targetResponses,
+	}
+}

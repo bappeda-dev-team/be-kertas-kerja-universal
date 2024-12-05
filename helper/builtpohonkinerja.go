@@ -4,6 +4,7 @@ import (
 	"ekak_kabupaten_madiun/model/domain"
 	"ekak_kabupaten_madiun/model/web/opdmaster"
 	"ekak_kabupaten_madiun/model/web/pohonkinerja"
+	"fmt"
 	"sort"
 )
 
@@ -132,6 +133,43 @@ func BuildSuperSubTematikResponse(pohonMap map[int]map[int][]domain.PohonKinerja
 }
 
 func BuildStrategicResponse(pohonMap map[int]map[int][]domain.PohonKinerja, strategic domain.PohonKinerja) pohonkinerja.StrategicResponse {
+	// Tambahkan map untuk melacak indikator yang sudah diproses
+	processedIndikators := make(map[string]bool)
+	var uniqueIndikators []pohonkinerja.IndikatorResponse
+
+	// Proses indikator dengan pengecekan duplikasi
+	for _, ind := range strategic.Indikator {
+		if !processedIndikators[ind.Id] {
+			processedIndikators[ind.Id] = true
+
+			// Buat map untuk melacak target yang unik
+			processedTargets := make(map[string]bool)
+			var uniqueTargets []pohonkinerja.TargetResponse
+
+			// Proses target dengan pengecekan duplikasi
+			for _, target := range ind.Target {
+				if !processedTargets[target.Id] {
+					processedTargets[target.Id] = true
+					targetResp := pohonkinerja.TargetResponse{
+						Id:              target.Id,
+						IndikatorId:     target.IndikatorId,
+						TargetIndikator: target.Target,
+						SatuanIndikator: target.Satuan,
+					}
+					uniqueTargets = append(uniqueTargets, targetResp)
+				}
+			}
+
+			indResp := pohonkinerja.IndikatorResponse{
+				Id:            ind.Id,
+				IdPokin:       fmt.Sprint(strategic.Id),
+				NamaIndikator: ind.Indikator,
+				Target:        uniqueTargets,
+			}
+			uniqueIndikators = append(uniqueIndikators, indResp)
+		}
+	}
+
 	strategicResp := pohonkinerja.StrategicResponse{
 		Id:         strategic.Id,
 		Parent:     strategic.Parent,
@@ -140,7 +178,7 @@ func BuildStrategicResponse(pohonMap map[int]map[int][]domain.PohonKinerja, stra
 		LevelPohon: strategic.LevelPohon,
 		Keterangan: strategic.Keterangan,
 		Status:     strategic.Status,
-		Indikators: ConvertToIndikatorResponses(strategic.Indikator),
+		Indikators: uniqueIndikators,
 		KodeOpd: &opdmaster.OpdResponseForAll{
 			KodeOpd: strategic.KodeOpd,
 			NamaOpd: strategic.NamaOpd,
@@ -168,6 +206,41 @@ func BuildStrategicResponse(pohonMap map[int]map[int][]domain.PohonKinerja, stra
 }
 
 func BuildTacticalResponse(pohonMap map[int]map[int][]domain.PohonKinerja, tactical domain.PohonKinerja) pohonkinerja.TacticalResponse {
+	// Proses indikator dengan pengecekan duplikasi
+	processedIndikators := make(map[string]bool)
+	var uniqueIndikators []pohonkinerja.IndikatorResponse
+
+	for _, ind := range tactical.Indikator {
+		if !processedIndikators[ind.Id] {
+			processedIndikators[ind.Id] = true
+
+			// Buat map untuk melacak target yang unik
+			processedTargets := make(map[string]bool)
+			var uniqueTargets []pohonkinerja.TargetResponse
+
+			for _, target := range ind.Target {
+				if !processedTargets[target.Id] {
+					processedTargets[target.Id] = true
+					targetResp := pohonkinerja.TargetResponse{
+						Id:              target.Id,
+						IndikatorId:     target.IndikatorId,
+						TargetIndikator: target.Target,
+						SatuanIndikator: target.Satuan,
+					}
+					uniqueTargets = append(uniqueTargets, targetResp)
+				}
+			}
+
+			indResp := pohonkinerja.IndikatorResponse{
+				Id:            ind.Id,
+				IdPokin:       fmt.Sprint(tactical.Id),
+				NamaIndikator: ind.Indikator,
+				Target:        uniqueTargets,
+			}
+			uniqueIndikators = append(uniqueIndikators, indResp)
+		}
+	}
+
 	tacticalResp := pohonkinerja.TacticalResponse{
 		Id:         tactical.Id,
 		Parent:     tactical.Parent,
@@ -176,7 +249,7 @@ func BuildTacticalResponse(pohonMap map[int]map[int][]domain.PohonKinerja, tacti
 		LevelPohon: tactical.LevelPohon,
 		Keterangan: &tactical.Keterangan,
 		Status:     tactical.Status,
-		Indikators: ConvertToIndikatorResponses(tactical.Indikator),
+		Indikators: uniqueIndikators,
 		Pelaksana:  ConvertToPelaksanaResponses(tactical.Pelaksana),
 	}
 
@@ -203,6 +276,41 @@ func BuildTacticalResponse(pohonMap map[int]map[int][]domain.PohonKinerja, tacti
 }
 
 func BuildOperationalResponse(pohonMap map[int]map[int][]domain.PohonKinerja, operational domain.PohonKinerja) pohonkinerja.OperationalResponse {
+	// Proses indikator dengan pengecekan duplikasi
+	processedIndikators := make(map[string]bool)
+	var uniqueIndikators []pohonkinerja.IndikatorResponse
+
+	for _, ind := range operational.Indikator {
+		if !processedIndikators[ind.Id] {
+			processedIndikators[ind.Id] = true
+
+			// Buat map untuk melacak target yang unik
+			processedTargets := make(map[string]bool)
+			var uniqueTargets []pohonkinerja.TargetResponse
+
+			for _, target := range ind.Target {
+				if !processedTargets[target.Id] {
+					processedTargets[target.Id] = true
+					targetResp := pohonkinerja.TargetResponse{
+						Id:              target.Id,
+						IndikatorId:     target.IndikatorId,
+						TargetIndikator: target.Target,
+						SatuanIndikator: target.Satuan,
+					}
+					uniqueTargets = append(uniqueTargets, targetResp)
+				}
+			}
+
+			indResp := pohonkinerja.IndikatorResponse{
+				Id:            ind.Id,
+				IdPokin:       fmt.Sprint(operational.Id),
+				NamaIndikator: ind.Indikator,
+				Target:        uniqueTargets,
+			}
+			uniqueIndikators = append(uniqueIndikators, indResp)
+		}
+	}
+
 	operationalResp := pohonkinerja.OperationalResponse{
 		Id:         operational.Id,
 		Parent:     operational.Parent,
@@ -211,7 +319,7 @@ func BuildOperationalResponse(pohonMap map[int]map[int][]domain.PohonKinerja, op
 		LevelPohon: operational.LevelPohon,
 		Keterangan: &operational.Keterangan,
 		Status:     operational.Status,
-		Indikators: ConvertToIndikatorResponses(operational.Indikator),
+		Indikators: uniqueIndikators,
 		Pelaksana:  ConvertToPelaksanaResponses(operational.Pelaksana),
 	}
 
@@ -244,6 +352,41 @@ func BuildOperationalResponse(pohonMap map[int]map[int][]domain.PohonKinerja, op
 }
 
 func BuildOperationalNResponse(pohonMap map[int]map[int][]domain.PohonKinerja, operationalN domain.PohonKinerja) pohonkinerja.OperationalNResponse {
+	// Proses indikator dengan pengecekan duplikasi
+	processedIndikators := make(map[string]bool)
+	var uniqueIndikators []pohonkinerja.IndikatorResponse
+
+	for _, ind := range operationalN.Indikator {
+		if !processedIndikators[ind.Id] {
+			processedIndikators[ind.Id] = true
+
+			// Buat map untuk melacak target yang unik
+			processedTargets := make(map[string]bool)
+			var uniqueTargets []pohonkinerja.TargetResponse
+
+			for _, target := range ind.Target {
+				if !processedTargets[target.Id] {
+					processedTargets[target.Id] = true
+					targetResp := pohonkinerja.TargetResponse{
+						Id:              target.Id,
+						IndikatorId:     target.IndikatorId,
+						TargetIndikator: target.Target,
+						SatuanIndikator: target.Satuan,
+					}
+					uniqueTargets = append(uniqueTargets, targetResp)
+				}
+			}
+
+			indResp := pohonkinerja.IndikatorResponse{
+				Id:            ind.Id,
+				IdPokin:       fmt.Sprint(operationalN.Id),
+				NamaIndikator: ind.Indikator,
+				Target:        uniqueTargets,
+			}
+			uniqueIndikators = append(uniqueIndikators, indResp)
+		}
+	}
+
 	operationalNResp := pohonkinerja.OperationalNResponse{
 		Id:         operationalN.Id,
 		Parent:     operationalN.Parent,
@@ -252,7 +395,7 @@ func BuildOperationalNResponse(pohonMap map[int]map[int][]domain.PohonKinerja, o
 		LevelPohon: operationalN.LevelPohon,
 		Keterangan: &operationalN.Keterangan,
 		Status:     operationalN.Status,
-		Indikators: ConvertToIndikatorResponses(operationalN.Indikator),
+		Indikators: uniqueIndikators,
 		Pelaksana:  ConvertToPelaksanaResponses(operationalN.Pelaksana),
 	}
 

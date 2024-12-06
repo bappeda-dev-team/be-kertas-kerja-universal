@@ -1300,7 +1300,7 @@ func (repository *PohonKinerjaRepositoryImpl) InsertClonedTarget(ctx context.Con
 	return nil
 }
 
-func (repository *PohonKinerjaRepositoryImpl) FindPokinByJenisPohon(ctx context.Context, tx *sql.Tx, jenisPohon string, levelPohon int, tahun string, kodeOpd string) ([]domain.PohonKinerja, error) {
+func (repository *PohonKinerjaRepositoryImpl) FindPokinByJenisPohon(ctx context.Context, tx *sql.Tx, jenisPohon string, levelPohon int, tahun string, kodeOpd string, status string) ([]domain.PohonKinerja, error) {
 	script := "SELECT id, nama_pohon, jenis_pohon, level_pohon, kode_opd, tahun, status FROM tb_pohon_kinerja WHERE 1=1"
 	parameters := []interface{}{}
 	if jenisPohon != "" {
@@ -1318,6 +1318,10 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinByJenisPohon(ctx context.
 	if tahun != "" {
 		script += " AND tahun = ?"
 		parameters = append(parameters, tahun)
+	}
+	if status != "" {
+		script += " AND status = ?"
+		parameters = append(parameters, status)
 	}
 	script += " ORDER BY nama_pohon asc"
 
@@ -1603,4 +1607,35 @@ func (repository *PohonKinerjaRepositoryImpl) FindTargetByCloneFrom(ctx context.
 		return domain.Target{}, err
 	}
 	return target, nil
+}
+
+// Tambahkan method baru untuk FindPokinByCrosscuttingStatus
+func (repository *PohonKinerjaRepositoryImpl) FindPokinByCrosscuttingStatus(ctx context.Context, tx *sql.Tx, kodeOpd string, tahun string) ([]domain.PohonKinerja, error) {
+	script := `SELECT 
+        id, nama_pohon, parent, jenis_pohon, level_pohon, 
+        kode_opd, keterangan, tahun, status 
+        FROM tb_pohon_kinerja 
+        WHERE kode_opd = ? 
+        AND tahun = ? 
+        AND status = 'crosscutting_menunggu'
+        ORDER BY level_pohon, id ASC`
+
+	rows, err := tx.QueryContext(ctx, script, kodeOpd, tahun)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var pokins []domain.PohonKinerja
+	for rows.Next() {
+		var pokin domain.PohonKinerja
+		err := rows.Scan(
+			&pokin.Id, &pokin.NamaPohon, &pokin.Parent, &pokin.JenisPohon, &pokin.LevelPohon, &pokin.KodeOpd, &pokin.Keterangan, &pokin.Tahun, &pokin.Status,
+		)
+		if err != nil {
+			return nil, err
+		}
+		pokins = append(pokins, pokin)
+	}
+	return pokins, nil
 }

@@ -8,18 +8,19 @@ type PohonKinerjaAdminResponse struct {
 }
 
 type PohonKinerjaAdminResponseData struct {
-	Id         int                    `json:"id"`
-	Parent     int                    `json:"parent,omitempty"`
-	NamaPohon  string                 `json:"nama_pohon"`
-	KodeOpd    string                 `json:"kode_opd,omitempty"`
-	NamaOpd    string                 `json:"nama_opd,omitempty"`
-	Keterangan string                 `json:"keterangan,omitempty"`
-	Tahun      string                 `json:"tahun"`
-	JenisPohon string                 `json:"jenis_pohon"`
-	LevelPohon int                    `json:"level_pohon"`
-	Status     string                 `json:"status"`
-	Pelaksana  []PelaksanaOpdResponse `json:"pelaksana,omitempty"`
-	Indikators []IndikatorResponse    `json:"indikators,omitempty"`
+	Id             int                    `json:"id"`
+	Parent         int                    `json:"parent,omitempty"`
+	NamaPohon      string                 `json:"nama_pohon"`
+	KodeOpd        string                 `json:"kode_opd,omitempty"`
+	NamaOpd        string                 `json:"nama_opd,omitempty"`
+	Keterangan     string                 `json:"keterangan,omitempty"`
+	Tahun          string                 `json:"tahun"`
+	NamaOpdPengaju string                 `json:"nama_opd_pengaju,omitempty"`
+	JenisPohon     string                 `json:"jenis_pohon"`
+	LevelPohon     int                    `json:"level_pohon"`
+	Status         string                 `json:"status"`
+	Pelaksana      []PelaksanaOpdResponse `json:"pelaksana,omitempty"`
+	Indikators     []IndikatorResponse    `json:"indikators,omitempty"`
 	// SubTematiks []SubtematikResponse `json:"sub_tematiks,omitempty"`
 }
 

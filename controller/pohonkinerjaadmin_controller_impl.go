@@ -525,3 +525,78 @@ func (controller *PohonKinerjaAdminControllerImpl) FindPokinFromPemda(writer htt
 
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *PohonKinerjaAdminControllerImpl) SetujuiCrosscutting(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	pohonKinerjaId := params.ByName("pohonKinerjaId")
+	id, err := strconv.Atoi(pohonKinerjaId)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   "Invalid ID format",
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	pohonKinerjaRequest := pohonkinerja.PohonKinerjaAdminTolakRequest{
+		Id: id,
+	}
+
+	// Panggil service
+	err = controller.pohonKinerjaAdminService.SetujuiCrosscutting(request.Context(), pohonKinerjaRequest)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "Success",
+		Data:   "Crosscutting berhasil disetujui",
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *PohonKinerjaAdminControllerImpl) TolakCrosscutting(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	pohonKinerjaId := params.ByName("pohonKinerjaId")
+	id, err := strconv.Atoi(pohonKinerjaId)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   "Invalid ID format",
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	pohonKinerjaRequest := pohonkinerja.PohonKinerjaAdminTolakRequest{
+		Id: id,
+	}
+
+	err = controller.pohonKinerjaAdminService.TolakCrosscutting(request.Context(), pohonKinerjaRequest)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "Success",
+		Data:   "Crosscutting berhasil disetujui",
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}

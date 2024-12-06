@@ -25,4 +25,6 @@ type PohonKinerjaAdminController interface {
 	CrosscuttingOpd(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindPokinByCrosscuttingStatus(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindPokinFromPemda(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	SetujuiCrosscutting(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	TolakCrosscutting(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 }

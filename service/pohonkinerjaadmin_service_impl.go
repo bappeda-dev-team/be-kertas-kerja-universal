@@ -1621,3 +1621,59 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinFromPemda(ctx context.Cont
 
 	return result, nil
 }
+
+func (service *PohonKinerjaAdminServiceImpl) TolakCrosscutting(ctx context.Context, request pohonkinerja.PohonKinerjaAdminTolakRequest) error {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	if request.Id == 0 {
+		return errors.New("id tidak boleh kosong")
+	}
+
+	status, err := service.pohonKinerjaRepository.CheckPokinStatus(ctx, tx, request.Id)
+	if err != nil {
+		return err
+	}
+
+	if status != "crosscutting_menunggu" {
+		return errors.New("hanya pohon kinerja dengan status crosscutting_menunggu yang dapat ditolak")
+	}
+
+	err = service.pohonKinerjaRepository.UpdatePokinStatusTolak(ctx, tx, request.Id, "crosscutting_ditolak")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (service *PohonKinerjaAdminServiceImpl) SetujuiCrosscutting(ctx context.Context, request pohonkinerja.PohonKinerjaAdminTolakRequest) error {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	if request.Id == 0 {
+		return errors.New("id tidak boleh kosong")
+	}
+
+	status, err := service.pohonKinerjaRepository.CheckPokinStatus(ctx, tx, request.Id)
+	if err != nil {
+		return err
+	}
+
+	if status != "crosscutting_menunggu" {
+		return errors.New("hanya pohon kinerja dengan status crosscutting_menunggu yang dapat disetujui")
+	}
+
+	err = service.pohonKinerjaRepository.UpdatePokinStatusTolak(ctx, tx, request.Id, "crosscutting_disetujui")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

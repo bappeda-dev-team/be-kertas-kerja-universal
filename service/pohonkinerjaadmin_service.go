@@ -17,6 +17,8 @@ type PohonKinerjaAdminService interface {
 	CloneStrategiFromPemda(ctx context.Context, request pohonkinerja.PohonKinerjaAdminStrategicCreateRequest) (pohonkinerja.PohonKinerjaAdminResponseData, error)
 	TolakPokin(ctx context.Context, request pohonkinerja.PohonKinerjaAdminTolakRequest) error
 	CrosscuttingOpd(ctx context.Context, request pohonkinerja.PohonKinerjaAdminStrategicCreateRequest) (pohonkinerja.PohonKinerjaAdminResponseData, error)
+	TolakCrosscutting(ctx context.Context, request pohonkinerja.PohonKinerjaAdminTolakRequest) error
+	SetujuiCrosscutting(ctx context.Context, request pohonkinerja.PohonKinerjaAdminTolakRequest) error
 
 	//find pokin for dropdown
 	FindPokinByTematik(ctx context.Context, tahun string) ([]pohonkinerja.PohonKinerjaAdminResponseData, error)

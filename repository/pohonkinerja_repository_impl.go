@@ -664,24 +664,34 @@ func (repository *PohonKinerjaRepositoryImpl) UpdatePokinAdmin(ctx context.Conte
 }
 
 func (repository *PohonKinerjaRepositoryImpl) DeletePokinAdmin(ctx context.Context, tx *sql.Tx, id int) error {
+	// Query untuk mendapatkan semua ID yang akan dihapus
 	findIdsScript := `
         WITH RECURSIVE pohon_hierarki AS (
             -- Base case: node yang akan dihapus
-            SELECT id 
+            SELECT id, parent, level_pohon, clone_from 
             FROM tb_pohon_kinerja 
             WHERE id = ?
             
             UNION ALL
             
-            -- Recursive case: semua child nodes
-            SELECT pk.id
+            -- Recursive case: child nodes dengan pengecekan clone_from
+            SELECT pk.id, pk.parent, pk.level_pohon, pk.clone_from
             FROM tb_pohon_kinerja pk
             INNER JOIN pohon_hierarki ph ON pk.parent = ph.id
+            WHERE 
+                -- Jika parent adalah data asli (clone_from = 0), ambil semua child
+                (ph.clone_from = 0 AND pk.clone_from = 0)
+                OR
+                -- Jika parent adalah data clone, hanya ambil child yang clone_from-nya sama
+                (ph.clone_from > 0 AND pk.clone_from = ph.clone_from)
+                OR
+                -- Ambil data yang parent-nya adalah node yang akan dihapus
+                (ph.id = ? AND pk.parent = ph.id)
         )
         SELECT id FROM pohon_hierarki;
     `
 
-	rows, err := tx.QueryContext(ctx, findIdsScript, id)
+	rows, err := tx.QueryContext(ctx, findIdsScript, id, id)
 	if err != nil {
 		return fmt.Errorf("gagal mengambil hierarki ID: %v", err)
 	}
@@ -709,7 +719,12 @@ func (repository *PohonKinerjaRepositoryImpl) DeletePokinAdmin(ctx context.Conte
 	inClause := strings.Join(placeholders, ",")
 
 	// Hapus target terlebih dahulu
-	scriptDeleteTarget := fmt.Sprintf("DELETE FROM tb_target WHERE indikator_id IN (SELECT id FROM tb_indikator WHERE pokin_id IN (%s))", inClause)
+	scriptDeleteTarget := fmt.Sprintf(`
+        DELETE FROM tb_target 
+        WHERE indikator_id IN (
+            SELECT id FROM tb_indikator 
+            WHERE pokin_id IN (%s)
+        )`, inClause)
 	_, err = tx.ExecContext(ctx, scriptDeleteTarget, idsToDelete...)
 	if err != nil {
 		return fmt.Errorf("gagal menghapus target: %v", err)
@@ -740,7 +755,7 @@ func (repository *PohonKinerjaRepositoryImpl) DeletePokinAdmin(ctx context.Conte
 }
 
 func (repository *PohonKinerjaRepositoryImpl) FindPokinAdminById(ctx context.Context, tx *sql.Tx, id int) (domain.PohonKinerja, error) {
-	script := "SELECT id, nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun FROM tb_pohon_kinerja WHERE id = ?"
+	script := "SELECT id, nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun, status FROM tb_pohon_kinerja WHERE id = ?"
 	rows, err := tx.QueryContext(ctx, script, id)
 	if err != nil {
 		return domain.PohonKinerja{}, err
@@ -749,7 +764,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinAdminById(ctx context.Con
 
 	pokinAdmin := domain.PohonKinerja{}
 	if rows.Next() {
-		rows.Scan(&pokinAdmin.Id, &pokinAdmin.NamaPohon, &pokinAdmin.Parent, &pokinAdmin.JenisPohon, &pokinAdmin.LevelPohon, &pokinAdmin.KodeOpd, &pokinAdmin.Keterangan, &pokinAdmin.Tahun)
+		rows.Scan(&pokinAdmin.Id, &pokinAdmin.NamaPohon, &pokinAdmin.Parent, &pokinAdmin.JenisPohon, &pokinAdmin.LevelPohon, &pokinAdmin.KodeOpd, &pokinAdmin.Keterangan, &pokinAdmin.Tahun, &pokinAdmin.Status)
 	}
 	return pokinAdmin, nil
 }

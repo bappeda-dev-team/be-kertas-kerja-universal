@@ -1705,7 +1705,7 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinFromOpd(ctx context.Contex
 	var result []pohonkinerja.PohonKinerjaAdminResponseData
 	for _, pokin := range pokins {
 		// Skip pohon kinerja dengan status yang tidak diinginkan
-		if pokin.Status == "menunggu_disetujui" || pokin.Status == "crosscutting_menunggu" || pokin.Status == "tarik pokin opd" {
+		if pokin.Status == "menunggu_disetujui" || pokin.Status == "crosscutting_menunggu" || pokin.Status == "tarik pokin opd" || pokin.Status == "disetujui" || pokin.Status == "ditolak" || pokin.Status == "crosscutting_ditolak" {
 			continue
 		}
 

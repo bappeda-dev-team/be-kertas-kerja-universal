@@ -92,8 +92,7 @@ func (repository *PohonKinerjaRepositoryImpl) Update(ctx context.Context, tx *sq
             level_pohon = ?, 
             kode_opd = ?, 
             keterangan = ?, 
-            tahun = ?, 
-            status = ? 
+            tahun = ?
         WHERE id = ?`
 
 	_, err := tx.ExecContext(ctx, scriptPokin,
@@ -104,7 +103,6 @@ func (repository *PohonKinerjaRepositoryImpl) Update(ctx context.Context, tx *sq
 		pohonKinerja.KodeOpd,
 		pohonKinerja.Keterangan,
 		pohonKinerja.Tahun,
-		pohonKinerja.Status,
 		pohonKinerja.Id)
 	if err != nil {
 		return pohonKinerja, err
@@ -528,8 +526,21 @@ func (repository *PohonKinerjaRepositoryImpl) CreatePokinAdmin(ctx context.Conte
 }
 
 func (repository *PohonKinerjaRepositoryImpl) UpdatePokinAdmin(ctx context.Context, tx *sql.Tx, pokinAdmin domain.PohonKinerja) (domain.PohonKinerja, error) {
-	// Update tb_pohon_kinerja
-	scriptPokin := "UPDATE tb_pohon_kinerja SET nama_pohon = ?, parent = ?, jenis_pohon = ?, level_pohon = ?, kode_opd = ?, keterangan = ?, tahun = ?, status = ? WHERE id = ?"
+	// Update tb_pohon_kinerja dengan mempertahankan status
+	scriptPokin := `
+        UPDATE tb_pohon_kinerja 
+        SET nama_pohon = ?, 
+            parent = CASE 
+                WHEN clone_from = 0 THEN ? 
+                ELSE parent 
+            END,
+            jenis_pohon = ?, 
+            level_pohon = ?, 
+            kode_opd = ?, 
+            keterangan = ?, 
+            tahun = ?
+        WHERE id = ?`
+
 	_, err := tx.ExecContext(ctx, scriptPokin,
 		pokinAdmin.NamaPohon,
 		pokinAdmin.Parent,
@@ -538,7 +549,6 @@ func (repository *PohonKinerjaRepositoryImpl) UpdatePokinAdmin(ctx context.Conte
 		pokinAdmin.KodeOpd,
 		pokinAdmin.Keterangan,
 		pokinAdmin.Tahun,
-		pokinAdmin.Status,
 		pokinAdmin.Id)
 	if err != nil {
 		return pokinAdmin, err

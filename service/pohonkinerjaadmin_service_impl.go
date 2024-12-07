@@ -1572,7 +1572,7 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinByCrosscuttingStatus(ctx c
 	return result, nil
 }
 
-func (service *PohonKinerjaAdminServiceImpl) FindPokinFromPemda(ctx context.Context, kodeOpd string, tahun string, levelPohon int) ([]pohonkinerja.PohonKinerjaAdminResponseData, error) {
+func (service *PohonKinerjaAdminServiceImpl) FindPokinFromPemda(ctx context.Context, kodeOpd string, tahun string) ([]pohonkinerja.PohonKinerjaAdminResponseData, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return nil, err
@@ -1587,7 +1587,7 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinFromPemda(ctx context.Cont
 		}
 	}
 
-	pokins, err := service.pohonKinerjaRepository.FindPokinByJenisPohon(ctx, tx, "", levelPohon, tahun, kodeOpd, "menunggu_disetujui")
+	pokins, err := service.pohonKinerjaRepository.FindPokinByJenisPohon(ctx, tx, "", 0, tahun, kodeOpd, "menunggu_disetujui")
 	if err != nil {
 		return nil, err
 	}

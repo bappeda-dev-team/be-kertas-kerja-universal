@@ -259,7 +259,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindById(ctx context.Context, tx *
 func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, kodeOpd, tahun string) ([]domain.PohonKinerja, error) {
 	script := `
         WITH RECURSIVE pohon_hierarki AS (
-            -- Base case: ambil semua node dari OPD yang diminta
+            -- Base case: ambil semua node dari OPD yang diminta dan OPD lain yang memiliki parent dari OPD yang diminta
             SELECT 
                 pk.id,
                 pk.nama_pohon,
@@ -274,13 +274,16 @@ func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *s
             FROM 
                 tb_pohon_kinerja pk
             WHERE 
-                pk.kode_opd = ?
+                (pk.kode_opd = ? 
+                OR pk.parent IN (
+                    SELECT id FROM tb_pohon_kinerja 
+                    WHERE kode_opd = ? AND tahun = ?
+                ))
                 AND pk.tahun = ?
-                AND (pk.status = '' OR pk.status = 'pokin dari pemda')
             
             UNION 
             
-            -- Recursive case 1: ambil parent nodes
+            -- Recursive case: ambil parent nodes
             SELECT 
                 p.id,
                 p.nama_pohon,
@@ -297,31 +300,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *s
             INNER JOIN 
                 pohon_hierarki ph ON p.id = ph.parent
             WHERE 
-                (p.status = '' OR p.status = 'disetujui')
-                AND p.tahun = ?
-
-            UNION
-
-            -- Recursive case 2: ambil semua node level 5 ke atas yang parent-nya sudah ada
-            SELECT 
-                c.id,
-                c.nama_pohon,
-                c.parent,
-                c.jenis_pohon,
-                c.level_pohon,
-                c.kode_opd,
-                c.keterangan,
-                c.tahun,
-                c.created_at,
-                c.status
-            FROM 
-                tb_pohon_kinerja c
-            INNER JOIN 
-                pohon_hierarki ph ON c.parent = ph.id
-            WHERE 
-                c.level_pohon >= 5
-                AND (c.status = '' OR c.status = 'disetujui')
-                AND c.tahun = ?
+                p.tahun = ?
         )
         SELECT DISTINCT 
             h.id,
@@ -341,10 +320,9 @@ func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *s
         LEFT JOIN 
             tb_pelaksana_pokin p ON h.id = p.pohon_kinerja_id
         ORDER BY 
-            h.level_pohon, h.id, h.created_at ASC
-    `
+            h.level_pohon, h.id, h.created_at ASC`
 
-	rows, err := tx.QueryContext(ctx, script, kodeOpd, tahun, tahun, tahun)
+	rows, err := tx.QueryContext(ctx, script, kodeOpd, kodeOpd, tahun, tahun, tahun)
 	if err != nil {
 		return nil, err
 	}

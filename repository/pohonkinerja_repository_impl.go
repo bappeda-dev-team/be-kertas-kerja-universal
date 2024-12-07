@@ -294,6 +294,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *s
                     WHERE kode_opd = ? AND tahun = ?
                 ))
                 AND pk.tahun = ?
+				AND pk.status NOT IN ('menunggu_disetujui', 'tarik pokin opd')
             
             UNION 
             
@@ -315,6 +316,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *s
                 pohon_hierarki ph ON p.id = ph.parent
             WHERE 
                 p.tahun = ?
+				AND p.status NOT IN ('menunggu_disetujui', 'tarik pokin opd')
         )
         SELECT DISTINCT 
             h.id,

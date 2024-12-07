@@ -81,7 +81,21 @@ func (repository *PohonKinerjaRepositoryImpl) Create(ctx context.Context, tx *sq
 
 func (repository *PohonKinerjaRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, pohonKinerja domain.PohonKinerja) (domain.PohonKinerja, error) {
 	// Update tb_pohon_kinerja
-	scriptPokin := "UPDATE tb_pohon_kinerja SET nama_pohon = ?, parent = ?, jenis_pohon = ?, level_pohon = ?, kode_opd = ?, keterangan = ?, tahun = ?, status = ? WHERE id = ?"
+	scriptPokin := `
+        UPDATE tb_pohon_kinerja 
+        SET nama_pohon = ?, 
+            parent = CASE 
+                WHEN clone_from = 0 THEN ? 
+                ELSE parent 
+            END,
+            jenis_pohon = ?, 
+            level_pohon = ?, 
+            kode_opd = ?, 
+            keterangan = ?, 
+            tahun = ?, 
+            status = ? 
+        WHERE id = ?`
+
 	_, err := tx.ExecContext(ctx, scriptPokin,
 		pohonKinerja.NamaPohon,
 		pohonKinerja.Parent,

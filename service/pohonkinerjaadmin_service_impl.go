@@ -440,23 +440,28 @@ func (service *PohonKinerjaAdminServiceImpl) Delete(ctx context.Context, id int)
 		return fmt.Errorf("data tidak ditemukan: %v", err)
 	}
 
+	// Validasi level pohon: hanya validasi batas bawah
+	if pokin.LevelPohon < 0 {
+		return fmt.Errorf("level pohon kinerja tidak valid")
+	}
+
 	// Cek apakah data adalah hasil clone
 	cloneFrom, err := service.pohonKinerjaRepository.CheckCloneFrom(ctx, tx, id)
 	if err != nil {
 		return fmt.Errorf("gagal memeriksa status clone: %v", err)
 	}
 
-	// Jika data adalah hasil clone (clone_from tidak 0), maka tidak bisa dihapus
+	// Jika data adalah clone, hanya hapus data tersebut dan hierarkinya
+	// tanpa mempengaruhi data asli (clone_from)
 	if cloneFrom != 0 {
-		return fmt.Errorf("data tidak dapat dihapus karena merupakan hasil clone dari ID %d", cloneFrom)
+		err = service.pohonKinerjaRepository.DeleteClonedPokinHierarchy(ctx, tx, id)
+		if err != nil {
+			return fmt.Errorf("gagal menghapus data clone: %v", err)
+		}
+		return nil
 	}
 
-	// Validasi level pohon: hanya validasi batas bawah
-	if pokin.LevelPohon < 0 {
-		return fmt.Errorf("level pohon kinerja tidak valid")
-	}
-
-	// Lakukan penghapusan secara hierarki
+	// Jika data adalah asli (clone_from = 0), hapus data beserta semua yang terkait
 	err = service.pohonKinerjaRepository.DeletePokinAdmin(ctx, tx, id)
 	if err != nil {
 		return fmt.Errorf("gagal menghapus data: %v", err)

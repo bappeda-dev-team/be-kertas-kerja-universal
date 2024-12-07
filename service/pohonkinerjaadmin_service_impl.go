@@ -440,9 +440,19 @@ func (service *PohonKinerjaAdminServiceImpl) Delete(ctx context.Context, id int)
 		return fmt.Errorf("data tidak ditemukan: %v", err)
 	}
 
-	// Validasi tambahan: pastikan data yang akan dihapus memiliki level yang sesuai
-	// Ini opsional, tergantung kebutuhan bisnis
-	if pokin.LevelPohon < 0 || pokin.LevelPohon > 6 {
+	// Cek apakah data adalah hasil clone
+	cloneFrom, err := service.pohonKinerjaRepository.CheckCloneFrom(ctx, tx, id)
+	if err != nil {
+		return fmt.Errorf("gagal memeriksa status clone: %v", err)
+	}
+
+	// Jika data adalah hasil clone (clone_from tidak 0), maka tidak bisa dihapus
+	if cloneFrom != 0 {
+		return fmt.Errorf("data tidak dapat dihapus karena merupakan hasil clone dari ID %d", cloneFrom)
+	}
+
+	// Validasi level pohon: hanya validasi batas bawah
+	if pokin.LevelPohon < 0 {
 		return fmt.Errorf("level pohon kinerja tidak valid")
 	}
 

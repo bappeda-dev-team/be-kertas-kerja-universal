@@ -667,28 +667,36 @@ func (repository *PohonKinerjaRepositoryImpl) DeletePokinAdmin(ctx context.Conte
 	// Query untuk mendapatkan semua ID yang akan dihapus
 	findIdsScript := `
         WITH RECURSIVE pohon_hierarki AS (
-            -- Base case: node yang akan dihapus
+            -- Base case: node yang akan dihapus dan data yang mengclone-nya
             SELECT id, parent, level_pohon, clone_from 
             FROM tb_pohon_kinerja 
-            WHERE id = ?
+            WHERE id = ? OR clone_from = ?
             
             UNION ALL
             
-            -- Recursive case: child nodes dengan pengecekan clone_from
+            -- Recursive case: child nodes dan data clone
             SELECT pk.id, pk.parent, pk.level_pohon, pk.clone_from
             FROM tb_pohon_kinerja pk
-            INNER JOIN pohon_hierarki ph ON pk.parent = ph.id
-            WHERE 
-                -- Jika parent adalah data asli (clone_from = 0), ambil semua child
-                (ph.clone_from = 0 AND pk.clone_from = 0)
-                OR
-                -- Jika parent adalah data clone, hanya ambil child yang clone_from-nya sama
-                (ph.clone_from > 0 AND pk.clone_from = ph.clone_from)
-                OR
-                -- Ambil data yang parent-nya adalah node yang akan dihapus
-                (ph.id = ? AND pk.parent = ph.id)
+            INNER JOIN pohon_hierarki ph ON 
+                pk.parent = ph.id OR 
+                (ph.clone_from = 0 AND pk.clone_from = ph.id)
+        ),
+        clone_hierarki AS (
+            -- Base case: data yang mengclone
+            SELECT id, parent, level_pohon, clone_from
+            FROM tb_pohon_kinerja
+            WHERE clone_from IN (SELECT id FROM pohon_hierarki)
+            
+            UNION ALL
+            
+            -- Recursive case: child nodes dari data clone
+            SELECT pk.id, pk.parent, pk.level_pohon, pk.clone_from
+            FROM tb_pohon_kinerja pk
+            INNER JOIN clone_hierarki ch ON pk.parent = ch.id
         )
-        SELECT id FROM pohon_hierarki;
+        SELECT id FROM pohon_hierarki
+        UNION
+        SELECT id FROM clone_hierarki;
     `
 
 	rows, err := tx.QueryContext(ctx, findIdsScript, id, id)

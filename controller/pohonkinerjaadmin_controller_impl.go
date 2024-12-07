@@ -600,3 +600,37 @@ func (controller *PohonKinerjaAdminControllerImpl) TolakCrosscutting(writer http
 
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *PohonKinerjaAdminControllerImpl) FindPokinFromOpd(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	kodeOpd := params.ByName("kode_opd")
+	tahun := params.ByName("tahun")
+	levelPohon, err := strconv.Atoi(params.ByName("level_pohon"))
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   "Invalid Level Pohon format",
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	result, err := controller.pohonKinerjaAdminService.FindPokinFromOpd(request.Context(), kodeOpd, tahun, levelPohon)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusInternalServerError,
+			Status: "INTERNAL SERVER ERROR",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "Success Get Pokin From Opd",
+		Data:   result,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}

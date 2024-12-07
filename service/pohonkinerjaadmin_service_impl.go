@@ -1677,3 +1677,59 @@ func (service *PohonKinerjaAdminServiceImpl) SetujuiCrosscutting(ctx context.Con
 
 	return nil
 }
+
+func (service *PohonKinerjaAdminServiceImpl) FindPokinFromOpd(ctx context.Context, kodeOpd string, tahun string, levelPohon int) ([]pohonkinerja.PohonKinerjaAdminResponseData, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	// Validasi OPD jika kodeOpd tidak kosong
+	if kodeOpd != "" {
+		_, err := service.opdRepository.FindByKodeOpd(ctx, tx, kodeOpd)
+		if err != nil {
+			return nil, errors.New("kode opd tidak ditemukan")
+		}
+	}
+
+	pokins, err := service.pohonKinerjaRepository.FindPokinByJenisPohon(ctx, tx, "", levelPohon, tahun, kodeOpd, "")
+	if err != nil {
+		return nil, err
+	}
+
+	if len(pokins) == 0 {
+		return nil, nil
+	}
+
+	var result []pohonkinerja.PohonKinerjaAdminResponseData
+	for _, pokin := range pokins {
+		// Skip pohon kinerja dengan status yang tidak diinginkan
+		if pokin.Status == "menunggu_disetujui" || pokin.Status == "crosscutting_menunggu" || pokin.Status == "tarik pokin opd" {
+			continue
+		}
+
+		// Ambil data OPD jika ada kodeOpd
+		var namaOpd string
+		if pokin.KodeOpd != "" {
+			opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, pokin.KodeOpd)
+			if err == nil {
+				namaOpd = opd.NamaOpd
+			}
+		}
+
+		result = append(result, pohonkinerja.PohonKinerjaAdminResponseData{
+			Id:         pokin.Id,
+			Parent:     pokin.Parent,
+			NamaPohon:  pokin.NamaPohon,
+			JenisPohon: pokin.JenisPohon,
+			LevelPohon: pokin.LevelPohon,
+			KodeOpd:    pokin.KodeOpd,
+			NamaOpd:    namaOpd,
+			Tahun:      pokin.Tahun,
+			Status:     pokin.Status,
+		})
+	}
+
+	return result, nil
+}

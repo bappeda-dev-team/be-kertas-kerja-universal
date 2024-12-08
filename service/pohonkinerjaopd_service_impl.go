@@ -21,14 +21,16 @@ type PohonKinerjaOpdServiceImpl struct {
 	pohonKinerjaOpdRepository repository.PohonKinerjaRepository
 	opdRepository             repository.OpdRepository
 	pegawaiRepository         repository.PegawaiRepository
+	tujuanOpdRepository       repository.TujuanOpdRepository
 	DB                        *sql.DB
 }
 
-func NewPohonKinerjaOpdServiceImpl(pohonKinerjaOpdRepository repository.PohonKinerjaRepository, opdRepository repository.OpdRepository, pegawaiRepository repository.PegawaiRepository, DB *sql.DB) *PohonKinerjaOpdServiceImpl {
+func NewPohonKinerjaOpdServiceImpl(pohonKinerjaOpdRepository repository.PohonKinerjaRepository, opdRepository repository.OpdRepository, pegawaiRepository repository.PegawaiRepository, tujuanOpdRepository repository.TujuanOpdRepository, DB *sql.DB) *PohonKinerjaOpdServiceImpl {
 	return &PohonKinerjaOpdServiceImpl{
 		pohonKinerjaOpdRepository: pohonKinerjaOpdRepository,
 		opdRepository:             opdRepository,
 		pegawaiRepository:         pegawaiRepository,
+		tujuanOpdRepository:       tujuanOpdRepository,
 		DB:                        DB,
 	}
 }
@@ -514,6 +516,44 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 		return pohonkinerja.PohonKinerjaOpdAllResponse{}, errors.New("kode opd tidak ditemukan")
 	}
 
+	// Ambil data tujuan OPD berdasarkan tahun dan kode OPD
+	tujuanOpds, err := service.tujuanOpdRepository.FindTujuanOpdByTahun(ctx, tx, kodeOpd, tahun)
+	if err != nil {
+		log.Printf("Error getting tujuan OPD: %v", err)
+		return pohonkinerja.PohonKinerjaOpdAllResponse{}, err
+	}
+
+	// Konversi tujuan OPD ke format response
+	var tujuanOpdResponses []pohonkinerja.TujuanOpdResponse
+	for _, tujuan := range tujuanOpds {
+		// Ambil indikator untuk setiap tujuan OPD
+		indikators, err := service.tujuanOpdRepository.FindIndikatorByTujuanOpdId(ctx, tx, tujuan.Id)
+		if err != nil {
+			log.Printf("Error getting indikator for tujuan ID %d: %v", tujuan.Id, err)
+			continue // Lanjut ke tujuan berikutnya jika ada error
+		}
+
+		// Konversi indikator ke format response
+		var indikatorResponses []pohonkinerja.IndikatorTujuanResponse
+		for _, indikator := range indikators {
+			indikatorResponses = append(indikatorResponses, pohonkinerja.IndikatorTujuanResponse{
+				Indikator: indikator.Indikator,
+			})
+		}
+
+		tujuanOpdResponses = append(tujuanOpdResponses, pohonkinerja.TujuanOpdResponse{
+			Id:        tujuan.Id,
+			KodeOpd:   tujuan.KodeOpd,
+			Tujuan:    tujuan.Tujuan,
+			Indikator: indikatorResponses,
+		})
+	}
+
+	// Urutkan tujuan OPD berdasarkan ID
+	sort.Slice(tujuanOpdResponses, func(i, j int) bool {
+		return tujuanOpdResponses[i].Id < tujuanOpdResponses[j].Id
+	})
+
 	// Ambil semua data pohon kinerja
 	pokins, err := service.pohonKinerjaOpdRepository.FindAll(ctx, tx, kodeOpd, tahun)
 	if err != nil {
@@ -620,6 +660,7 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 		KodeOpd:    kodeOpd,
 		NamaOpd:    opd.NamaOpd,
 		Tahun:      tahun,
+		TujuanOpd:  tujuanOpdResponses,
 		Strategics: strategics,
 	}, nil
 }

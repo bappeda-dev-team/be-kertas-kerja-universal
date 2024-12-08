@@ -317,3 +317,74 @@ func (repository *TujuanOpdRepositoryImpl) FindAll(ctx context.Context, tx *sql.
 
 	return tujuanOpds, nil
 }
+
+func (repository *TujuanOpdRepositoryImpl) FindTujuanOpdByTahun(ctx context.Context, tx *sql.Tx, kodeOpd string, tahun string) ([]domain.TujuanOpd, error) {
+	script := `
+        SELECT 
+            id, 
+            kode_opd, 
+            tujuan, 
+            tahun_awal, 
+            tahun_akhir
+        FROM tb_tujuan_opd
+        WHERE kode_opd = ?
+        AND ? BETWEEN tahun_awal AND tahun_akhir
+        ORDER BY id ASC
+    `
+
+	rows, err := tx.QueryContext(ctx, script, kodeOpd, tahun)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tujuanOpds []domain.TujuanOpd
+	for rows.Next() {
+		var tujuanOpd domain.TujuanOpd
+		err := rows.Scan(
+			&tujuanOpd.Id,
+			&tujuanOpd.KodeOpd,
+			&tujuanOpd.Tujuan,
+			&tujuanOpd.TahunAwal,
+			&tujuanOpd.TahunAkhir,
+		)
+		if err != nil {
+			return nil, err
+		}
+		tujuanOpds = append(tujuanOpds, tujuanOpd)
+	}
+
+	return tujuanOpds, nil
+}
+
+// Tambahkan fungsi untuk mengambil indikator
+func (repository *TujuanOpdRepositoryImpl) FindIndikatorByTujuanOpdId(ctx context.Context, tx *sql.Tx, tujuanOpdId int) ([]domain.Indikator, error) {
+	script := `
+        SELECT id, indikator 
+        FROM tb_indikator
+        WHERE tujuan_opd_id = ?
+        ORDER BY id ASC
+    `
+
+	rows, err := tx.QueryContext(ctx, script, tujuanOpdId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var indikators []domain.Indikator
+	for rows.Next() {
+		var indikator domain.Indikator
+		err := rows.Scan(
+			&indikator.Id,
+			&indikator.Indikator,
+		)
+		if err != nil {
+			return nil, err
+		}
+		indikator.TujuanOpdId = tujuanOpdId
+		indikators = append(indikators, indikator)
+	}
+
+	return indikators, nil
+}

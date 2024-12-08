@@ -23,6 +23,7 @@ type PohonKinerjaOpdAllResponse struct {
 	KodeOpd    string                 `json:"kode_opd"`
 	NamaOpd    string                 `json:"nama_opd"`
 	Tahun      string                 `json:"tahun"`
+	TujuanOpd  []TujuanOpdResponse    `json:"tujuan_opd"`
 	Strategics []StrategicOpdResponse `json:"childs"`
 }
 
@@ -87,4 +88,15 @@ type PelaksanaOpdResponse struct {
 	PohonKinerjaId string `json:"pohon_kinerja_id,omitempty"`
 	PegawaiId      string `json:"pegawai_id"`
 	NamaPegawai    string `json:"nama_pegawai"`
+}
+
+type TujuanOpdResponse struct {
+	Id        int                       `json:"id"`
+	KodeOpd   string                    `json:"kode_opd"`
+	Tujuan    string                    `json:"tujuan"`
+	Indikator []IndikatorTujuanResponse `json:"indikator"`
+}
+
+type IndikatorTujuanResponse struct {
+	Indikator string `json:"indikator"`
 }

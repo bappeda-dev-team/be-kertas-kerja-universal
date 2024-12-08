@@ -7,6 +7,7 @@ type Indikator struct {
 	RencanaKinerjaId string
 	KegiatanId       string
 	SubKegiatanId    string
+	TujuanOpdId      int
 	Indikator        string
 	Tahun            string
 	CloneFrom        string

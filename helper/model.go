@@ -14,6 +14,7 @@ import (
 	"ekak_kabupaten_madiun/model/web/rencanaaksi"
 	"ekak_kabupaten_madiun/model/web/rencanakinerja"
 	"ekak_kabupaten_madiun/model/web/subkegiatan"
+	"ekak_kabupaten_madiun/model/web/tujuanopd"
 	"ekak_kabupaten_madiun/model/web/usulan"
 	"fmt"
 	"os"
@@ -634,4 +635,52 @@ func ConvertToIndikatorResponse(indikator domain.Indikator) pohonkinerja.Indikat
 		NamaIndikator: indikator.Indikator,
 		Target:        targetResponses,
 	}
+}
+
+func ToTujuanOpdResponse(tujuanOpd domain.TujuanOpd) tujuanopd.TujuanOpdResponse {
+	var indikatorResponses []tujuanopd.IndikatorResponse
+
+	for _, indikator := range tujuanOpd.Indikator {
+		var targetResponses []tujuanopd.TargetResponse
+
+		// Konversi target
+		for _, target := range indikator.Target {
+			targetResponse := tujuanopd.TargetResponse{
+				Id:              target.Id,
+				IndikatorId:     indikator.Id,
+				TargetIndikator: target.Target,
+				SatuanIndikator: target.Satuan,
+				Tahun:           target.Tahun,
+			}
+			targetResponses = append(targetResponses, targetResponse)
+		}
+
+		// Konversi indikator
+		indikatorResponse := tujuanopd.IndikatorResponse{
+			Id:            indikator.Id,
+			NamaIndikator: indikator.Indikator,
+			Target:        targetResponses,
+		}
+		indikatorResponses = append(indikatorResponses, indikatorResponse)
+	}
+
+	return tujuanopd.TujuanOpdResponse{
+		Id:               tujuanOpd.Id,
+		KodeOpd:          tujuanOpd.KodeOpd,
+		NamaOpd:          tujuanOpd.NamaOpd,
+		Tujuan:           tujuanOpd.Tujuan,
+		RumusPerhitungan: tujuanOpd.RumusPerhitungan,
+		SumberData:       tujuanOpd.SumberData,
+		TahunAwal:        tujuanOpd.TahunAwal,
+		TahunAkhir:       tujuanOpd.TahunAkhir,
+		Indikator:        indikatorResponses,
+	}
+}
+
+func ToTujuanOpdResponses(tujuanOpds []domain.TujuanOpd) []tujuanopd.TujuanOpdResponse {
+	var tujuanOpdResponses []tujuanopd.TujuanOpdResponse
+	for _, tujuanOpd := range tujuanOpds {
+		tujuanOpdResponses = append(tujuanOpdResponses, ToTujuanOpdResponse(tujuanOpd))
+	}
+	return tujuanOpdResponses
 }

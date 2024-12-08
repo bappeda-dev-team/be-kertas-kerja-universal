@@ -98,7 +98,10 @@ func InitializeServer() *http.Server {
 	userControllerImpl := controller.NewUserControllerImpl(userServiceImpl)
 	roleServiceImpl := service.NewRoleServiceImpl(roleRepositoryImpl, db)
 	roleControllerImpl := controller.NewRoleControllerImpl(roleServiceImpl)
-	router := app.NewRouter(rencanaKinerjaControllerImpl, rencanaAksiControllerImpl, pelaksanaanRencanaAksiControllerImpl, usulanMusrebangControllerImpl, usulanMandatoriControllerImpl, usulanPokokPikiranControllerImpl, usulanInisiatifControllerImpl, usulanTerpilihControllerImpl, gambaranUmumControllerImpl, dasarHukumControllerImpl, inovasiControllerImpl, subKegiatanControllerImpl, subKegiatanTerpilihControllerImpl, pohonKinerjaOpdControllerImpl, pegawaiControllerImpl, lembagaControllerImpl, jabatanControllerImpl, pohonKinerjaAdminControllerImpl, opdControllerImpl, programControllerImpl, urusanControllerImpl, bidangUrusanControllerImpl, kegiatanControllerImpl, userControllerImpl, roleControllerImpl)
+	tujuanOpdRepositoryImpl := repository.NewTujuanOpdRepositoryImpl()
+	tujuanOpdServiceImpl := service.NewTujuanOpdServiceImpl(tujuanOpdRepositoryImpl, opdRepositoryImpl, db)
+	tujuanOpdControllerImpl := controller.NewTujuanOpdControllerImpl(tujuanOpdServiceImpl)
+	router := app.NewRouter(rencanaKinerjaControllerImpl, rencanaAksiControllerImpl, pelaksanaanRencanaAksiControllerImpl, usulanMusrebangControllerImpl, usulanMandatoriControllerImpl, usulanPokokPikiranControllerImpl, usulanInisiatifControllerImpl, usulanTerpilihControllerImpl, gambaranUmumControllerImpl, dasarHukumControllerImpl, inovasiControllerImpl, subKegiatanControllerImpl, subKegiatanTerpilihControllerImpl, pohonKinerjaOpdControllerImpl, pegawaiControllerImpl, lembagaControllerImpl, jabatanControllerImpl, pohonKinerjaAdminControllerImpl, opdControllerImpl, programControllerImpl, urusanControllerImpl, bidangUrusanControllerImpl, kegiatanControllerImpl, userControllerImpl, roleControllerImpl, tujuanOpdControllerImpl)
 	authMiddleware := middleware.NewAuthMiddleware(router)
 	server := NewServer(authMiddleware)
 	return server
@@ -173,3 +176,5 @@ var roleSet = wire.NewSet(repository.NewRoleRepositoryImpl, wire.Bind(new(reposi
 var userSet = wire.NewSet(repository.NewUserRepositoryImpl, wire.Bind(new(repository.UserRepository), new(*repository.UserRepositoryImpl)), service.NewUserServiceImpl, wire.Bind(new(service.UserService), new(*service.UserServiceImpl)), controller.NewUserControllerImpl, wire.Bind(new(controller.UserController), new(*controller.UserControllerImpl)))
 
 var seederProviderSet = wire.NewSet(dataseeder.NewSeederImpl, wire.Bind(new(dataseeder.Seeder), new(*dataseeder.SeederImpl)), dataseeder.NewRoleSeederImpl, wire.Bind(new(dataseeder.RoleSeeder), new(*dataseeder.RoleSeederImpl)), dataseeder.NewUserSeederImpl, wire.Bind(new(dataseeder.UserSeeder), new(*dataseeder.UserSeederImpl)), dataseeder.NewPegawaiSeederImpl, wire.Bind(new(dataseeder.PegawaiSeeder), new(*dataseeder.PegawaiSeederImpl)))
+
+var tujuanOpdSet = wire.NewSet(repository.NewTujuanOpdRepositoryImpl, wire.Bind(new(repository.TujuanOpdRepository), new(*repository.TujuanOpdRepositoryImpl)), service.NewTujuanOpdServiceImpl, wire.Bind(new(service.TujuanOpdService), new(*service.TujuanOpdServiceImpl)), controller.NewTujuanOpdControllerImpl, wire.Bind(new(controller.TujuanOpdController), new(*controller.TujuanOpdControllerImpl)))

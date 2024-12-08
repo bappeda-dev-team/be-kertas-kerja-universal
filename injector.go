@@ -252,6 +252,15 @@ var seederProviderSet = wire.NewSet(
 	wire.Bind(new(dataseeder.PegawaiSeeder), new(*dataseeder.PegawaiSeederImpl)),
 )
 
+var tujuanOpdSet = wire.NewSet(
+	repository.NewTujuanOpdRepositoryImpl,
+	wire.Bind(new(repository.TujuanOpdRepository), new(*repository.TujuanOpdRepositoryImpl)),
+	service.NewTujuanOpdServiceImpl,
+	wire.Bind(new(service.TujuanOpdService), new(*service.TujuanOpdServiceImpl)),
+	controller.NewTujuanOpdControllerImpl,
+	wire.Bind(new(controller.TujuanOpdController), new(*controller.TujuanOpdControllerImpl)),
+)
+
 func InitializeServer() *http.Server {
 
 	wire.Build(
@@ -283,6 +292,7 @@ func InitializeServer() *http.Server {
 		kegiatanSet,
 		roleSet,
 		userSet,
+		tujuanOpdSet,
 		app.NewRouter,
 		wire.Bind(new(http.Handler), new(*httprouter.Router)),
 		middleware.NewAuthMiddleware,

@@ -35,6 +35,7 @@ func NewRouter(
 	kegiatanController controller.KegiatanController,
 	userController controller.UserController,
 	roleController controller.RoleController,
+	tujuanOpdController controller.TujuanOpdController,
 ) *httprouter.Router {
 	router := httprouter.New()
 
@@ -253,6 +254,13 @@ func NewRouter(
 	router.DELETE("/user/delete/:id", userController.Delete)
 	router.GET("/user/findall", userController.FindAll)
 	router.POST("/user/login", userController.Login)
+
+	//tujuan opd
+	router.POST("/tujuan_opd/create", tujuanOpdController.Create)
+	router.PUT("/tujuan_opd/update/:tujuanOpdId", tujuanOpdController.Update)
+	router.GET("/tujuan_opd/detail/:tujuanOpdId", tujuanOpdController.FindById)
+	router.DELETE("/tujuan_opd/delete/:tujuanOpdId", tujuanOpdController.Delete)
+	router.GET("/tujuan_opd/findall/:kode_opd/:tahun", tujuanOpdController.FindAll)
 
 	return router
 }

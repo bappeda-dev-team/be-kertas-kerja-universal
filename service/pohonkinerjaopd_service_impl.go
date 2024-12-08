@@ -21,14 +21,16 @@ type PohonKinerjaOpdServiceImpl struct {
 	pohonKinerjaOpdRepository repository.PohonKinerjaRepository
 	opdRepository             repository.OpdRepository
 	pegawaiRepository         repository.PegawaiRepository
+	tujuanOpdRepository       repository.TujuanOpdRepository
 	DB                        *sql.DB
 }
 
-func NewPohonKinerjaOpdServiceImpl(pohonKinerjaOpdRepository repository.PohonKinerjaRepository, opdRepository repository.OpdRepository, pegawaiRepository repository.PegawaiRepository, DB *sql.DB) *PohonKinerjaOpdServiceImpl {
+func NewPohonKinerjaOpdServiceImpl(pohonKinerjaOpdRepository repository.PohonKinerjaRepository, opdRepository repository.OpdRepository, pegawaiRepository repository.PegawaiRepository, tujuanOpdRepository repository.TujuanOpdRepository, DB *sql.DB) *PohonKinerjaOpdServiceImpl {
 	return &PohonKinerjaOpdServiceImpl{
 		pohonKinerjaOpdRepository: pohonKinerjaOpdRepository,
 		opdRepository:             opdRepository,
 		pegawaiRepository:         pegawaiRepository,
+		tujuanOpdRepository:       tujuanOpdRepository,
 		DB:                        DB,
 	}
 }
@@ -189,36 +191,50 @@ func (service *PohonKinerjaOpdServiceImpl) Update(ctx context.Context, request p
 		return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("kode opd tidak valid")
 	}
 
-	// Validasi data yang akan diupdate
-	_, err = service.pohonKinerjaOpdRepository.FindById(ctx, tx, request.Id)
+	// Cek apakah ini adalah pohon kinerja yang di-clone
+	cloneFrom, err := service.pohonKinerjaOpdRepository.CheckCloneFrom(ctx, tx, request.Id)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaOpdResponse{}, err
+	}
+
+	// Jika ini adalah pohon kinerja yang di-clone, tidak boleh diupdate
+	if cloneFrom != 0 {
+		return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("tidak dapat mengupdate pohon kinerja yang merupakan hasil clone")
+	}
+
+	// Dapatkan semua pohon kinerja yang terkait (asli dan clone)
+	var pokinsToUpdate []domain.PohonKinerja
+
+	// Tambahkan pohon kinerja yang sedang diupdate
+	existingPokin, err := service.pohonKinerjaOpdRepository.FindById(ctx, tx, request.Id)
 	if err != nil {
 		return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("data pohon kinerja tidak ditemukan")
 	}
+	pokinsToUpdate = append(pokinsToUpdate, existingPokin)
 
-	// Validasi dan persiapan data pelaksana
+	// Cari pohon kinerja yang merupakan clone dari yang sedang diupdate
+	clonedPokins, err := service.pohonKinerjaOpdRepository.FindPokinByCloneFrom(ctx, tx, request.Id)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaOpdResponse{}, err
+	}
+	pokinsToUpdate = append(pokinsToUpdate, clonedPokins...)
+
+	// Persiapkan data pelaksana
 	var pelaksanaList []domain.PelaksanaPokin
 	var pelaksanaResponses []pohonkinerja.PelaksanaOpdResponse
 
 	for _, pelaksanaReq := range request.PelaksanaId {
-		// Generate ID untuk pelaksana_pokin
 		pelaksanaId := fmt.Sprintf("PLKS-%s", uuid.New().String()[:8])
-
-		// Validasi setiap pelaksana
 		pegawaiPelaksana, err := service.pegawaiRepository.FindById(ctx, tx, pelaksanaReq.PegawaiId)
 		if err != nil {
 			return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("pelaksana tidak ditemukan")
 		}
-		if pegawaiPelaksana.Id == "" {
-			return pohonkinerja.PohonKinerjaOpdResponse{}, errors.New("pelaksana tidak ditemukan")
-		}
 
-		// Tambahkan ke list pelaksana
 		pelaksanaList = append(pelaksanaList, domain.PelaksanaPokin{
 			Id:        pelaksanaId,
 			PegawaiId: pelaksanaReq.PegawaiId,
 		})
 
-		// Siapkan response pelaksana
 		pelaksanaResponses = append(pelaksanaResponses, pohonkinerja.PelaksanaOpdResponse{
 			Id:          pelaksanaId,
 			PegawaiId:   pegawaiPelaksana.Id,
@@ -226,92 +242,141 @@ func (service *PohonKinerjaOpdServiceImpl) Update(ctx context.Context, request p
 		})
 	}
 
-	// Validasi dan persiapan data indikator
-	var indikatorList []domain.Indikator
+	// Persiapkan response indikator di luar loop
 	var indikatorResponses []pohonkinerja.IndikatorResponse
 
-	for _, indikatorReq := range request.Indikator {
-		// Generate ID untuk indikator baru jika belum ada
-		indikatorId := indikatorReq.Id
-		if indikatorId == "" {
-			indikatorId = fmt.Sprintf("IND-%s", uuid.New().String()[:8])
-		}
+	// Update untuk setiap pohon kinerja (asli dan clone)
+	var updatedPokin domain.PohonKinerja
+	for _, pokin := range pokinsToUpdate {
+		var indikatorList []domain.Indikator
 
-		var targetList []domain.Target
-		var targetResponses []pohonkinerja.TargetResponse
+		for _, indikatorReq := range request.Indikator {
+			var indikatorId string
+			var cloneFromIndikator string
 
-		// Proses target untuk setiap indikator
-		for _, targetReq := range indikatorReq.Target {
-			// Generate ID untuk target baru jika belum ada
-			targetId := targetReq.Id
-			if targetId == "" {
-				targetId = fmt.Sprintf("TRG-%s", uuid.New().String()[:8])
+			if pokin.Id == request.Id {
+				// Untuk pohon asli, gunakan ID dari request
+				indikatorId = indikatorReq.Id
+				if indikatorId == "" {
+					indikatorId = fmt.Sprintf("IND-%s", uuid.New().String()[:8])
+				}
+				cloneFromIndikator = ""
+			} else {
+				// Untuk pohon clone, cari ID indikator yang sudah ada berdasarkan clone_from
+				existingIndikator, err := service.pohonKinerjaOpdRepository.FindIndikatorByCloneFrom(ctx, tx, pokin.Id, indikatorReq.Id)
+				if err == nil && existingIndikator.Id != "" {
+					// Gunakan ID yang sudah ada jika ditemukan
+					indikatorId = existingIndikator.Id
+				} else {
+					// Buat ID baru jika belum ada
+					indikatorId = fmt.Sprintf("IND-%s", uuid.New().String()[:8])
+				}
+				cloneFromIndikator = indikatorReq.Id
 			}
 
-			target := domain.Target{
-				Id:          targetId,
-				IndikatorId: indikatorId,
-				Target:      targetReq.Target,
-				Satuan:      targetReq.Satuan,
-				Tahun:       request.Tahun,
+			var targetList []domain.Target
+			var targetResponses []pohonkinerja.TargetResponse
+
+			for _, targetReq := range indikatorReq.Target {
+				var targetId string
+				var cloneFromTarget string
+
+				if pokin.Id == request.Id {
+					// Untuk pohon asli, gunakan ID dari request
+					targetId = targetReq.Id
+					if targetId == "" {
+						targetId = fmt.Sprintf("TRG-%s", uuid.New().String()[:8])
+					}
+					cloneFromTarget = ""
+				} else {
+					// Untuk pohon clone, cari ID target yang sudah ada berdasarkan clone_from
+					existingTarget, err := service.pohonKinerjaOpdRepository.FindTargetByCloneFrom(ctx, tx, indikatorId, targetReq.Id)
+					if err == nil && existingTarget.Id != "" {
+						// Gunakan ID yang sudah ada jika ditemukan
+						targetId = existingTarget.Id
+					} else {
+						// Buat ID baru jika belum ada
+						targetId = fmt.Sprintf("TRG-%s", uuid.New().String()[:8])
+					}
+					cloneFromTarget = targetReq.Id
+				}
+
+				target := domain.Target{
+					Id:          targetId,
+					IndikatorId: indikatorId,
+					Target:      targetReq.Target,
+					Satuan:      targetReq.Satuan,
+					Tahun:       request.Tahun,
+					CloneFrom:   cloneFromTarget,
+				}
+				targetList = append(targetList, target)
+
+				if pokin.Id == request.Id {
+					targetResponses = append(targetResponses, pohonkinerja.TargetResponse{
+						Id:              targetId,
+						IndikatorId:     indikatorId,
+						TargetIndikator: targetReq.Target,
+						SatuanIndikator: targetReq.Satuan,
+					})
+				}
 			}
-			targetList = append(targetList, target)
 
-			targetResponses = append(targetResponses, pohonkinerja.TargetResponse{
-				Id:              targetId,
-				IndikatorId:     indikatorId,
-				TargetIndikator: targetReq.Target,
-				SatuanIndikator: targetReq.Satuan,
-			})
+			indikator := domain.Indikator{
+				Id:        indikatorId,
+				PokinId:   fmt.Sprint(pokin.Id),
+				Indikator: indikatorReq.NamaIndikator,
+				Tahun:     request.Tahun,
+				Target:    targetList,
+				CloneFrom: cloneFromIndikator,
+			}
+			indikatorList = append(indikatorList, indikator)
+
+			if pokin.Id == request.Id {
+				indikatorResponses = append(indikatorResponses, pohonkinerja.IndikatorResponse{
+					Id:            indikatorId,
+					IdPokin:       fmt.Sprint(pokin.Id),
+					NamaIndikator: indikatorReq.NamaIndikator,
+					Target:        targetResponses,
+				})
+			}
 		}
 
-		indikator := domain.Indikator{
-			Id:        indikatorId,
-			PokinId:   fmt.Sprint(request.Id),
-			Indikator: indikatorReq.NamaIndikator,
-			Tahun:     request.Tahun,
-			Target:    targetList,
+		pohonKinerjaUpdate := domain.PohonKinerja{
+			Id:         pokin.Id,
+			NamaPohon:  request.NamaPohon,
+			Parent:     request.Parent,
+			JenisPohon: request.JenisPohon,
+			LevelPohon: request.LevelPohon,
+			KodeOpd:    request.KodeOpd,
+			Keterangan: request.Keterangan,
+			Tahun:      request.Tahun,
+			Status:     pokin.Status,
+			CloneFrom:  pokin.CloneFrom,
+			Pelaksana:  pelaksanaList,
+			Indikator:  indikatorList,
 		}
-		indikatorList = append(indikatorList, indikator)
 
-		indikatorResponses = append(indikatorResponses, pohonkinerja.IndikatorResponse{
-			Id:            indikatorId,
-			IdPokin:       fmt.Sprint(request.Id),
-			NamaIndikator: indikatorReq.NamaIndikator,
-			Target:        targetResponses,
-		})
-	}
+		result, err := service.pohonKinerjaOpdRepository.Update(ctx, tx, pohonKinerjaUpdate)
+		if err != nil {
+			return pohonkinerja.PohonKinerjaOpdResponse{}, err
+		}
 
-	pohonKinerja := domain.PohonKinerja{
-		Id:         request.Id,
-		NamaPohon:  request.NamaPohon,
-		Parent:     request.Parent,
-		JenisPohon: request.JenisPohon,
-		LevelPohon: request.LevelPohon,
-		KodeOpd:    request.KodeOpd,
-		Keterangan: request.Keterangan,
-		Tahun:      request.Tahun,
-		Status:     request.Status,
-		Pelaksana:  pelaksanaList,
-		Indikator:  indikatorList,
-	}
-
-	result, err := service.pohonKinerjaOpdRepository.Update(ctx, tx, pohonKinerja)
-	if err != nil {
-		return pohonkinerja.PohonKinerjaOpdResponse{}, err
+		if pokin.Id == request.Id {
+			updatedPokin = result
+		}
 	}
 
 	return pohonkinerja.PohonKinerjaOpdResponse{
-		Id:         result.Id,
-		Parent:     strconv.Itoa(result.Parent),
-		NamaPohon:  result.NamaPohon,
-		JenisPohon: result.JenisPohon,
-		LevelPohon: result.LevelPohon,
-		KodeOpd:    result.KodeOpd,
+		Id:         updatedPokin.Id,
+		Parent:     strconv.Itoa(updatedPokin.Parent),
+		NamaPohon:  updatedPokin.NamaPohon,
+		JenisPohon: updatedPokin.JenisPohon,
+		LevelPohon: updatedPokin.LevelPohon,
+		KodeOpd:    updatedPokin.KodeOpd,
 		NamaOpd:    opd.NamaOpd,
-		Keterangan: result.Keterangan,
-		Tahun:      result.Tahun,
-		Status:     result.Status,
+		Keterangan: updatedPokin.Keterangan,
+		Tahun:      updatedPokin.Tahun,
+		Status:     updatedPokin.Status,
 		Pelaksana:  pelaksanaResponses,
 		Indikator:  indikatorResponses,
 	}, nil
@@ -451,6 +516,44 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 		return pohonkinerja.PohonKinerjaOpdAllResponse{}, errors.New("kode opd tidak ditemukan")
 	}
 
+	// Ambil data tujuan OPD berdasarkan tahun dan kode OPD
+	tujuanOpds, err := service.tujuanOpdRepository.FindTujuanOpdByTahun(ctx, tx, kodeOpd, tahun)
+	if err != nil {
+		log.Printf("Error getting tujuan OPD: %v", err)
+		return pohonkinerja.PohonKinerjaOpdAllResponse{}, err
+	}
+
+	// Konversi tujuan OPD ke format response
+	var tujuanOpdResponses []pohonkinerja.TujuanOpdResponse
+	for _, tujuan := range tujuanOpds {
+		// Ambil indikator untuk setiap tujuan OPD
+		indikators, err := service.tujuanOpdRepository.FindIndikatorByTujuanOpdId(ctx, tx, tujuan.Id)
+		if err != nil {
+			log.Printf("Error getting indikator for tujuan ID %d: %v", tujuan.Id, err)
+			continue // Lanjut ke tujuan berikutnya jika ada error
+		}
+
+		// Konversi indikator ke format response
+		var indikatorResponses []pohonkinerja.IndikatorTujuanResponse
+		for _, indikator := range indikators {
+			indikatorResponses = append(indikatorResponses, pohonkinerja.IndikatorTujuanResponse{
+				Indikator: indikator.Indikator,
+			})
+		}
+
+		tujuanOpdResponses = append(tujuanOpdResponses, pohonkinerja.TujuanOpdResponse{
+			Id:        tujuan.Id,
+			KodeOpd:   tujuan.KodeOpd,
+			Tujuan:    tujuan.Tujuan,
+			Indikator: indikatorResponses,
+		})
+	}
+
+	// Urutkan tujuan OPD berdasarkan ID
+	sort.Slice(tujuanOpdResponses, func(i, j int) bool {
+		return tujuanOpdResponses[i].Id < tujuanOpdResponses[j].Id
+	})
+
 	// Ambil semua data pohon kinerja
 	pokins, err := service.pohonKinerjaOpdRepository.FindAll(ctx, tx, kodeOpd, tahun)
 	if err != nil {
@@ -557,6 +660,7 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 		KodeOpd:    kodeOpd,
 		NamaOpd:    opd.NamaOpd,
 		Tahun:      tahun,
+		TujuanOpd:  tujuanOpdResponses,
 		Strategics: strategics,
 	}, nil
 }
@@ -613,7 +717,11 @@ func (service *PohonKinerjaOpdServiceImpl) DeletePelaksana(ctx context.Context, 
 }
 
 // Tambahkan fungsi helper untuk membangun OperationalN response
-func (service *PohonKinerjaOpdServiceImpl) buildOperationalNResponse(ctx context.Context, tx *sql.Tx, pohonMap map[int]map[int][]domain.PohonKinerja, operationalN domain.PohonKinerja, pelaksanaMap map[int][]pohonkinerja.PelaksanaOpdResponse) pohonkinerja.OperationalNOpdResponse {
+func (service *PohonKinerjaOpdServiceImpl) buildOperationalNResponse(ctx context.Context, tx *sql.Tx, pohonMap map[int]map[int][]domain.PohonKinerja, operationalN domain.PohonKinerja, pelaksanaMap map[int][]pohonkinerja.PelaksanaOpdResponse, indikatorMap map[int][]pohonkinerja.IndikatorResponse) pohonkinerja.OperationalNOpdResponse {
+	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, operationalN.KodeOpd)
+	if err == nil {
+		operationalN.NamaOpd = opd.NamaOpd
+	}
 	operationalNResp := pohonkinerja.OperationalNOpdResponse{
 		Id:         operationalN.Id,
 		Parent:     operationalN.Parent,
@@ -621,11 +729,13 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalNResponse(ctx context
 		JenisPohon: operationalN.JenisPohon,
 		LevelPohon: operationalN.LevelPohon,
 		Keterangan: operationalN.Keterangan,
+		Status:     operationalN.Status,
 		KodeOpd: opdmaster.OpdResponseForAll{
 			KodeOpd: operationalN.KodeOpd,
 			NamaOpd: operationalN.NamaOpd,
 		},
 		Pelaksana: pelaksanaMap[operationalN.Id],
+		Indikator: indikatorMap[operationalN.Id],
 	}
 
 	// Build child nodes secara rekursif
@@ -637,7 +747,7 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalNResponse(ctx context
 		})
 
 		for _, nextOpN := range nextOperationalNList {
-			childResp := service.buildOperationalNResponse(ctx, tx, pohonMap, nextOpN, pelaksanaMap)
+			childResp := service.buildOperationalNResponse(ctx, tx, pohonMap, nextOpN, pelaksanaMap, indikatorMap)
 			childs = append(childs, childResp)
 		}
 		operationalNResp.Childs = childs
@@ -681,12 +791,11 @@ func (service *PohonKinerjaOpdServiceImpl) buildStrategicResponse(ctx context.Co
 	return strategicResp
 }
 
-func (service *PohonKinerjaOpdServiceImpl) buildTacticalResponse(ctx context.Context, tx *sql.Tx,
-	pohonMap map[int]map[int][]domain.PohonKinerja,
-	tactical domain.PohonKinerja,
-	pelaksanaMap map[int][]pohonkinerja.PelaksanaOpdResponse,
-	indikatorMap map[int][]pohonkinerja.IndikatorResponse) pohonkinerja.TacticalOpdResponse {
-
+func (service *PohonKinerjaOpdServiceImpl) buildTacticalResponse(ctx context.Context, tx *sql.Tx, pohonMap map[int]map[int][]domain.PohonKinerja, tactical domain.PohonKinerja, pelaksanaMap map[int][]pohonkinerja.PelaksanaOpdResponse, indikatorMap map[int][]pohonkinerja.IndikatorResponse) pohonkinerja.TacticalOpdResponse {
+	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, tactical.KodeOpd)
+	if err == nil {
+		tactical.NamaOpd = opd.NamaOpd
+	}
 	tacticalResp := pohonkinerja.TacticalOpdResponse{
 		Id:         tactical.Id,
 		Parent:     tactical.Parent,
@@ -721,6 +830,10 @@ func (service *PohonKinerjaOpdServiceImpl) buildTacticalResponse(ctx context.Con
 }
 
 func (service *PohonKinerjaOpdServiceImpl) buildOperationalResponse(ctx context.Context, tx *sql.Tx, pohonMap map[int]map[int][]domain.PohonKinerja, operational domain.PohonKinerja, pelaksanaMap map[int][]pohonkinerja.PelaksanaOpdResponse, indikatorMap map[int][]pohonkinerja.IndikatorResponse) pohonkinerja.OperationalOpdResponse {
+	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, operational.KodeOpd)
+	if err == nil {
+		operational.NamaOpd = opd.NamaOpd
+	}
 	operationalResp := pohonkinerja.OperationalOpdResponse{
 		Id:         operational.Id,
 		Parent:     operational.Parent,
@@ -745,7 +858,7 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalResponse(ctx context.
 		})
 
 		for _, opN := range operationalNList {
-			childResp := service.buildOperationalNResponse(ctx, tx, pohonMap, opN, pelaksanaMap)
+			childResp := service.buildOperationalNResponse(ctx, tx, pohonMap, opN, pelaksanaMap, indikatorMap)
 			childs = append(childs, childResp)
 		}
 		operationalResp.Childs = childs

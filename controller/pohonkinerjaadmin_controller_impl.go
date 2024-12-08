@@ -442,3 +442,185 @@ func (controller *PohonKinerjaAdminControllerImpl) UpdatePokinStatusTolak(writer
 
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *PohonKinerjaAdminControllerImpl) CrosscuttingOpd(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	pohonKinerjaCreateRequest := pohonkinerja.PohonKinerjaAdminStrategicCreateRequest{}
+	helper.ReadFromRequestBody(request, &pohonKinerjaCreateRequest)
+
+	// Panggil service create
+	pohonKinerjaResponse, err := controller.pohonKinerjaAdminService.CrosscuttingOpd(request.Context(), pohonKinerjaCreateRequest)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	// Buat response sukses
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "Success Crosscutting Pohon Kinerja",
+		Data:   pohonKinerjaResponse,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *PohonKinerjaAdminControllerImpl) FindPokinByCrosscuttingStatus(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	kodeOpd := params.ByName("kode_opd")
+	tahun := params.ByName("tahun")
+
+	result, err := controller.pohonKinerjaAdminService.FindPokinByCrosscuttingStatus(request.Context(), kodeOpd, tahun)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusInternalServerError,
+			Status: "INTERNAL SERVER ERROR",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "Success Get Pokin By Crosscutting Status",
+		Data:   result,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}
+func (controller *PohonKinerjaAdminControllerImpl) FindPokinFromPemda(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	kodeOpd := params.ByName("kode_opd")
+	tahun := params.ByName("tahun")
+
+	result, err := controller.pohonKinerjaAdminService.FindPokinFromPemda(request.Context(), kodeOpd, tahun)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   "Invalid Level Pohon format",
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "Success Get Pokin From Pemda",
+		Data:   result,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *PohonKinerjaAdminControllerImpl) SetujuiCrosscutting(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	pohonKinerjaId := params.ByName("pohonKinerjaId")
+	id, err := strconv.Atoi(pohonKinerjaId)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   "Invalid ID format",
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	pohonKinerjaRequest := pohonkinerja.PohonKinerjaAdminTolakRequest{
+		Id: id,
+	}
+
+	// Panggil service
+	err = controller.pohonKinerjaAdminService.SetujuiCrosscutting(request.Context(), pohonKinerjaRequest)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "Success",
+		Data:   "Crosscutting berhasil disetujui",
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *PohonKinerjaAdminControllerImpl) TolakCrosscutting(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	pohonKinerjaId := params.ByName("pohonKinerjaId")
+	id, err := strconv.Atoi(pohonKinerjaId)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   "Invalid ID format",
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	pohonKinerjaRequest := pohonkinerja.PohonKinerjaAdminTolakRequest{
+		Id: id,
+	}
+
+	err = controller.pohonKinerjaAdminService.TolakCrosscutting(request.Context(), pohonKinerjaRequest)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "Success",
+		Data:   "Crosscutting berhasil disetujui",
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *PohonKinerjaAdminControllerImpl) FindPokinFromOpd(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	kodeOpd := params.ByName("kode_opd")
+	tahun := params.ByName("tahun")
+	levelPohon, err := strconv.Atoi(params.ByName("level_pohon"))
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   "Invalid Level Pohon format",
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	result, err := controller.pohonKinerjaAdminService.FindPokinFromOpd(request.Context(), kodeOpd, tahun, levelPohon)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusInternalServerError,
+			Status: "INTERNAL SERVER ERROR",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "Success Get Pokin From Opd",
+		Data:   result,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}

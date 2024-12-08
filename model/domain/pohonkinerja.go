@@ -16,4 +16,5 @@ type PohonKinerja struct {
 	Indikator  []Indikator
 	Pelaksana  []PelaksanaPokin
 	Status     string
+	CloneFrom  int
 }

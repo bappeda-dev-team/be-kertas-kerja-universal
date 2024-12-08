@@ -22,4 +22,10 @@ type PohonKinerjaAdminController interface {
 	FindPokinByStatus(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	CloneStrategiFromPemda(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	UpdatePokinStatusTolak(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	CrosscuttingOpd(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	FindPokinByCrosscuttingStatus(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	FindPokinFromPemda(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	SetujuiCrosscutting(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	TolakCrosscutting(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	FindPokinFromOpd(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 }

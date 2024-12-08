@@ -6,4 +6,5 @@ type Target struct {
 	Target      string
 	Satuan      string
 	Tahun       string
+	CloneFrom   string
 }

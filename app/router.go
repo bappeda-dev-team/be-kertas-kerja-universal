@@ -35,6 +35,7 @@ func NewRouter(
 	kegiatanController controller.KegiatanController,
 	userController controller.UserController,
 	roleController controller.RoleController,
+	tujuanOpdController controller.TujuanOpdController,
 ) *httprouter.Router {
 	router := httprouter.New()
 
@@ -164,6 +165,10 @@ func NewRouter(
 	router.POST("/pohon_kinerja_admin/clone_strategic/create", pohonKinerjaAdminController.CreateStrategicAdmin)
 	router.POST("/pohon_kinerja_admin/clone_pokin_pemda/create", pohonKinerjaAdminController.CloneStrategiFromPemda)
 	router.PUT("/pohon_kinerja_admin/tolak_pokin/:pohonKinerjaId", pohonKinerjaAdminController.UpdatePokinStatusTolak)
+	router.GET("/pohon_kinerja_admin/crosscutting/:kode_opd/:tahun", pohonKinerjaAdminController.FindPokinByCrosscuttingStatus)
+	router.POST("/pohon_kinerja_admin/crosscutting/create", pohonKinerjaAdminController.CrosscuttingOpd)
+	router.PUT("/pohon_kinerja_admin/setujui_crosscutting/:pohonKinerjaId", pohonKinerjaAdminController.SetujuiCrosscutting)
+	router.PUT("/pohon_kinerja_admin/tolak_crosscutting/:pohonKinerjaId", pohonKinerjaAdminController.TolakCrosscutting)
 
 	//pohon kinerja for dropdown
 	router.GET("/pohon_kinerja/tematik/:tahun", pohonKinerjaAdminController.FindPokinByTematik)
@@ -171,6 +176,8 @@ func NewRouter(
 	router.GET("/pohon_kinerja/tactical/:kode_opd/:tahun", pohonKinerjaAdminController.FindPokinByTactical)
 	router.GET("/pohon_kinerja/operational/:kode_opd/:tahun", pohonKinerjaAdminController.FindPokinByOperational)
 	router.GET("/pohon_kinerja/status/:kode_opd/:tahun", pohonKinerjaAdminController.FindPokinByStatus)
+	router.GET("/pohon_kinerja/pemda/:kode_opd/:tahun", pohonKinerjaAdminController.FindPokinFromPemda)
+	router.GET("/pohon_kinerja/pilih_parent/:kode_opd/:tahun/:level_pohon", pohonKinerjaAdminController.FindPokinFromOpd)
 
 	//DATA MASTER
 	//pegawai
@@ -247,6 +254,13 @@ func NewRouter(
 	router.DELETE("/user/delete/:id", userController.Delete)
 	router.GET("/user/findall", userController.FindAll)
 	router.POST("/user/login", userController.Login)
+
+	//tujuan opd
+	router.POST("/tujuan_opd/create", tujuanOpdController.Create)
+	router.PUT("/tujuan_opd/update/:tujuanOpdId", tujuanOpdController.Update)
+	router.GET("/tujuan_opd/detail/:tujuanOpdId", tujuanOpdController.FindById)
+	router.DELETE("/tujuan_opd/delete/:tujuanOpdId", tujuanOpdController.Delete)
+	router.GET("/tujuan_opd/findall/:kode_opd/:tahun", tujuanOpdController.FindAll)
 
 	return router
 }

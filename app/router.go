@@ -36,6 +36,7 @@ func NewRouter(
 	userController controller.UserController,
 	roleController controller.RoleController,
 	tujuanOpdController controller.TujuanOpdController,
+	crosscuttingOpdController controller.CrosscuttingOpdController,
 ) *httprouter.Router {
 	router := httprouter.New()
 
@@ -166,9 +167,9 @@ func NewRouter(
 	router.POST("/pohon_kinerja_admin/clone_pokin_pemda/create", pohonKinerjaAdminController.CloneStrategiFromPemda)
 	router.PUT("/pohon_kinerja_admin/tolak_pokin/:pohonKinerjaId", pohonKinerjaAdminController.UpdatePokinStatusTolak)
 	router.GET("/pohon_kinerja_admin/crosscutting/:kode_opd/:tahun", pohonKinerjaAdminController.FindPokinByCrosscuttingStatus)
-	router.POST("/pohon_kinerja_admin/crosscutting/create", pohonKinerjaAdminController.CrosscuttingOpd)
-	router.PUT("/pohon_kinerja_admin/setujui_crosscutting/:pohonKinerjaId", pohonKinerjaAdminController.SetujuiCrosscutting)
-	router.PUT("/pohon_kinerja_admin/tolak_crosscutting/:pohonKinerjaId", pohonKinerjaAdminController.TolakCrosscutting)
+	// router.POST("/pohon_kinerja_admin/crosscutting/create", pohonKinerjaAdminController.CrosscuttingOpd)
+	// router.PUT("/pohon_kinerja_admin/setujui_crosscutting/:pohonKinerjaId", pohonKinerjaAdminController.SetujuiCrosscutting)
+	// router.PUT("/pohon_kinerja_admin/tolak_crosscutting/:pohonKinerjaId", pohonKinerjaAdminController.TolakCrosscutting)
 
 	//pohon kinerja for dropdown
 	router.GET("/pohon_kinerja/tematik/:tahun", pohonKinerjaAdminController.FindPokinByTematik)
@@ -261,6 +262,13 @@ func NewRouter(
 	router.GET("/tujuan_opd/detail/:tujuanOpdId", tujuanOpdController.FindById)
 	router.DELETE("/tujuan_opd/delete/:tujuanOpdId", tujuanOpdController.Delete)
 	router.GET("/tujuan_opd/findall/:kode_opd/:tahun", tujuanOpdController.FindAll)
+
+	//crosscutting opd
+	router.POST("/crosscutting_opd/create/:parentId", crosscuttingOpdController.Create)
+	router.PUT("/crosscutting_opd/update/:crosscuttingId", crosscuttingOpdController.Update)
+	// router.DELETE("/crosscutting_opd/delete/:crosscuttingId", crosscuttingOpdController.Delete)
+	router.GET("/crosscutting_opd/findall/:parentId", crosscuttingOpdController.FindAll)
+	router.PATCH("/crosscutting_opd/:crosscuttingId/permission", crosscuttingOpdController.ApproveOrReject)
 
 	return router
 }

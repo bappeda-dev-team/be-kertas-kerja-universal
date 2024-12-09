@@ -261,6 +261,15 @@ var tujuanOpdSet = wire.NewSet(
 	wire.Bind(new(controller.TujuanOpdController), new(*controller.TujuanOpdControllerImpl)),
 )
 
+var crosscuttingOpdSet = wire.NewSet(
+	repository.NewCrosscuttingOpdRepositoryImpl,
+	wire.Bind(new(repository.CrosscuttingOpdRepository), new(*repository.CrosscuttingOpdRepositoryImpl)),
+	service.NewCrosscuttingOpdServiceImpl,
+	wire.Bind(new(service.CrosscuttingOpdService), new(*service.CrosscuttingOpdServiceImpl)),
+	controller.NewCrosscuttingOpdControllerImpl,
+	wire.Bind(new(controller.CrosscuttingOpdController), new(*controller.CrosscuttingOpdControllerImpl)),
+)
+
 func InitializeServer() *http.Server {
 
 	wire.Build(
@@ -293,6 +302,7 @@ func InitializeServer() *http.Server {
 		roleSet,
 		userSet,
 		tujuanOpdSet,
+		crosscuttingOpdSet,
 		app.NewRouter,
 		wire.Bind(new(http.Handler), new(*httprouter.Router)),
 		middleware.NewAuthMiddleware,

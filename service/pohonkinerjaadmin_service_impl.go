@@ -451,7 +451,6 @@ func (service *PohonKinerjaAdminServiceImpl) Delete(ctx context.Context, id int)
 		return fmt.Errorf("gagal memeriksa status clone: %v", err)
 	}
 
-	// Jika data adalah clone, hanya hapus data tersebut dan hierarkinya
 	// tanpa mempengaruhi data asli (clone_from)
 	if cloneFrom != 0 {
 		err = service.pohonKinerjaRepository.DeleteClonedPokinHierarchy(ctx, tx, id)

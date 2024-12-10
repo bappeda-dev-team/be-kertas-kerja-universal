@@ -280,15 +280,38 @@ func (repository *CrosscuttingOpdRepositoryImpl) ValidateKodeOpdChange(ctx conte
 }
 
 func (repository *CrosscuttingOpdRepositoryImpl) DeleteCrosscutting(ctx context.Context, tx *sql.Tx, pokinId int) error {
-	scriptDeleteCross := "DELETE FROM tb_crosscutting WHERE crosscutting_to = ?"
-	_, err := tx.ExecContext(ctx, scriptDeleteCross, pokinId)
+	scriptUpdatePokin := `
+        UPDATE tb_pohon_kinerja 
+        SET parent = 0,
+            status = 'crosscutting_ditolak'
+        WHERE id = ?
+    `
+	_, err := tx.ExecContext(ctx, scriptUpdatePokin, pokinId)
 	if err != nil {
 		return err
 	}
 
-	scriptDeletePokin := "DELETE FROM tb_pohon_kinerja WHERE id = ?"
-	_, err = tx.ExecContext(ctx, scriptDeletePokin, pokinId)
-	return err
+	// Update status di tb_crosscutting
+	scriptUpdateCross := `
+        UPDATE tb_crosscutting 
+        SET status = 'crosscutting_ditolak'
+        WHERE crosscutting_to = ?
+    `
+	result, err := tx.ExecContext(ctx, scriptUpdateCross, pokinId)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("no rows updated in tb_crosscutting, check crosscutting_to value")
+	}
+
+	return nil
 }
 
 func (repository *CrosscuttingOpdRepositoryImpl) ApproveOrRejectCrosscutting(ctx context.Context, tx *sql.Tx, crosscuttingId int, approve bool, pegawaiAction map[string]interface{}) error {

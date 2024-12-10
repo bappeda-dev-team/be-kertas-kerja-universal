@@ -9,7 +9,7 @@ import (
 type CrosscuttingOpdRepository interface {
 	CreateCrosscutting(ctx context.Context, tx *sql.Tx, pokin domain.PohonKinerja, parentId int) (domain.PohonKinerja, error)
 	UpdateCrosscutting(ctx context.Context, tx *sql.Tx, pokin domain.PohonKinerja, parentId int) (domain.PohonKinerja, error)
-	DeleteCrosscutting(ctx context.Context, tx *sql.Tx, id int) error
+	DeleteCrosscutting(ctx context.Context, tx *sql.Tx, pokinId int) error
 	FindAllCrosscutting(ctx context.Context, tx *sql.Tx, crosscuttingId int) ([]domain.PohonKinerja, error)
 	ValidateKodeOpdChange(ctx context.Context, tx *sql.Tx, id int) error
 	FindTargetByIndikatorIds(ctx context.Context, tx *sql.Tx, indikatorIds []string) ([]domain.Target, error)

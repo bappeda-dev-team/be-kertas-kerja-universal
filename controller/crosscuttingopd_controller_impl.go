@@ -173,7 +173,49 @@ func (controller *CrosscuttingOpdControllerImpl) FindAllByParent(writer http.Res
 }
 
 func (controller *CrosscuttingOpdControllerImpl) Delete(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	crosscuttingId, err := strconv.Atoi(params.ByName("crosscuttingId"))
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   400,
+			Status: "BAD REQUEST",
+			Data:   "Invalid crosscutting ID",
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
 
+	// Panggil service untuk delete
+	err = controller.CrosscuttingOpdService.Delete(request.Context(), crosscuttingId)
+	if err != nil {
+		// Handle specific error
+		if err.Error() == "crosscutting hanya dapat dihapus saat status crosscutting_disetujui" {
+			webResponse := web.WebResponse{
+				Code:   400,
+				Status: "BAD REQUEST",
+				Data:   err.Error(),
+			}
+			helper.WriteToResponseBody(writer, webResponse)
+			return
+		}
+
+		// Default error response
+		webResponse := web.WebResponse{
+			Code:   500,
+			Status: "INTERNAL SERVER ERROR",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	// Success response
+	webResponse := web.WebResponse{
+		Code:   200,
+		Status: "OK",
+		Data:   "Crosscutting berhasil dihapus",
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
 }
 
 func (controller *CrosscuttingOpdControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {

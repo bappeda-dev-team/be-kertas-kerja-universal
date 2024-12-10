@@ -351,3 +351,29 @@ func (service *CrosscuttingOpdServiceImpl) ApproveOrReject(ctx context.Context, 
 
 	return response, nil
 }
+
+func (service *CrosscuttingOpdServiceImpl) Delete(ctx context.Context, pokinId int) error {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	// Validasi status sebelum delete
+	var status string
+	err = tx.QueryRowContext(ctx, "SELECT status FROM tb_pohon_kinerja WHERE id = ?", pokinId).Scan(&status)
+	if err != nil {
+		return err
+	}
+
+	if status != "crosscutting_disetujui" {
+		return errors.New("crosscutting hanya dapat dihapus saat status crosscutting_disetujui")
+	}
+
+	err = service.CrosscuttingOpdRepository.DeleteCrosscutting(ctx, tx, pokinId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

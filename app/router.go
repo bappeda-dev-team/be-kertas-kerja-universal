@@ -268,7 +268,7 @@ func NewRouter(
 	router.PUT("/crosscutting_opd/update/:crosscuttingId", crosscuttingOpdController.Update)
 	// router.DELETE("/crosscutting_opd/delete/:crosscuttingId", crosscuttingOpdController.Delete)
 	router.GET("/crosscutting_opd/findall/:parentId", crosscuttingOpdController.FindAll)
-	router.PATCH("/crosscutting_opd/:crosscuttingId/permission", crosscuttingOpdController.ApproveOrReject)
+	router.POST("/crosscutting/:crosscuttingId/:parentId/permission", crosscuttingOpdController.ApproveOrReject)
 
 	return router
 }

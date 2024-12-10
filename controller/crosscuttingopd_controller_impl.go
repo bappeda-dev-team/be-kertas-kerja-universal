@@ -233,13 +233,20 @@ func (controller *CrosscuttingOpdControllerImpl) ApproveOrReject(writer http.Res
 		return
 	}
 
-	var actionRequest struct {
-		Approve  bool `json:"approve"`
-		ParentId int  `json:"parent_id"`
+	parentId, err := strconv.Atoi(params.ByName("parentId"))
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   400,
+			Status: "BAD REQUEST",
+			Data:   "Invalid parent ID",
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
 	}
 
+	var approveRequest pohonkinerja.CrosscuttingApproveRequest
 	decoder := json.NewDecoder(request.Body)
-	err = decoder.Decode(&actionRequest)
+	err = decoder.Decode(&approveRequest)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   400,
@@ -250,8 +257,21 @@ func (controller *CrosscuttingOpdControllerImpl) ApproveOrReject(writer http.Res
 		return
 	}
 
-	err = controller.CrosscuttingOpdService.ApproveOrReject(request.Context(), crosscuttingId, actionRequest.Approve)
+	// Set parent ID dari parameter URL
+	approveRequest.ParentId = parentId
+
+	response, err := controller.CrosscuttingOpdService.ApproveOrReject(request.Context(), crosscuttingId, approveRequest)
 	if err != nil {
+		if err.Error() == "crosscutting sudah disetujui atau ditolak" {
+			webResponse := web.WebResponse{
+				Code:   400,
+				Status: "BAD REQUEST",
+				Data:   err.Error(),
+			}
+			helper.WriteToResponseBody(writer, webResponse)
+			return
+		}
+
 		webResponse := web.WebResponse{
 			Code:   500,
 			Status: "INTERNAL SERVER ERROR",
@@ -261,15 +281,10 @@ func (controller *CrosscuttingOpdControllerImpl) ApproveOrReject(writer http.Res
 		return
 	}
 
-	statusMessage := "Crosscutting rejected successfully"
-	if actionRequest.Approve {
-		statusMessage = "Crosscutting approved successfully"
-	}
-
 	webResponse := web.WebResponse{
 		Code:   200,
 		Status: "OK",
-		Data:   statusMessage,
+		Data:   response,
 	}
 
 	helper.WriteToResponseBody(writer, webResponse)

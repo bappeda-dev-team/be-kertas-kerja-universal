@@ -9,6 +9,7 @@ import (
 	"ekak_kabupaten_madiun/repository"
 	"errors"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -305,18 +306,48 @@ func (service *CrosscuttingOpdServiceImpl) FindAllByParent(ctx context.Context, 
 	return responses, nil
 }
 
-func (service *CrosscuttingOpdServiceImpl) ApproveOrReject(ctx context.Context, crosscuttingId int, approve bool) error {
+func (service *CrosscuttingOpdServiceImpl) ApproveOrReject(ctx context.Context, crosscuttingId int, request pohonkinerja.CrosscuttingApproveRequest) (*pohonkinerja.CrosscuttingApproveResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer helper.CommitOrRollback(tx)
 
-	// Panggil repository untuk update status
-	err = service.CrosscuttingOpdRepository.ApproveOrRejectCrosscutting(ctx, tx, crosscuttingId, approve)
-	if err != nil {
-		return err
+	currentTime := time.Now()
+	var pegawaiAction map[string]interface{}
+
+	if request.Approve {
+		pegawaiAction = map[string]interface{}{
+			"approve_by": request.NipPegawai,
+			"approve_at": currentTime,
+		}
+	} else {
+		pegawaiAction = map[string]interface{}{
+			"reject_by": request.NipPegawai,
+			"reject_at": currentTime,
+		}
 	}
 
-	return nil
+	err = service.CrosscuttingOpdRepository.ApproveOrRejectCrosscutting(ctx, tx, crosscuttingId, request.Approve, pegawaiAction)
+	if err != nil {
+		return nil, err
+	}
+
+	response := &pohonkinerja.CrosscuttingApproveResponse{
+		Id: crosscuttingId,
+	}
+
+	if request.Approve {
+		response.Status = "crosscutting_disetujui"
+		response.Message = "Crosscutting approved successfully"
+		response.ApprovedBy = &request.NipPegawai
+		response.ApprovedAt = &currentTime
+	} else {
+		response.Status = "crosscutting_ditolak"
+		response.Message = "Crosscutting rejected successfully"
+		response.RejectedBy = &request.NipPegawai
+		response.RejectedAt = &currentTime
+	}
+
+	return response, nil
 }

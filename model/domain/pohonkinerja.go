@@ -19,3 +19,10 @@ type PohonKinerja struct {
 	CloneFrom    int
 	Crosscutting []Crosscutting
 }
+
+type PegawaiAction struct {
+	ApproveBy *string
+	RejectBy  *string
+	ApproveAt *time.Time
+	RejectAt  *time.Time
+}

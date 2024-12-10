@@ -216,7 +216,6 @@ func (service *TujuanOpdServiceImpl) FindById(ctx context.Context, tujuanOpdId i
 			Target:    []domain.Target{},
 		}
 
-		// Ambil target untuk setiap indikator tanpa filter tahun ("")
 		targets, err := service.TujuanOpdRepository.FindTargetByIndikatorId(ctx, tx, ind.Id, "9999") // Gunakan tahun yang besar untuk mendapatkan semua target
 		if err != nil {
 			return tujuanopd.TujuanOpdResponse{}, err

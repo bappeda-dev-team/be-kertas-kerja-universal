@@ -216,14 +216,14 @@ func (service *TujuanOpdServiceImpl) FindById(ctx context.Context, tujuanOpdId i
 			Target:    []domain.Target{},
 		}
 
-		// Ambil target untuk setiap indikator
-		targets, err := service.TujuanOpdRepository.FindTargetByIndikatorId(ctx, tx, ind.Id, "")
+		// Ambil target untuk setiap indikator tanpa filter tahun ("")
+		targets, err := service.TujuanOpdRepository.FindTargetByIndikatorId(ctx, tx, ind.Id, "9999") // Gunakan tahun yang besar untuk mendapatkan semua target
 		if err != nil {
 			return tujuanopd.TujuanOpdResponse{}, err
 		}
 
 		// Tambahkan target ke indikator
-		indikatorMap[ind.Id].Target = targets
+		indikatorMap[ind.Id].Target = targets // Langsung assign targets yang didapat
 	}
 
 	// Convert map ke slice untuk response

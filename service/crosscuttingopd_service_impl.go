@@ -43,7 +43,7 @@ func (service *CrosscuttingOpdServiceImpl) Create(ctx context.Context, request p
 		KodeOpd:    request.KodeOpd,
 		Keterangan: request.Keterangan,
 		Tahun:      request.Tahun,
-		Status:     request.Status,
+		Status:     "crosscutting_menunggu",
 	}
 
 	for _, indikatorReq := range request.Indikator {

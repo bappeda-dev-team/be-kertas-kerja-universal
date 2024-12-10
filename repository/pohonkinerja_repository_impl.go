@@ -1760,3 +1760,45 @@ func (repository *PohonKinerjaRepositoryImpl) DeleteClonedPokinHierarchy(ctx con
 
 	return nil
 }
+
+func (r *PohonKinerjaRepositoryImpl) FindChildPokins(ctx context.Context, tx *sql.Tx, parentId int64) ([]domain.PohonKinerja, error) {
+	SQL := `SELECT id, parent, nama_pohon, jenis_pohon, level_pohon, kode_opd, keterangan, tahun, status, clone_from 
+            FROM tb_pohon_kinerja 
+            WHERE parent = ?`
+
+	rows, err := tx.QueryContext(ctx, SQL, parentId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var pokins []domain.PohonKinerja
+	for rows.Next() {
+		var pokin domain.PohonKinerja
+		err := rows.Scan(
+			&pokin.Id,
+			&pokin.Parent,
+			&pokin.NamaPohon,
+			&pokin.JenisPohon,
+			&pokin.LevelPohon,
+			&pokin.KodeOpd,
+			&pokin.Keterangan,
+			&pokin.Tahun,
+			&pokin.Status,
+			&pokin.CloneFrom,
+		)
+		if err != nil {
+			return nil, err
+		}
+		pokins = append(pokins, pokin)
+	}
+	return pokins, nil
+}
+
+func (repository *PohonKinerjaRepositoryImpl) InsertClonedPelaksana(ctx context.Context, tx *sql.Tx, newId string, pokinId int64, pelaksana domain.PelaksanaPokin) error {
+	SQL := `INSERT INTO tb_pelaksana_pokin (id, pokin_id, pegawai_id)
+            VALUES (?, ?, ?)`
+
+	_, err := tx.ExecContext(ctx, SQL, newId, pokinId, pelaksana.PegawaiId)
+	return err
+}

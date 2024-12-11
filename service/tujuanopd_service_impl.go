@@ -252,34 +252,80 @@ func (service *TujuanOpdServiceImpl) FindAll(ctx context.Context, kodeOpd string
 		return nil, fmt.Errorf("tahun harus berupa angka: %s", tahun)
 	}
 
-	tujuanOpds, err := service.TujuanOpdRepository.FindAll(ctx, tx, kodeOpd, tahun)
-	if err != nil {
-		return nil, err
-	}
+	// Inisialisasi response kosong
+	var responses []tujuanopd.TujuanOpdResponse
 
+	// Ambil data OPD
 	opd, err := service.OpdRepository.FindByKodeOpd(ctx, tx, kodeOpd)
 	if err != nil {
 		return nil, err
 	}
 
-	for i := range tujuanOpds {
-		tujuanOpds[i].NamaOpd = opd.NamaOpd
-		indikators, err := service.TujuanOpdRepository.FindIndikatorByTujuanId(ctx, tx, tujuanOpds[i].Id)
-		if err != nil {
+	// Ambil semua tujuan OPD
+	tujuanOpds, err := service.TujuanOpdRepository.FindAll(ctx, tx, kodeOpd, tahun)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return responses, nil // Kembalikan array kosong jika tidak ada data
+		}
+		return nil, err
+	}
+
+	// Proses setiap tujuan OPD
+	for _, tujuan := range tujuanOpds {
+		tujuanResponse := tujuanopd.TujuanOpdResponse{
+			Id:               tujuan.Id,
+			KodeOpd:          tujuan.KodeOpd,
+			NamaOpd:          opd.NamaOpd,
+			Tujuan:           tujuan.Tujuan,
+			RumusPerhitungan: tujuan.RumusPerhitungan,
+			SumberData:       tujuan.SumberData,
+			TahunAwal:        tujuan.TahunAwal,
+			TahunAkhir:       tujuan.TahunAkhir,
+			Indikator:        make([]tujuanopd.IndikatorResponse, 0), // Inisialisasi array kosong
+		}
+
+		// Ambil indikator untuk tujuan ini
+		indikators, err := service.TujuanOpdRepository.FindIndikatorByTujuanId(ctx, tx, tujuan.Id)
+		if err != nil && err != sql.ErrNoRows {
 			return nil, err
 		}
 
-		// Untuk setiap indikator, ambil targetnya
-		for j := range indikators {
-			targets, err := service.TujuanOpdRepository.FindTargetByIndikatorId(ctx, tx, indikators[j].Id, tahun)
-			if err != nil {
+		// Proses setiap indikator
+		for _, indikator := range indikators {
+			indikatorResponse := tujuanopd.IndikatorResponse{
+				Id:            indikator.Id,
+				NamaIndikator: indikator.Indikator,
+				Target:        make([]tujuanopd.TargetResponse, 0), // Inisialisasi array kosong
+			}
+
+			// Ambil target untuk indikator ini
+			targets, err := service.TujuanOpdRepository.FindTargetByIndikatorId(ctx, tx, indikator.Id, tahun)
+			if err != nil && err != sql.ErrNoRows {
 				return nil, err
 			}
-			indikators[j].Target = targets
+
+			// Proses setiap target
+			for _, target := range targets {
+				targetResponse := tujuanopd.TargetResponse{
+					Id:              target.Id,
+					IndikatorId:     target.IndikatorId,
+					TargetIndikator: target.Target,
+					SatuanIndikator: target.Satuan,
+					Tahun:           target.Tahun,
+				}
+				indikatorResponse.Target = append(indikatorResponse.Target, targetResponse)
+			}
+
+			tujuanResponse.Indikator = append(tujuanResponse.Indikator, indikatorResponse)
 		}
 
-		tujuanOpds[i].Indikator = indikators
+		responses = append(responses, tujuanResponse)
 	}
 
-	return helper.ToTujuanOpdResponses(tujuanOpds), nil
+	// Jika tidak ada data sama sekali, kembalikan array kosong
+	if responses == nil {
+		responses = make([]tujuanopd.TujuanOpdResponse, 0)
+	}
+
+	return responses, nil
 }

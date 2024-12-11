@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"database/sql"
 	"ekak_kabupaten_madiun/helper"
 	"ekak_kabupaten_madiun/model/web"
 	"ekak_kabupaten_madiun/model/web/pohonkinerja"
@@ -135,18 +136,16 @@ func (controller *PohonKinerjaOpdControllerImpl) FindById(writer http.ResponseWr
 }
 
 func (controller *PohonKinerjaOpdControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	// Get tahun and kode_opd from query params
 	kodeOpd := params.ByName("kode_opd")
 	tahun := params.ByName("tahun")
 
+	// Jika kodeOpd atau tahun kosong, kembalikan response null
 	if kodeOpd == "" || tahun == "" {
-		// Buat response error
 		webResponse := web.WebResponse{
-			Code:   400,
-			Status: "Bad Request",
-			Data:   "kode_opd dan tahun harus diisi",
+			Code:   200,
+			Status: "OK",
+			Data:   nil,
 		}
-		writer.WriteHeader(http.StatusBadRequest)
 		helper.WriteToResponseBody(writer, webResponse)
 		return
 	}
@@ -154,7 +153,18 @@ func (controller *PohonKinerjaOpdControllerImpl) FindAll(writer http.ResponseWri
 	// Panggil service FindAll
 	pohonKinerjaResponse, err := controller.PohonKinerjaOpdService.FindAll(request.Context(), kodeOpd, tahun)
 	if err != nil {
-		// Buat response error
+		// Jika tidak ada data, kembalikan response sukses dengan data null
+		if err == sql.ErrNoRows {
+			webResponse := web.WebResponse{
+				Code:   200,
+				Status: "OK",
+				Data:   nil,
+			}
+			helper.WriteToResponseBody(writer, webResponse)
+			return
+		}
+
+		// Untuk error lainnya
 		webResponse := web.WebResponse{
 			Code:   404,
 			Status: "Not Found",

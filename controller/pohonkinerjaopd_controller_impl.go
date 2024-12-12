@@ -86,10 +86,19 @@ func (controller *PohonKinerjaOpdControllerImpl) Update(writer http.ResponseWrit
 }
 
 func (controller *PohonKinerjaOpdControllerImpl) Delete(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	// Panggil service Delete
-	controller.PohonKinerjaOpdService.Delete(request.Context(), params.ByName("id"))
+	err := controller.PohonKinerjaOpdService.Delete(request.Context(), params.ByName("id"))
+	if err != nil {
 
-	// Kirim response
+		webResponse := web.WebResponse{
+			Code:   400,
+			Status: "Error",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	// Kirim response sukses
 	webResponse := web.WebResponse{
 		Code:   200,
 		Status: "Success Delete Pohon Kinerja",
@@ -97,6 +106,7 @@ func (controller *PohonKinerjaOpdControllerImpl) Delete(writer http.ResponseWrit
 	}
 
 	helper.WriteToResponseBody(writer, webResponse)
+
 }
 
 func (controller *PohonKinerjaOpdControllerImpl) FindById(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {

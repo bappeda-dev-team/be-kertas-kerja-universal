@@ -516,24 +516,31 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 		return pohonkinerja.PohonKinerjaOpdAllResponse{}, errors.New("kode opd tidak ditemukan")
 	}
 
-	// Ambil data tujuan OPD berdasarkan tahun dan kode OPD
+	// Inisialisasi response dasar
+	response := pohonkinerja.PohonKinerjaOpdAllResponse{
+		KodeOpd:    kodeOpd,
+		NamaOpd:    opd.NamaOpd,
+		Tahun:      tahun,
+		TujuanOpd:  make([]pohonkinerja.TujuanOpdResponse, 0),
+		Strategics: make([]pohonkinerja.StrategicOpdResponse, 0),
+	}
+
+	// Ambil data tujuan OPD
 	tujuanOpds, err := service.tujuanOpdRepository.FindTujuanOpdByTahun(ctx, tx, kodeOpd, tahun)
 	if err != nil {
 		log.Printf("Error getting tujuan OPD: %v", err)
-		return pohonkinerja.PohonKinerjaOpdAllResponse{}, err
+		// Kembalikan response dengan array kosong jika terjadi error
+		return response, nil
 	}
 
 	// Konversi tujuan OPD ke format response
-	var tujuanOpdResponses []pohonkinerja.TujuanOpdResponse
 	for _, tujuan := range tujuanOpds {
-		// Ambil indikator untuk setiap tujuan OPD
 		indikators, err := service.tujuanOpdRepository.FindIndikatorByTujuanOpdId(ctx, tx, tujuan.Id)
 		if err != nil {
 			log.Printf("Error getting indikator for tujuan ID %d: %v", tujuan.Id, err)
-			continue // Lanjut ke tujuan berikutnya jika ada error
+			continue
 		}
 
-		// Konversi indikator ke format response
 		var indikatorResponses []pohonkinerja.IndikatorTujuanResponse
 		for _, indikator := range indikators {
 			indikatorResponses = append(indikatorResponses, pohonkinerja.IndikatorTujuanResponse{
@@ -541,7 +548,7 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 			})
 		}
 
-		tujuanOpdResponses = append(tujuanOpdResponses, pohonkinerja.TujuanOpdResponse{
+		response.TujuanOpd = append(response.TujuanOpd, pohonkinerja.TujuanOpdResponse{
 			Id:        tujuan.Id,
 			KodeOpd:   tujuan.KodeOpd,
 			Tujuan:    tujuan.Tujuan,
@@ -549,18 +556,19 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 		})
 	}
 
-	// Urutkan tujuan OPD berdasarkan ID
-	sort.Slice(tujuanOpdResponses, func(i, j int) bool {
-		return tujuanOpdResponses[i].Id < tujuanOpdResponses[j].Id
-	})
-
-	// Ambil semua data pohon kinerja
+	// Ambil data pohon kinerja
 	pokins, err := service.pohonKinerjaOpdRepository.FindAll(ctx, tx, kodeOpd, tahun)
 	if err != nil {
-		return pohonkinerja.PohonKinerjaOpdAllResponse{}, err
+		// Kembalikan response dengan data yang sudah ada jika terjadi error
+		return response, nil
 	}
 
-	// Buat map untuk menyimpan data
+	// Jika tidak ada data pohon kinerja, kembalikan response dengan array kosong
+	if len(pokins) == 0 {
+		return response, nil
+	}
+
+	// Proses data pohon kinerja seperti sebelumnya
 	pohonMap := make(map[int]map[int][]domain.PohonKinerja)
 	pelaksanaMap := make(map[int][]pohonkinerja.PelaksanaOpdResponse)
 	indikatorMap := make(map[int][]pohonkinerja.IndikatorResponse)
@@ -637,7 +645,6 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 	}
 
 	// Build response untuk strategic (level 4)
-	var strategics []pohonkinerja.StrategicOpdResponse
 	if strategicList := pohonMap[4]; len(strategicList) > 0 {
 		for _, strategicsByParent := range strategicList {
 			sort.Slice(strategicsByParent, func(i, j int) bool {
@@ -646,23 +653,17 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 
 			for _, strategic := range strategicsByParent {
 				strategicResp := service.buildStrategicResponse(ctx, tx, pohonMap, strategic, pelaksanaMap, indikatorMap)
-				strategics = append(strategics, strategicResp)
+				response.Strategics = append(response.Strategics, strategicResp)
 			}
 		}
+
+		// Urutkan strategics berdasarkan Id
+		sort.Slice(response.Strategics, func(i, j int) bool {
+			return response.Strategics[i].Id < response.Strategics[j].Id
+		})
 	}
 
-	// Urutkan strategics berdasarkan Id
-	sort.Slice(strategics, func(i, j int) bool {
-		return strategics[i].Id < strategics[j].Id
-	})
-
-	return pohonkinerja.PohonKinerjaOpdAllResponse{
-		KodeOpd:    kodeOpd,
-		NamaOpd:    opd.NamaOpd,
-		Tahun:      tahun,
-		TujuanOpd:  tujuanOpdResponses,
-		Strategics: strategics,
-	}, nil
+	return response, nil
 }
 
 func (service *PohonKinerjaOpdServiceImpl) FindStrategicNoParent(ctx context.Context, kodeOpd, tahun string) ([]pohonkinerja.StrategicOpdResponse, error) {

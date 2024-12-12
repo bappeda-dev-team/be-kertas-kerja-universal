@@ -341,35 +341,156 @@ func (repository *PohonKinerjaRepositoryImpl) FindStrategicNoParent(ctx context.
 }
 
 func (repository *PohonKinerjaRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+	// Temukan semua ID anak pohon secara rekursif
+	scriptFindChildren := `
+        WITH RECURSIVE child_tree AS (
+            SELECT id, parent, clone_from
+            FROM tb_pohon_kinerja
+            WHERE id = ?
+
+            UNION ALL
+
+            SELECT t.id, t.parent, t.clone_from
+            FROM tb_pohon_kinerja t
+            JOIN child_tree ct ON t.parent = ct.id
+        )
+        SELECT id FROM child_tree
+    `
+
+	rows, err := tx.QueryContext(ctx, scriptFindChildren, id)
+	if err != nil {
+		return fmt.Errorf("gagal mencari turunan pohon: %v", err)
+	}
+	defer rows.Close()
+
+	// Kumpulkan semua ID anak pohon
+	var childIds []string
+	for rows.Next() {
+		var childId string
+		if err := rows.Scan(&childId); err != nil {
+			return fmt.Errorf("gagal membaca ID turunan pohon: %v", err)
+		}
+		childIds = append(childIds, childId)
+	}
+
+	// Periksa apakah ada clone yang merujuk ke salah satu anak pohon
+	scriptCheckClones := `
+        SELECT id
+        FROM tb_pohon_kinerja
+        WHERE clone_from IN (` + placeholders(len(childIds)) + `)
+    `
+
+	cloneRows, err := tx.QueryContext(ctx, scriptCheckClones, convertToInterface(childIds)...)
+	if err != nil {
+		return fmt.Errorf("gagal memeriksa clone: %v", err)
+	}
+	defer cloneRows.Close()
+
+	var clones []string
+	for cloneRows.Next() {
+		var cloneId string
+		if err := cloneRows.Scan(&cloneId); err != nil {
+			return fmt.Errorf("gagal membaca ID clone: %v", err)
+		}
+		clones = append(clones, cloneId)
+	}
+
+	if len(clones) > 0 {
+		return fmt.Errorf("tidak dapat menghapus pohon kinerja dengan ID %s karena ada turunan yang memiliki clone: %v", id, clones)
+	}
+
+	// Lanjutkan dengan penghapusan rekursif
+	return repository.recursiveDelete(ctx, tx, id)
+}
+
+func (repository *PohonKinerjaRepositoryImpl) recursiveDelete(ctx context.Context, tx *sql.Tx, id string) error {
+	// Temukan semua ID anak pohon secara rekursif
+	scriptFindRelatedIds := `
+        WITH RECURSIVE related_ids AS (
+            SELECT id FROM tb_pohon_kinerja WHERE id = ?
+
+            UNION ALL
+
+            SELECT t.id
+            FROM tb_pohon_kinerja t
+            JOIN related_ids r ON t.parent = r.id
+        )
+        SELECT id FROM related_ids
+    `
+
+	rows, err := tx.QueryContext(ctx, scriptFindRelatedIds, id)
+	if err != nil {
+		return fmt.Errorf("gagal mencari ID terkait: %v", err)
+	}
+	defer rows.Close()
+
+	// Kumpulkan semua ID terkait
+	var relatedIds []string
+	for rows.Next() {
+		var relatedId string
+		if err := rows.Scan(&relatedId); err != nil {
+			return fmt.Errorf("gagal membaca ID terkait: %v", err)
+		}
+		relatedIds = append(relatedIds, relatedId)
+	}
+
+	// Hapus data yang terkait
+	return repository.deleteRelatedData(ctx, tx, relatedIds)
+}
+
+func (repository *PohonKinerjaRepositoryImpl) deleteRelatedData(ctx context.Context, tx *sql.Tx, ids []string) error {
+	// Hapus target
 	scriptDeleteTarget := `
         DELETE FROM tb_target 
-        WHERE indikator_id IN (
-            SELECT id FROM tb_indikator WHERE pokin_id = ?
-        )`
-	_, err := tx.ExecContext(ctx, scriptDeleteTarget, id)
-	if err != nil {
-		return fmt.Errorf("gagal menghapus data target: %v", err)
+        WHERE indikator_id IN (SELECT id FROM tb_indikator WHERE pokin_id IN (` + placeholders(len(ids)) + `))
+    `
+	if _, err := tx.ExecContext(ctx, scriptDeleteTarget, convertToInterface(ids)...); err != nil {
+		return fmt.Errorf("gagal menghapus target: %v", err)
 	}
 
-	scriptDeleteIndikator := "DELETE FROM tb_indikator WHERE pokin_id = ?"
-	_, err = tx.ExecContext(ctx, scriptDeleteIndikator, id)
-	if err != nil {
-		return fmt.Errorf("gagal menghapus data indikator: %v", err)
+	// Hapus indikator
+	scriptDeleteIndikator := `
+        DELETE FROM tb_indikator WHERE pokin_id IN (` + placeholders(len(ids)) + `)
+    `
+	if _, err := tx.ExecContext(ctx, scriptDeleteIndikator, convertToInterface(ids)...); err != nil {
+		return fmt.Errorf("gagal menghapus indikator: %v", err)
 	}
 
-	scriptDeletePelaksana := "DELETE FROM tb_pelaksana_pokin WHERE pohon_kinerja_id = ?"
-	_, err = tx.ExecContext(ctx, scriptDeletePelaksana, id)
-	if err != nil {
-		return fmt.Errorf("gagal menghapus data pelaksana: %v", err)
+	// Hapus pelaksana
+	scriptDeletePelaksana := `
+        DELETE FROM tb_pelaksana_pokin WHERE pohon_kinerja_id IN (` + placeholders(len(ids)) + `)
+    `
+	if _, err := tx.ExecContext(ctx, scriptDeletePelaksana, convertToInterface(ids)...); err != nil {
+		return fmt.Errorf("gagal menghapus pelaksana: %v", err)
 	}
 
-	scriptDeletePokin := "DELETE FROM tb_pohon_kinerja WHERE id = ?"
-	_, err = tx.ExecContext(ctx, scriptDeletePokin, id)
-	if err != nil {
-		return fmt.Errorf("gagal menghapus data pohon kinerja: %v", err)
+	// Hapus pohon kinerja
+	scriptDeletePokin := `
+        DELETE FROM tb_pohon_kinerja WHERE id IN (` + placeholders(len(ids)) + `)
+    `
+	if _, err := tx.ExecContext(ctx, scriptDeletePokin, convertToInterface(ids)...); err != nil {
+		return fmt.Errorf("gagal menghapus pohon kinerja: %v", err)
 	}
 
 	return nil
+}
+
+// Fungsi untuk membuat placeholder dinamis
+func placeholders(n int) string {
+	ph := make([]string, n)
+	for i := range ph {
+		ph[i] = "?"
+	}
+	return strings.Join(ph, ", ")
+}
+
+// Fungsi untuk mengonversi slice string ke slice interface{}
+func convertToInterface(ids []string) []interface{} {
+	result := make([]interface{}, len(ids))
+	for i, id := range ids {
+		result[i] = id
+	}
+	return result
 }
 
 func (repository *PohonKinerjaRepositoryImpl) FindPelaksanaPokin(ctx context.Context, tx *sql.Tx, pohonKinerjaId string) ([]domain.PelaksanaPokin, error) {

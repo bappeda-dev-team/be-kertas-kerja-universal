@@ -51,9 +51,17 @@ func (repository *PegawaiRepositoryImpl) FindById(ctx context.Context, tx *sql.T
 	return pegawai, nil
 }
 
-func (repository *PegawaiRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]domainmaster.Pegawai, error) {
-	script := "SELECT id, nama, nip, kode_opd FROM tb_pegawai"
-	rows, err := tx.QueryContext(ctx, script)
+func (repository *PegawaiRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, kodeOpd string) ([]domainmaster.Pegawai, error) {
+	script := "SELECT id, nama, nip, kode_opd FROM tb_pegawai where 1=1"
+	var params []interface{}
+
+	if kodeOpd != "" {
+		script += " AND kode_opd = ?"
+		params = append(params, kodeOpd)
+	}
+
+	script += " ORDER BY nama ASC"
+	rows, err := tx.QueryContext(ctx, script, params...)
 	if err != nil {
 		return []domainmaster.Pegawai{}, err
 	}

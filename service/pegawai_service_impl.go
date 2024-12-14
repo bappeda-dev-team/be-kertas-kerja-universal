@@ -124,14 +124,14 @@ func (service *PegawaiServiceImpl) FindById(ctx context.Context, id string) (peg
 	return helper.ToPegawaiResponse(pegawais), nil
 }
 
-func (service *PegawaiServiceImpl) FindAll(ctx context.Context) ([]pegawai.PegawaiResponse, error) {
+func (service *PegawaiServiceImpl) FindAll(ctx context.Context, kodeOpd string) ([]pegawai.PegawaiResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return []pegawai.PegawaiResponse{}, err
 	}
 	defer helper.CommitOrRollback(tx)
 
-	pegawais, err := service.pegawaiRepository.FindAll(ctx, tx)
+	pegawais, err := service.pegawaiRepository.FindAll(ctx, tx, kodeOpd)
 	if err != nil {
 		return []pegawai.PegawaiResponse{}, err
 	}

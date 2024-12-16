@@ -110,9 +110,29 @@ func (repository *TujuanOpdRepositoryImpl) Update(ctx context.Context, tx *sql.T
 }
 
 func (repository *TujuanOpdRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, tujuanOpdId int) error {
-	script := "DELETE FROM tb_tujuan_opd WHERE id = ?"
-	_, err := tx.ExecContext(ctx, script, tujuanOpdId)
-	return err
+	scriptDeleteTarget := `
+        DELETE t FROM tb_target t
+        INNER JOIN tb_indikator i ON t.indikator_id = i.id
+        WHERE i.tujuan_opd_id = ?
+    `
+	_, err := tx.ExecContext(ctx, scriptDeleteTarget, tujuanOpdId)
+	if err != nil {
+		return err
+	}
+
+	scriptDeleteIndikator := "DELETE FROM tb_indikator WHERE tujuan_opd_id = ?"
+	_, err = tx.ExecContext(ctx, scriptDeleteIndikator, tujuanOpdId)
+	if err != nil {
+		return err
+	}
+
+	scriptDeleteTujuanOpd := "DELETE FROM tb_tujuan_opd WHERE id = ?"
+	_, err = tx.ExecContext(ctx, scriptDeleteTujuanOpd, tujuanOpdId)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (repository *TujuanOpdRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, tujuanOpdId int) (domain.TujuanOpd, error) {

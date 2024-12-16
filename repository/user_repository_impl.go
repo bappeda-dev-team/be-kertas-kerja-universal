@@ -61,15 +61,25 @@ func (repository *UserRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, us
 	return repository.FindById(ctx, tx, users.Id)
 }
 
-func (repository *UserRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]domain.Users, error) {
+func (repository *UserRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, kodeOpd string) ([]domain.Users, error) {
 	script := `
-		SELECT u.id, u.nip, u.email, u.is_active, ur.role_id, r.role 
-		FROM tb_users u
-			LEFT JOIN tb_user_role ur ON u.id = ur.user_id
-			LEFT JOIN tb_role r ON ur.role_id = r.id
-		ORDER BY u.id, ur.role_id
-	`
-	rows, err := tx.QueryContext(ctx, script)
+        SELECT DISTINCT u.id, u.nip, u.email, u.is_active, ur.role_id, r.role 
+        FROM tb_users u
+        LEFT JOIN tb_user_role ur ON u.id = ur.user_id
+        LEFT JOIN tb_role r ON ur.role_id = r.id
+        INNER JOIN tb_pegawai p ON u.nip = p.nip
+        WHERE 1=1
+    `
+	var params []interface{}
+
+	if kodeOpd != "" {
+		script += " AND p.kode_opd = ?"
+		params = append(params, kodeOpd)
+	}
+
+	script += " ORDER BY u.id, ur.role_id"
+
+	rows, err := tx.QueryContext(ctx, script, params...)
 	if err != nil {
 		return []domain.Users{}, err
 	}

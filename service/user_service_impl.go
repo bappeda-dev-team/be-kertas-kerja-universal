@@ -222,14 +222,14 @@ func (service *UserServiceImpl) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-func (service *UserServiceImpl) FindAll(ctx context.Context) ([]user.UserResponse, error) {
+func (service *UserServiceImpl) FindAll(ctx context.Context, kodeOpd string) ([]user.UserResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return nil, err
 	}
 	defer helper.CommitOrRollback(tx)
 
-	users, err := service.UserRepository.FindAll(ctx, tx)
+	users, err := service.UserRepository.FindAll(ctx, tx, kodeOpd)
 	if err != nil {
 		return nil, err
 	}

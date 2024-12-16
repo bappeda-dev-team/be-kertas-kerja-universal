@@ -107,7 +107,8 @@ func (controller *UserControllerImpl) Delete(writer http.ResponseWriter, request
 }
 
 func (controller *UserControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	userResponses, err := controller.userService.FindAll(request.Context())
+	kodeOpd := request.URL.Query().Get("kode_opd")
+	userResponses, err := controller.userService.FindAll(request.Context(), kodeOpd)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   400,

@@ -23,7 +23,7 @@ func NewUserSeederImpl(userRepository repository.UserRepository, roleRepository 
 }
 
 func (seeder *UserSeederImpl) Seed(ctx context.Context, tx *sql.Tx) error {
-	users, err := seeder.UserRepository.FindAll(ctx, tx)
+	users, err := seeder.UserRepository.FindAll(ctx, tx, "")
 	if err != nil {
 		return err
 	}

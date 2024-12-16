@@ -817,20 +817,42 @@ func (repository *PohonKinerjaRepositoryImpl) DeletePokinAdmin(ctx context.Conte
 }
 
 func (repository *PohonKinerjaRepositoryImpl) FindPokinAdminById(ctx context.Context, tx *sql.Tx, id int) (domain.PohonKinerja, error) {
-	script := "SELECT id, nama_pohon, parent, jenis_pohon, level_pohon, kode_opd, keterangan, tahun, status FROM tb_pohon_kinerja WHERE id = ?"
-	rows, err := tx.QueryContext(ctx, script, id)
+	script := `
+        SELECT 
+            pk.id, 
+            pk.parent, 
+            pk.nama_pohon, 
+            pk.jenis_pohon, 
+            pk.level_pohon, 
+            pk.kode_opd, 
+            pk.keterangan, 
+            pk.tahun,
+            pk.status
+        FROM 
+            tb_pohon_kinerja pk 
+        WHERE 
+            pk.id = ?`
+
+	var pokin domain.PohonKinerja
+	err := tx.QueryRowContext(ctx, script, id).Scan(
+		&pokin.Id,
+		&pokin.Parent,
+		&pokin.NamaPohon,
+		&pokin.JenisPohon,
+		&pokin.LevelPohon,
+		&pokin.KodeOpd,
+		&pokin.Keterangan,
+		&pokin.Tahun,
+		&pokin.Status,
+	)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return domain.PohonKinerja{}, fmt.Errorf("pohon kinerja tidak ditemukan")
+		}
 		return domain.PohonKinerja{}, err
 	}
-	defer rows.Close()
-
-	pokinAdmin := domain.PohonKinerja{}
-	if rows.Next() {
-		rows.Scan(&pokinAdmin.Id, &pokinAdmin.NamaPohon, &pokinAdmin.Parent, &pokinAdmin.JenisPohon, &pokinAdmin.LevelPohon, &pokinAdmin.KodeOpd, &pokinAdmin.Keterangan, &pokinAdmin.Tahun, &pokinAdmin.Status)
-	}
-	return pokinAdmin, nil
+	return pokin, nil
 }
-
 func (repository *PohonKinerjaRepositoryImpl) FindPokinAdminAll(ctx context.Context, tx *sql.Tx, tahun string) ([]domain.PohonKinerja, error) {
 	script := `
         SELECT 

@@ -478,12 +478,14 @@ func (service *PohonKinerjaAdminServiceImpl) FindById(ctx context.Context, id in
 
 	pokin, err := service.pohonKinerjaRepository.FindPokinAdminById(ctx, tx, id)
 	if err != nil {
+		if err.Error() == "pohon kinerja tidak ditemukan" {
+			// Jika pohon kinerja tidak ditemukan, kembalikan response kosong
+			return pohonkinerja.PohonKinerjaAdminResponseData{}, nil
+		}
 		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
 	}
 
-	log.Printf("Pohon Kinerja ditemukan: %+v", pokin)
-
-	// Ambil data OPD jika kode OPD ada
+	// Jika pohon kinerja ditemukan, ambil data OPD
 	if pokin.KodeOpd != "" {
 		opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, pokin.KodeOpd)
 		if err == nil {
@@ -491,7 +493,7 @@ func (service *PohonKinerjaAdminServiceImpl) FindById(ctx context.Context, id in
 		}
 	}
 
-	// Konversi pokin.Id dari int ke string
+	// Konversi id ke string untuk pencarian indikator
 	pokinIdStr := fmt.Sprint(pokin.Id)
 
 	// Ambil indikator berdasarkan pokin ID
@@ -500,19 +502,11 @@ func (service *PohonKinerjaAdminServiceImpl) FindById(ctx context.Context, id in
 		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
 	}
 
-	log.Printf("Indikator ditemukan: %+v", indikators)
-
-	// Konversi indikator domain ke IndikatorResponse
+	// Konversi indikator ke response
 	var indikatorResponses []pohonkinerja.IndikatorResponse
 	for _, ind := range indikators {
-		// Ambil target berdasarkan indikator ID
-		targets, err := service.pohonKinerjaRepository.FindTargetByIndikatorId(ctx, tx, ind.Id)
-		if err != nil {
-			return pohonkinerja.PohonKinerjaAdminResponseData{}, err
-		}
-
 		var targetResponses []pohonkinerja.TargetResponse
-		for _, t := range targets {
+		for _, t := range ind.Target {
 			targetResponse := pohonkinerja.TargetResponse{
 				Id:              t.Id,
 				IndikatorId:     t.IndikatorId,
@@ -531,28 +525,6 @@ func (service *PohonKinerjaAdminServiceImpl) FindById(ctx context.Context, id in
 		indikatorResponses = append(indikatorResponses, indikatorResponse)
 	}
 
-	// Tambahkan pengambilan data pelaksana
-	var pelaksanaResponses []pohonkinerja.PelaksanaOpdResponse
-	if pokin.LevelPohon >= 4 { // Hanya ambil pelaksana untuk level 4 ke atas
-		pelaksanas, err := service.pohonKinerjaRepository.FindPelaksanaPokin(ctx, tx, pokinIdStr)
-		if err != nil {
-			log.Printf("Error saat mengambil data pelaksana: %v", err)
-		} else {
-			for _, p := range pelaksanas {
-				// Ambil detail pegawai untuk setiap pelaksana
-				pegawai, err := service.pegawaiRepository.FindById(ctx, tx, p.PegawaiId)
-				if err == nil {
-					pelaksanaResponse := pohonkinerja.PelaksanaOpdResponse{
-						Id:          p.Id,
-						PegawaiId:   pegawai.Id,
-						NamaPegawai: pegawai.NamaPegawai,
-					}
-					pelaksanaResponses = append(pelaksanaResponses, pelaksanaResponse)
-				}
-			}
-		}
-	}
-
 	response := pohonkinerja.PohonKinerjaAdminResponseData{
 		Id:         pokin.Id,
 		Parent:     pokin.Parent,
@@ -564,7 +536,6 @@ func (service *PohonKinerjaAdminServiceImpl) FindById(ctx context.Context, id in
 		Keterangan: pokin.Keterangan,
 		Tahun:      pokin.Tahun,
 		Status:     pokin.Status,
-		Pelaksana:  pelaksanaResponses,
 		Indikators: indikatorResponses,
 	}
 

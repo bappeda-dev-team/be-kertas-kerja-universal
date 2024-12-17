@@ -184,10 +184,9 @@ func (controller *CrosscuttingOpdControllerImpl) Delete(writer http.ResponseWrit
 		return
 	}
 
-	// Panggil service untuk delete
-	err = controller.CrosscuttingOpdService.Delete(request.Context(), crosscuttingId)
+	nipPegawai := params.ByName("nip_pegawai")
+	err = controller.CrosscuttingOpdService.Delete(request.Context(), crosscuttingId, nipPegawai)
 	if err != nil {
-		// Handle specific error
 		if err.Error() == "crosscutting hanya dapat dihapus saat status crosscutting_disetujui" {
 			webResponse := web.WebResponse{
 				Code:   400,

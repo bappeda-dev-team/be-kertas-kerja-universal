@@ -17,13 +17,15 @@ import (
 type CrosscuttingOpdServiceImpl struct {
 	CrosscuttingOpdRepository repository.CrosscuttingOpdRepository
 	PohonKinerjaRepository    repository.PohonKinerjaRepository
+	PegawaiRepository         repository.PegawaiRepository
 	DB                        *sql.DB
 }
 
-func NewCrosscuttingOpdServiceImpl(crosscuttingOpdRepository repository.CrosscuttingOpdRepository, pohonKinerjaRepository repository.PohonKinerjaRepository, DB *sql.DB) *CrosscuttingOpdServiceImpl {
+func NewCrosscuttingOpdServiceImpl(crosscuttingOpdRepository repository.CrosscuttingOpdRepository, pohonKinerjaRepository repository.PohonKinerjaRepository, pegawaiRepository repository.PegawaiRepository, DB *sql.DB) *CrosscuttingOpdServiceImpl {
 	return &CrosscuttingOpdServiceImpl{
 		CrosscuttingOpdRepository: crosscuttingOpdRepository,
 		PohonKinerjaRepository:    pohonKinerjaRepository,
+		PegawaiRepository:         pegawaiRepository,
 		DB:                        DB,
 	}
 }
@@ -269,14 +271,35 @@ func (service *CrosscuttingOpdServiceImpl) FindAllByParent(ctx context.Context, 
 	var responses []pohonkinerja.CrosscuttingOpdResponse
 	for _, pokin := range pokins {
 		response := pohonkinerja.CrosscuttingOpdResponse{
-			Id:         pokin.Id,
-			NamaPohon:  pokin.NamaPohon,
-			JenisPohon: pokin.JenisPohon,
-			LevelPohon: pokin.LevelPohon,
-			KodeOpd:    pokin.KodeOpd,
-			Keterangan: pokin.Keterangan,
-			Tahun:      pokin.Tahun,
-			Status:     pokin.Status,
+			Id:            pokin.Id,
+			NamaPohon:     pokin.NamaPohon,
+			JenisPohon:    pokin.JenisPohon,
+			LevelPohon:    pokin.LevelPohon,
+			KodeOpd:       pokin.KodeOpd,
+			Keterangan:    pokin.Keterangan,
+			Tahun:         pokin.Tahun,
+			Status:        pokin.Status,
+			PegawaiAction: pokin.PegawaiAction,
+		}
+
+		// Proses pegawai_action untuk mendapatkan nama pegawai
+		if pokin.PegawaiAction != nil {
+			pegawaiActionMap, ok := pokin.PegawaiAction.(map[string]interface{})
+			if ok {
+				if approveBy, exists := pegawaiActionMap["approve_by"].(string); exists && approveBy != "" {
+					pegawai, err := service.PegawaiRepository.FindByNip(ctx, tx, approveBy)
+					if err == nil {
+						pegawaiActionMap["approve_name"] = pegawai.NamaPegawai
+					}
+				}
+				if rejectBy, exists := pegawaiActionMap["reject_by"].(string); exists && rejectBy != "" {
+					pegawai, err := service.PegawaiRepository.FindByNip(ctx, tx, rejectBy)
+					if err == nil {
+						pegawaiActionMap["rejec_name"] = pegawai.NamaPegawai
+					}
+				}
+				response.PegawaiAction = pegawaiActionMap
+			}
 		}
 
 		// Add indikator
@@ -320,15 +343,19 @@ func (service *CrosscuttingOpdServiceImpl) ApproveOrReject(ctx context.Context, 
 		pegawaiAction = map[string]interface{}{
 			"approve_by": request.NipPegawai,
 			"approve_at": currentTime,
+			"reject_by":  "",
+			"reject_at":  "",
 		}
 	} else {
 		pegawaiAction = map[string]interface{}{
-			"reject_by": request.NipPegawai,
-			"reject_at": currentTime,
+			"approve_by": "",
+			"approve_at": "",
+			"reject_by":  request.NipPegawai,
+			"reject_at":  currentTime,
 		}
 	}
 
-	err = service.CrosscuttingOpdRepository.ApproveOrRejectCrosscutting(ctx, tx, crosscuttingId, request.Approve, pegawaiAction)
+	err = service.CrosscuttingOpdRepository.ApproveOrRejectCrosscutting(ctx, tx, crosscuttingId, request.Approve, pegawaiAction, request.LevelPohon, request.JenisPohon)
 	if err != nil {
 		return nil, err
 	}
@@ -352,25 +379,14 @@ func (service *CrosscuttingOpdServiceImpl) ApproveOrReject(ctx context.Context, 
 	return response, nil
 }
 
-func (service *CrosscuttingOpdServiceImpl) Delete(ctx context.Context, pokinId int) error {
+func (service *CrosscuttingOpdServiceImpl) Delete(ctx context.Context, pokinId int, nipPegawai string) error {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return err
 	}
 	defer helper.CommitOrRollback(tx)
 
-	// Validasi status sebelum delete
-	var status string
-	err = tx.QueryRowContext(ctx, "SELECT status FROM tb_pohon_kinerja WHERE id = ?", pokinId).Scan(&status)
-	if err != nil {
-		return err
-	}
-
-	if status != "crosscutting_disetujui" {
-		return errors.New("crosscutting hanya dapat dihapus saat status crosscutting_disetujui")
-	}
-
-	err = service.CrosscuttingOpdRepository.DeleteCrosscutting(ctx, tx, pokinId)
+	err = service.CrosscuttingOpdRepository.DeleteCrosscutting(ctx, tx, pokinId, nipPegawai)
 	if err != nil {
 		return err
 	}

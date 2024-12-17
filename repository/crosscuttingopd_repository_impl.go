@@ -8,6 +8,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type CrosscuttingOpdRepositoryImpl struct {
@@ -73,16 +74,14 @@ func (repository *CrosscuttingOpdRepositoryImpl) CreateCrosscutting(ctx context.
 
 	return pokin, nil
 }
-
 func (repository *CrosscuttingOpdRepositoryImpl) FindAllCrosscutting(ctx context.Context, tx *sql.Tx, parentId int) ([]domain.PohonKinerja, error) {
 	script := `
         SELECT p.id, p.nama_pohon, p.parent, p.jenis_pohon, p.level_pohon, 
-               p.kode_opd, p.keterangan, p.tahun, p.status
+               p.kode_opd, p.keterangan, p.tahun, p.status, p.pegawai_action,
+               p.created_at
         FROM tb_pohon_kinerja p 
         JOIN tb_crosscutting c ON p.id = c.crosscutting_to 
-        WHERE c.crosscutting_from = (
-            SELECT id FROM tb_pohon_kinerja WHERE id = ?
-        )
+        WHERE c.crosscutting_from = ?
     `
 	rows, err := tx.QueryContext(ctx, script, parentId)
 	if err != nil {
@@ -93,6 +92,7 @@ func (repository *CrosscuttingOpdRepositoryImpl) FindAllCrosscutting(ctx context
 	var result []domain.PohonKinerja
 	for rows.Next() {
 		pokin := domain.PohonKinerja{}
+		var pegawaiActionJSON sql.NullString
 		err := rows.Scan(
 			&pokin.Id,
 			&pokin.NamaPohon,
@@ -103,13 +103,24 @@ func (repository *CrosscuttingOpdRepositoryImpl) FindAllCrosscutting(ctx context
 			&pokin.Keterangan,
 			&pokin.Tahun,
 			&pokin.Status,
+			&pegawaiActionJSON,
+			&pokin.CreatedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
+
+		if pegawaiActionJSON.Valid {
+			var pegawaiAction interface{}
+			err = json.Unmarshal([]byte(pegawaiActionJSON.String), &pegawaiAction)
+			if err != nil {
+				return nil, err
+			}
+			pokin.PegawaiAction = pegawaiAction
+		}
+
 		result = append(result, pokin)
 	}
-
 	return result, nil
 }
 
@@ -279,14 +290,42 @@ func (repository *CrosscuttingOpdRepositoryImpl) ValidateKodeOpdChange(ctx conte
 	return nil
 }
 
-func (repository *CrosscuttingOpdRepositoryImpl) DeleteCrosscutting(ctx context.Context, tx *sql.Tx, pokinId int) error {
+func (repository *CrosscuttingOpdRepositoryImpl) DeleteCrosscutting(ctx context.Context, tx *sql.Tx, pokinId int, nipPegawai string) error {
+	// Validasi status
+	var currentStatus string
+	query := `
+        SELECT status FROM tb_pohon_kinerja 
+        WHERE id = ?
+    `
+	err := tx.QueryRowContext(ctx, query, pokinId).Scan(&currentStatus)
+	if err != nil {
+		return err
+	}
+
+	if currentStatus != "crosscutting_disetujui" {
+		return errors.New("crosscutting hanya dapat dihapus saat status crosscutting_disetujui")
+	}
+
+	// Buat pegawai_action
+	currentTime := time.Now()
+	pegawaiAction := map[string]interface{}{
+		"reject_by": nipPegawai,
+		"reject_at": currentTime,
+	}
+
+	pegawaiActionJSON, err := json.Marshal(pegawaiAction)
+	if err != nil {
+		return err
+	}
+
 	scriptUpdatePokin := `
         UPDATE tb_pohon_kinerja 
         SET parent = 0,
-            status = 'crosscutting_ditolak'
+            status = 'crosscutting_ditolak',
+            pegawai_action = ?
         WHERE id = ?
     `
-	_, err := tx.ExecContext(ctx, scriptUpdatePokin, pokinId)
+	_, err = tx.ExecContext(ctx, scriptUpdatePokin, pegawaiActionJSON, pokinId)
 	if err != nil {
 		return err
 	}
@@ -314,19 +353,19 @@ func (repository *CrosscuttingOpdRepositoryImpl) DeleteCrosscutting(ctx context.
 	return nil
 }
 
-func (repository *CrosscuttingOpdRepositoryImpl) ApproveOrRejectCrosscutting(ctx context.Context, tx *sql.Tx, crosscuttingId int, approve bool, pegawaiAction map[string]interface{}) error {
+func (repository *CrosscuttingOpdRepositoryImpl) ApproveOrRejectCrosscutting(ctx context.Context, tx *sql.Tx, crosscuttingId int, approve bool, pegawaiAction map[string]interface{}, levelPohon int, jenisPohon string) error {
 	var currentStatus string
 	query := `
-		SELECT status FROM tb_pohon_kinerja 
-		WHERE id = ?
-	`
+        SELECT status FROM tb_pohon_kinerja 
+        WHERE id = ?
+    `
 	err := tx.QueryRowContext(ctx, query, crosscuttingId).Scan(&currentStatus)
 	if err != nil {
 		return err
 	}
 
-	if currentStatus != "crosscutting_menunggu" {
-		return errors.New("crosscutting sudah disetujui atau ditolak")
+	if currentStatus != "crosscutting_menunggu" && currentStatus != "crosscutting_ditolak" {
+		return errors.New("crosscutting sudah disetujui")
 	}
 
 	var newStatus string
@@ -342,50 +381,52 @@ func (repository *CrosscuttingOpdRepositoryImpl) ApproveOrRejectCrosscutting(ctx
 	}
 
 	if approve {
-		// Ambil parent_id dari tb_crosscutting
 		var parentId int
-		queryParent := `
-			SELECT crosscutting_from 
-			FROM tb_crosscutting 
-			WHERE crosscutting_to = ?
-		`
-		err := tx.QueryRowContext(ctx, queryParent, crosscuttingId).Scan(&parentId)
-		if err != nil {
-			return err
+		if levelPohon == 4 {
+			parentId = 0
+		} else {
+			queryParent := `
+                SELECT crosscutting_from 
+                FROM tb_crosscutting 
+                WHERE crosscutting_to = ?
+            `
+			err := tx.QueryRowContext(ctx, queryParent, crosscuttingId).Scan(&parentId)
+			if err != nil {
+				return err
+			}
 		}
 
-		// Update parent di tb_pohon_kinerja
 		scriptUpdateParent := `
-			UPDATE tb_pohon_kinerja 
-			SET parent = ?,
-				status = ?,
-				pegawai_action = ?
-			WHERE id = ?
-		`
-		_, err = tx.ExecContext(ctx, scriptUpdateParent, parentId, newStatus, pegawaiActionJSON, crosscuttingId)
+            UPDATE tb_pohon_kinerja 
+            SET parent = ?,
+                status = ?,
+                pegawai_action = ?,
+                level_pohon = ?,
+                jenis_pohon = ?
+            WHERE id = ?
+        `
+		_, err = tx.ExecContext(ctx, scriptUpdateParent, parentId, newStatus, pegawaiActionJSON, levelPohon, jenisPohon, crosscuttingId)
 		if err != nil {
 			return err
 		}
 	} else {
-		// Jika reject, hanya update status dan pegawai_action
 		scriptPokin := `
-			UPDATE tb_pohon_kinerja 
-			SET status = ?,
-				pegawai_action = ?
-			WHERE id = ?
-		`
+            UPDATE tb_pohon_kinerja 
+            SET status = ?,
+                pegawai_action = ?
+            WHERE id = ?
+        `
 		_, err = tx.ExecContext(ctx, scriptPokin, newStatus, pegawaiActionJSON, crosscuttingId)
 		if err != nil {
 			return err
 		}
 	}
 
-	// Update status di tb_crosscutting
 	scriptCrosscutting := `
-		UPDATE tb_crosscutting 
-		SET status = ?
-		WHERE crosscutting_to = ?
-	`
+        UPDATE tb_crosscutting 
+        SET status = ?
+        WHERE crosscutting_to = ?
+    `
 	result, err := tx.ExecContext(ctx, scriptCrosscutting, newStatus, crosscuttingId)
 	if err != nil {
 		return err

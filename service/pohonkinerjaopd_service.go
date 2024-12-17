@@ -14,4 +14,5 @@ type PohonKinerjaOpdService interface {
 	FindStrategicNoParent(ctx context.Context, kodeOpd, tahun string) ([]pohonkinerja.StrategicOpdResponse, error)
 	DeletePelaksana(ctx context.Context, pelaksanaId string) error
 	FindPokinByPelaksana(ctx context.Context, pegawaiId string, tahun string) ([]pohonkinerja.PohonKinerjaOpdResponse, error)
+	DeletePokinPemdaInOpd(ctx context.Context, id int) error
 }

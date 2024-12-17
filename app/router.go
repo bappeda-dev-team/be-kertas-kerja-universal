@@ -154,6 +154,7 @@ func NewRouter(
 	router.GET("/pohon_kinerja_opd/findall/:kode_opd/:tahun", pohonKinerjaOpdController.FindAll)
 	router.GET("/pohon_kinerja_opd/strategic_no_parent/:kode_opd/:tahun", pohonKinerjaOpdController.FindStrategicNoParent)
 	router.DELETE("/pohon_kinerja_opd/delete_pelaksana/:id", pohonKinerjaOpdController.DeletePelaksana)
+	router.DELETE("/pohon_kinerja_opd/delete_pokin_pemda/:id", pohonKinerjaOpdController.DeletePokinPemdaInOpd)
 
 	//pohon kinerja admin
 	router.POST("/pohon_kinerja_admin/create", pohonKinerjaAdminController.Create)
@@ -266,7 +267,7 @@ func NewRouter(
 	//crosscutting opd
 	router.POST("/crosscutting_opd/create/:parentId", crosscuttingOpdController.Create)
 	router.PUT("/crosscutting_opd/update/:crosscuttingId", crosscuttingOpdController.Update)
-	router.DELETE("/crosscutting_opd/delete/:crosscuttingId", crosscuttingOpdController.Delete)
+	router.DELETE("/crosscutting_opd/delete/:crosscuttingId/:nip_pegawai", crosscuttingOpdController.Delete)
 	router.GET("/crosscutting_opd/findall/:parentId", crosscuttingOpdController.FindAll)
 	router.POST("/crosscutting/:crosscuttingId/:parentId/permission", crosscuttingOpdController.ApproveOrReject)
 

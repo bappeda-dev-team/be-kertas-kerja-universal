@@ -296,3 +296,39 @@ func (controller *PohonKinerjaOpdControllerImpl) FindPokinByPelaksana(writer htt
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *PohonKinerjaOpdControllerImpl) DeletePokinPemdaInOpd(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	pokinId := params.ByName("id")
+	pokinIdInt, err := strconv.Atoi(pokinId)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   400,
+			Status: "Error",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	err = controller.PohonKinerjaOpdService.DeletePokinPemdaInOpd(request.Context(), pokinIdInt)
+	if err != nil {
+
+		webResponse := web.WebResponse{
+			Code:   400,
+			Status: "Error",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	// Kirim response sukses
+	webResponse := web.WebResponse{
+		Code:   200,
+		Status: "Success Delete Pohon Kinerja",
+		Data:   nil,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+
+}

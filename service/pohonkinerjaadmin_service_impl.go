@@ -937,8 +937,8 @@ func (service *PohonKinerjaAdminServiceImpl) CloneStrategiFromPemda(ctx context.
 		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
 	}
 
-	if status != "menunggu_disetujui" {
-		return pohonkinerja.PohonKinerjaAdminResponseData{}, errors.New("hanya pohon kinerja dengan status menunggu_disetujui yang dapat diclone")
+	if status != "menunggu_disetujui" && status != "ditolak" {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, errors.New("hanya pohon kinerja dengan status menunggu_disetujui atau ditolak yang dapat diclone")
 	}
 
 	// Fungsi helper untuk clone indikator dan target
@@ -984,7 +984,7 @@ func (service *PohonKinerjaAdminServiceImpl) CloneStrategiFromPemda(ctx context.
 			return err
 		}
 
-		if pokin.Status == "menunggu_disetujui" {
+		if pokin.Status == "menunggu_disetujui" || pokin.Status == "ditolak" {
 			err = service.pohonKinerjaRepository.UpdatePokinStatus(ctx, tx, pokinId, "disetujui")
 			if err != nil {
 				return err

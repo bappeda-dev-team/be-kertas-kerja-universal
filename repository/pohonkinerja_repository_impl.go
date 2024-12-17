@@ -1685,7 +1685,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinByCrosscuttingStatus(ctx 
         FROM tb_pohon_kinerja 
         WHERE kode_opd = ? 
         AND tahun = ? 
-        AND status = 'crosscutting_menunggu'
+        AND status IN ('crosscutting_menunggu','crosscutting_ditolak')
         ORDER BY level_pohon, id ASC`
 
 	rows, err := tx.QueryContext(ctx, script, kodeOpd, tahun)

@@ -353,7 +353,7 @@ func (repository *CrosscuttingOpdRepositoryImpl) DeleteCrosscutting(ctx context.
 	return nil
 }
 
-func (repository *CrosscuttingOpdRepositoryImpl) ApproveOrRejectCrosscutting(ctx context.Context, tx *sql.Tx, crosscuttingId int, approve bool, pegawaiAction map[string]interface{}, levelPohon int, jenisPohon string) error {
+func (repository *CrosscuttingOpdRepositoryImpl) ApproveOrRejectCrosscutting(ctx context.Context, tx *sql.Tx, crosscuttingId int, approve bool, pegawaiAction map[string]interface{}, levelPohon int, jenisPohon string, parentId int) error {
 	var currentStatus string
 	query := `
         SELECT status FROM tb_pohon_kinerja 
@@ -381,21 +381,6 @@ func (repository *CrosscuttingOpdRepositoryImpl) ApproveOrRejectCrosscutting(ctx
 	}
 
 	if approve {
-		var parentId int
-		if levelPohon == 4 {
-			parentId = 0
-		} else {
-			queryParent := `
-                SELECT crosscutting_from 
-                FROM tb_crosscutting 
-                WHERE crosscutting_to = ?
-            `
-			err := tx.QueryRowContext(ctx, queryParent, crosscuttingId).Scan(&parentId)
-			if err != nil {
-				return err
-			}
-		}
-
 		scriptUpdateParent := `
             UPDATE tb_pohon_kinerja 
             SET parent = ?,

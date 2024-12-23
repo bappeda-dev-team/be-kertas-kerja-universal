@@ -355,7 +355,16 @@ func (service *CrosscuttingOpdServiceImpl) ApproveOrReject(ctx context.Context, 
 		}
 	}
 
-	err = service.CrosscuttingOpdRepository.ApproveOrRejectCrosscutting(ctx, tx, crosscuttingId, request.Approve, pegawaiAction, request.LevelPohon, request.JenisPohon)
+	err = service.CrosscuttingOpdRepository.ApproveOrRejectCrosscutting(
+		ctx,
+		tx,
+		crosscuttingId,
+		request.Approve,
+		pegawaiAction,
+		request.LevelPohon,
+		request.JenisPohon,
+		request.ParentId,
+	)
 	if err != nil {
 		return nil, err
 	}

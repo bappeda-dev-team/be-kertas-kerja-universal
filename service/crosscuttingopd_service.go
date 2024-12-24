@@ -10,5 +10,6 @@ type CrosscuttingOpdService interface {
 	Update(ctx context.Context, request pohonkinerja.CrosscuttingOpdUpdateRequest) (pohonkinerja.CrosscuttingOpdResponse, error)
 	FindAllByParent(ctx context.Context, parentId int) ([]pohonkinerja.CrosscuttingOpdResponse, error)
 	ApproveOrReject(ctx context.Context, crosscuttingId int, request pohonkinerja.CrosscuttingApproveRequest) (*pohonkinerja.CrosscuttingApproveResponse, error)
-	Delete(ctx context.Context, crosscuttingId int) error
+	Delete(ctx context.Context, pokinId int, nipPegawai string) error
+	DeleteUnused(ctx context.Context, crosscuttingId int) error
 }

@@ -15,4 +15,5 @@ type PohonKinerjaOpdController interface {
 	FindStrategicNoParent(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	DeletePelaksana(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindPokinByPelaksana(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	DeletePokinPemdaInOpd(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 }

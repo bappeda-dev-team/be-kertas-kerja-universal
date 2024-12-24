@@ -930,3 +930,58 @@ func (service *PohonKinerjaOpdServiceImpl) FindPokinByPelaksana(ctx context.Cont
 	log.Printf("Berhasil mengambil %d pohon kinerja untuk pegawai %s", len(responses), pegawai.NamaPegawai)
 	return responses, nil
 }
+
+func (service *PohonKinerjaOpdServiceImpl) DeletePokinPemdaInOpd(ctx context.Context, id int) error {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("gagal memulai transaksi: %v", err)
+	}
+	defer helper.CommitOrRollback(tx)
+
+	// 1. Cek apakah pohon kinerja dengan ID tersebut ada
+	_, err = service.pohonKinerjaOpdRepository.FindById(ctx, tx, id)
+	if err != nil {
+		return fmt.Errorf("pohon kinerja tidak ditemukan: %v", err)
+	}
+
+	// 2. Cek apakah ini adalah pohon kinerja yang di-clone dan dapatkan ID aslinya
+	cloneFrom, err := service.pohonKinerjaOpdRepository.CheckCloneFrom(ctx, tx, id)
+	if err != nil {
+		return fmt.Errorf("gagal memeriksa clone_from: %v", err)
+	}
+
+	if cloneFrom == 0 {
+		return fmt.Errorf("pohon kinerja ini bukan merupakan hasil clone dari pemda")
+	}
+
+	// 3. Hapus data clone saat ini
+	err = service.pohonKinerjaOpdRepository.Delete(ctx, tx, fmt.Sprint(id))
+	if err != nil {
+		return fmt.Errorf("gagal menghapus pohon kinerja clone: %v", err)
+	}
+
+	// 4. Update status pohon kinerja asli (yang di-clone) menjadi "ditolak"
+	err = service.pohonKinerjaOpdRepository.UpdatePokinStatusFromApproved(ctx, tx, cloneFrom)
+	if err != nil {
+		return fmt.Errorf("gagal mengupdate status pohon kinerja asli: %v", err)
+	}
+
+	// 5. Dapatkan dan update status semua child dari pohon kinerja asli
+	originalHierarchy, err := service.pohonKinerjaOpdRepository.FindPokinAdminByIdHierarki(ctx, tx, cloneFrom)
+	if err != nil {
+		return fmt.Errorf("gagal mendapatkan hierarki pohon kinerja asli: %v", err)
+	}
+
+	// 6. Update status untuk semua child dari pohon kinerja asli
+	for _, originalPokin := range originalHierarchy {
+		if originalPokin.Id != cloneFrom { // Skip pohon kinerja utama karena sudah diupdate
+			err = service.pohonKinerjaOpdRepository.UpdatePokinStatusFromApproved(ctx, tx, originalPokin.Id)
+			if err != nil {
+				log.Printf("Warning: gagal mengupdate status child pohon kinerja asli ID %d: %v", originalPokin.Id, err)
+				continue // Lanjutkan ke child berikutnya meskipun ada error
+			}
+		}
+	}
+
+	return nil
+}

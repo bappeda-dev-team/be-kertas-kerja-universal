@@ -184,10 +184,9 @@ func (controller *CrosscuttingOpdControllerImpl) Delete(writer http.ResponseWrit
 		return
 	}
 
-	// Panggil service untuk delete
-	err = controller.CrosscuttingOpdService.Delete(request.Context(), crosscuttingId)
+	nipPegawai := params.ByName("nip_pegawai")
+	err = controller.CrosscuttingOpdService.Delete(request.Context(), crosscuttingId, nipPegawai)
 	if err != nil {
-		// Handle specific error
 		if err.Error() == "crosscutting hanya dapat dihapus saat status crosscutting_disetujui" {
 			webResponse := web.WebResponse{
 				Code:   400,
@@ -327,6 +326,48 @@ func (controller *CrosscuttingOpdControllerImpl) ApproveOrReject(writer http.Res
 		Code:   200,
 		Status: "OK",
 		Data:   response,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *CrosscuttingOpdControllerImpl) DeleteUnused(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	crosscuttingId, err := strconv.Atoi(params.ByName("crosscuttingId"))
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   400,
+			Status: "BAD REQUEST",
+			Data:   "Invalid crosscutting ID",
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	err = controller.CrosscuttingOpdService.DeleteUnused(request.Context(), crosscuttingId)
+	if err != nil {
+		if err.Error() == "crosscutting tidak dapat dihapus" {
+			webResponse := web.WebResponse{
+				Code:   400,
+				Status: "BAD REQUEST",
+				Data:   err.Error(),
+			}
+			helper.WriteToResponseBody(writer, webResponse)
+			return
+		}
+
+		webResponse := web.WebResponse{
+			Code:   500,
+			Status: "INTERNAL SERVER ERROR",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   200,
+		Status: "OK",
+		Data:   "Crosscutting dengan status menunggu dan ditolak berhasil dihapus",
 	}
 
 	helper.WriteToResponseBody(writer, webResponse)

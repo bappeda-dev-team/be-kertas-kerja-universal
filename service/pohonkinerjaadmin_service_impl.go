@@ -937,8 +937,8 @@ func (service *PohonKinerjaAdminServiceImpl) CloneStrategiFromPemda(ctx context.
 		return pohonkinerja.PohonKinerjaAdminResponseData{}, err
 	}
 
-	if status != "menunggu_disetujui" {
-		return pohonkinerja.PohonKinerjaAdminResponseData{}, errors.New("hanya pohon kinerja dengan status menunggu_disetujui yang dapat diclone")
+	if status != "menunggu_disetujui" && status != "ditolak" {
+		return pohonkinerja.PohonKinerjaAdminResponseData{}, errors.New("hanya pohon kinerja dengan status menunggu_disetujui atau ditolak yang dapat diclone")
 	}
 
 	// Fungsi helper untuk clone indikator dan target
@@ -984,7 +984,7 @@ func (service *PohonKinerjaAdminServiceImpl) CloneStrategiFromPemda(ctx context.
 			return err
 		}
 
-		if pokin.Status == "menunggu_disetujui" {
+		if pokin.Status == "menunggu_disetujui" || pokin.Status == "ditolak" {
 			err = service.pohonKinerjaRepository.UpdatePokinStatus(ctx, tx, pokinId, "disetujui")
 			if err != nil {
 				return err
@@ -1625,7 +1625,6 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinByCrosscuttingStatus(ctx c
 
 	return result, nil
 }
-
 func (service *PohonKinerjaAdminServiceImpl) FindPokinFromPemda(ctx context.Context, kodeOpd string, tahun string) ([]pohonkinerja.PohonKinerjaAdminResponseData, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
@@ -1641,7 +1640,8 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinFromPemda(ctx context.Cont
 		}
 	}
 
-	pokins, err := service.pohonKinerjaRepository.FindPokinByJenisPohon(ctx, tx, "", 0, tahun, kodeOpd, "menunggu_disetujui")
+	// Ambil semua data pohon kinerja
+	pokins, err := service.pohonKinerjaRepository.FindPokinByJenisPohon(ctx, tx, "", 0, tahun, kodeOpd, "")
 	if err != nil {
 		return nil, err
 	}
@@ -1652,6 +1652,10 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinFromPemda(ctx context.Cont
 
 	var result []pohonkinerja.PohonKinerjaAdminResponseData
 	for _, pokin := range pokins {
+		if pokin.Status != "menunggu_disetujui" && pokin.Status != "ditolak" {
+			continue
+		}
+
 		// Ambil data OPD jika ada kodeOpd
 		var namaOpd string
 		if pokin.KodeOpd != "" {
@@ -1670,6 +1674,7 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinFromPemda(ctx context.Cont
 			KodeOpd:    pokin.KodeOpd,
 			NamaOpd:    namaOpd,
 			Tahun:      pokin.Tahun,
+			Status:     pokin.Status,
 		})
 	}
 

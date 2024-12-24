@@ -1685,7 +1685,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinByCrosscuttingStatus(ctx 
         FROM tb_pohon_kinerja 
         WHERE kode_opd = ? 
         AND tahun = ? 
-        AND status = 'crosscutting_menunggu'
+        AND status IN ('crosscutting_menunggu','crosscutting_ditolak')
         ORDER BY level_pohon, id ASC`
 
 	rows, err := tx.QueryContext(ctx, script, kodeOpd, tahun)
@@ -1830,4 +1830,29 @@ func (repository *PohonKinerjaRepositoryImpl) InsertClonedPelaksana(ctx context.
 
 	_, err := tx.ExecContext(ctx, SQL, newId, pokinId, pelaksana.PegawaiId)
 	return err
+}
+
+func (repository *PohonKinerjaRepositoryImpl) UpdatePokinStatusFromApproved(ctx context.Context, tx *sql.Tx, id int) error {
+	SQL := `
+        UPDATE tb_pohon_kinerja 
+        SET status = 'ditolak' 
+        WHERE id = ? 
+        AND status = 'disetujui'
+    `
+
+	result, err := tx.ExecContext(ctx, SQL, id)
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return fmt.Errorf("tidak ada data yang diupdate untuk ID %d", id)
+	}
+
+	return nil
 }

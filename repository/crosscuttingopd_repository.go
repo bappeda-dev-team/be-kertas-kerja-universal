@@ -15,4 +15,5 @@ type CrosscuttingOpdRepository interface {
 	FindTargetByIndikatorIds(ctx context.Context, tx *sql.Tx, indikatorIds []string) ([]domain.Target, error)
 	FindIndikatorByPokinId(ctx context.Context, tx *sql.Tx, pokinIds []int) ([]domain.Indikator, error)
 	ApproveOrRejectCrosscutting(ctx context.Context, tx *sql.Tx, crosscuttingId int, approve bool, pegawaiAction map[string]interface{}, levelPohon int, jenisPohon string, parentId int) error
+	DeleteUnused(ctx context.Context, tx *sql.Tx, crosscuttingId int) error
 }

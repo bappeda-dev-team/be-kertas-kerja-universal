@@ -402,3 +402,18 @@ func (service *CrosscuttingOpdServiceImpl) Delete(ctx context.Context, pokinId i
 
 	return nil
 }
+
+func (service *CrosscuttingOpdServiceImpl) DeleteUnused(ctx context.Context, crosscuttingId int) error {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	err = service.CrosscuttingOpdRepository.DeleteUnused(ctx, tx, crosscuttingId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

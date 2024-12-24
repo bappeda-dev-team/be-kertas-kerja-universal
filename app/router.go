@@ -270,6 +270,7 @@ func NewRouter(
 	router.DELETE("/crosscutting_opd/delete/:crosscuttingId/:nip_pegawai", crosscuttingOpdController.Delete)
 	router.GET("/crosscutting_opd/findall/:parentId", crosscuttingOpdController.FindAll)
 	router.POST("/crosscutting/:crosscuttingId/:parentId/permission", crosscuttingOpdController.ApproveOrReject)
+	router.DELETE("/crosscutting/:crosscuttingId/unused", crosscuttingOpdController.DeleteUnused)
 
 	return router
 }

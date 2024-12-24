@@ -428,3 +428,94 @@ func (repository *CrosscuttingOpdRepositoryImpl) ApproveOrRejectCrosscutting(ctx
 
 	return nil
 }
+
+func (repository *CrosscuttingOpdRepositoryImpl) DeleteUnused(ctx context.Context, tx *sql.Tx, crosscuttingId int) error {
+	// Cek apakah ada data yang bisa dihapus
+	checkQuery := `
+        SELECT COUNT(p.id) 
+        FROM tb_pohon_kinerja p
+        JOIN tb_crosscutting c ON p.id = c.crosscutting_to
+        WHERE p.status IN ('crosscutting_menunggu', 'crosscutting_ditolak')
+        AND c.crosscutting_to = ?
+    `
+	var count int
+	err := tx.QueryRowContext(ctx, checkQuery, crosscuttingId).Scan(&count)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return errors.New("crosscutting tidak dapat dihapus")
+	}
+
+	query := `
+        SELECT p.id 
+        FROM tb_pohon_kinerja p
+        JOIN tb_crosscutting c ON p.id = c.crosscutting_to
+        WHERE p.status IN ('crosscutting_menunggu', 'crosscutting_ditolak')
+        AND c.crosscutting_to = ?
+    `
+
+	rows, err := tx.QueryContext(ctx, query, crosscuttingId)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var pokinIds []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return err
+		}
+		pokinIds = append(pokinIds, id)
+	}
+
+	placeholders := make([]string, len(pokinIds))
+	args := make([]interface{}, len(pokinIds))
+	for i, id := range pokinIds {
+		placeholders[i] = "?"
+		args[i] = id
+	}
+	inClause := strings.Join(placeholders, ",")
+
+	// Hapus pelaksana (perbaikan nama kolom dari pokin_id menjadi id_pokin)
+	pelaksanaQuery := "DELETE FROM tb_pelaksana_pokin WHERE pohon_kinerja_id IN (" + inClause + ")"
+	_, err = tx.ExecContext(ctx, pelaksanaQuery, args...)
+	if err != nil {
+		return err
+	}
+
+	// Hapus target
+	targetQuery := `
+        DELETE t FROM tb_target t
+        INNER JOIN tb_indikator i ON t.indikator_id = i.id
+        WHERE i.pokin_id IN (` + inClause + ")"
+	_, err = tx.ExecContext(ctx, targetQuery, args...)
+	if err != nil {
+		return err
+	}
+
+	// Hapus indikator
+	indikatorQuery := "DELETE FROM tb_indikator WHERE pokin_id IN (" + inClause + ")"
+	_, err = tx.ExecContext(ctx, indikatorQuery, args...)
+	if err != nil {
+		return err
+	}
+
+	// Hapus crosscutting
+	crosscuttingQuery := "DELETE FROM tb_crosscutting WHERE crosscutting_to IN (" + inClause + ")"
+	_, err = tx.ExecContext(ctx, crosscuttingQuery, args...)
+	if err != nil {
+		return err
+	}
+
+	// Hapus pohon kinerja
+	pokinQuery := "DELETE FROM tb_pohon_kinerja WHERE id IN (" + inClause + ")"
+	_, err = tx.ExecContext(ctx, pokinQuery, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

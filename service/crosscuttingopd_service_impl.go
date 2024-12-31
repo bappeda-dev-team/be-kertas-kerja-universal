@@ -18,14 +18,16 @@ type CrosscuttingOpdServiceImpl struct {
 	CrosscuttingOpdRepository repository.CrosscuttingOpdRepository
 	PohonKinerjaRepository    repository.PohonKinerjaRepository
 	PegawaiRepository         repository.PegawaiRepository
+	OpdRepository             repository.OpdRepository
 	DB                        *sql.DB
 }
 
-func NewCrosscuttingOpdServiceImpl(crosscuttingOpdRepository repository.CrosscuttingOpdRepository, pohonKinerjaRepository repository.PohonKinerjaRepository, pegawaiRepository repository.PegawaiRepository, DB *sql.DB) *CrosscuttingOpdServiceImpl {
+func NewCrosscuttingOpdServiceImpl(crosscuttingOpdRepository repository.CrosscuttingOpdRepository, pohonKinerjaRepository repository.PohonKinerjaRepository, pegawaiRepository repository.PegawaiRepository, opdRepository repository.OpdRepository, DB *sql.DB) *CrosscuttingOpdServiceImpl {
 	return &CrosscuttingOpdServiceImpl{
 		CrosscuttingOpdRepository: crosscuttingOpdRepository,
 		PohonKinerjaRepository:    pohonKinerjaRepository,
 		PegawaiRepository:         pegawaiRepository,
+		OpdRepository:             opdRepository,
 		DB:                        DB,
 	}
 }
@@ -122,12 +124,6 @@ func (service *CrosscuttingOpdServiceImpl) Update(ctx context.Context, request p
 	}
 	defer helper.CommitOrRollback(tx)
 
-	// Cek apakah data exists
-	existing, err := service.PohonKinerjaRepository.FindById(ctx, tx, request.Id)
-	if err != nil {
-		return pohonkinerja.CrosscuttingOpdResponse{}, errors.New("crosscutting tidak ditemukan")
-	}
-
 	// Konversi request ke domain
 	pokin := domain.PohonKinerja{
 		Id:         request.Id,
@@ -137,49 +133,10 @@ func (service *CrosscuttingOpdServiceImpl) Update(ctx context.Context, request p
 		KodeOpd:    request.KodeOpd,
 		Keterangan: request.Keterangan,
 		Tahun:      request.Tahun,
-		Status:     existing.Status, // Gunakan status yang ada
-	}
-
-	// Konversi indikator
-	for _, indikatorReq := range request.Indikator {
-		uuid := uuid.New().String()[:6]
-		var indikatorId string
-		if indikatorReq.Id != "" {
-			indikatorId = indikatorReq.Id
-		} else {
-			indikatorId = "IND-CRSS-" + uuid
-		}
-
-		indikator := domain.Indikator{
-			Id:        indikatorId,
-			PokinId:   strconv.Itoa(request.Id),
-			Indikator: indikatorReq.NamaIndikator,
-			Tahun:     request.Tahun,
-		}
-
-		// Konversi target
-		for _, targetReq := range indikatorReq.Target {
-			var targetId string
-			if targetReq.Id != "" {
-				targetId = targetReq.Id
-			} else {
-				targetId = "TRG-CRSS-" + uuid
-			}
-
-			target := domain.Target{
-				Id:          targetId,
-				IndikatorId: indikatorId,
-				Target:      targetReq.Target,
-				Satuan:      targetReq.Satuan,
-				Tahun:       request.Tahun,
-			}
-			indikator.Target = append(indikator.Target, target)
-		}
-		pokin.Indikator = append(pokin.Indikator, indikator)
 	}
 
 	// Update data
-	result, err := service.CrosscuttingOpdRepository.UpdateCrosscutting(ctx, tx, pokin, request.ParentId)
+	result, err := service.CrosscuttingOpdRepository.UpdateCrosscutting(ctx, tx, pokin)
 	if err != nil {
 		return pohonkinerja.CrosscuttingOpdResponse{}, err
 	}
@@ -194,27 +151,6 @@ func (service *CrosscuttingOpdServiceImpl) Update(ctx context.Context, request p
 		Keterangan: result.Keterangan,
 		Tahun:      result.Tahun,
 		Status:     result.Status,
-	}
-
-	// Konversi indikator untuk response
-	for _, indikator := range result.Indikator {
-		indikatorResponse := pohonkinerja.IndikatorResponse{
-			Id:            indikator.Id,
-			IdPokin:       strconv.Itoa(result.Id),
-			NamaIndikator: indikator.Indikator,
-		}
-
-		// Konversi target untuk response
-		for _, target := range indikator.Target {
-			targetResponse := pohonkinerja.TargetResponse{
-				Id:              target.Id,
-				IndikatorId:     target.IndikatorId,
-				TargetIndikator: target.Target,
-				SatuanIndikator: target.Satuan,
-			}
-			indikatorResponse.Target = append(indikatorResponse.Target, targetResponse)
-		}
-		response.Indikator = append(response.Indikator, indikatorResponse)
 	}
 
 	return response, nil
@@ -270,12 +206,16 @@ func (service *CrosscuttingOpdServiceImpl) FindAllByParent(ctx context.Context, 
 	// Build response
 	var responses []pohonkinerja.CrosscuttingOpdResponse
 	for _, pokin := range pokins {
+		opdRepo, err := service.OpdRepository.FindByKodeOpd(ctx, tx, pokin.KodeOpd)
+		helper.PanicIfError(err)
+
 		response := pohonkinerja.CrosscuttingOpdResponse{
 			Id:            pokin.Id,
 			NamaPohon:     pokin.NamaPohon,
 			JenisPohon:    pokin.JenisPohon,
 			LevelPohon:    pokin.LevelPohon,
 			KodeOpd:       pokin.KodeOpd,
+			NamaOpd:       opdRepo.NamaOpd,
 			Keterangan:    pokin.Keterangan,
 			Tahun:         pokin.Tahun,
 			Status:        pokin.Status,
@@ -336,51 +276,40 @@ func (service *CrosscuttingOpdServiceImpl) ApproveOrReject(ctx context.Context, 
 	}
 	defer helper.CommitOrRollback(tx)
 
-	currentTime := time.Now()
-	var pegawaiAction map[string]interface{}
-
+	// Validasi request
 	if request.Approve {
-		pegawaiAction = map[string]interface{}{
-			"approve_by": request.NipPegawai,
-			"approve_at": currentTime,
-			"reject_by":  "",
-			"reject_at":  "",
+		if !request.CreateNew && !request.UseExisting {
+			return nil, errors.New("harus memilih create new atau use existing untuk approval")
 		}
-	} else {
-		pegawaiAction = map[string]interface{}{
-			"approve_by": "",
-			"approve_at": "",
-			"reject_by":  request.NipPegawai,
-			"reject_at":  currentTime,
+		if request.CreateNew && request.UseExisting {
+			return nil, errors.New("tidak bisa memilih create new dan use existing sekaligus")
+		}
+		if request.UseExisting && request.ExistingId == 0 {
+			return nil, errors.New("existing_id harus diisi jika menggunakan pohon kinerja yang sudah ada")
 		}
 	}
 
-	err = service.CrosscuttingOpdRepository.ApproveOrRejectCrosscutting(
-		ctx,
-		tx,
-		crosscuttingId,
-		request.Approve,
-		pegawaiAction,
-		request.LevelPohon,
-		request.JenisPohon,
-		request.ParentId,
-	)
+	err = service.CrosscuttingOpdRepository.ApproveOrRejectCrosscutting(ctx, tx, crosscuttingId, request)
 	if err != nil {
 		return nil, err
 	}
 
+	currentTime := time.Now()
 	response := &pohonkinerja.CrosscuttingApproveResponse{
-		Id: crosscuttingId,
+		Id:      crosscuttingId,
+		Message: "Crosscutting berhasil diproses",
 	}
 
 	if request.Approve {
-		response.Status = "crosscutting_disetujui"
-		response.Message = "Crosscutting approved successfully"
+		if request.CreateNew {
+			response.Status = "crosscutting_disetujui"
+		} else {
+			response.Status = "crosscutting_disetujui_existing"
+		}
 		response.ApprovedBy = &request.NipPegawai
 		response.ApprovedAt = &currentTime
 	} else {
 		response.Status = "crosscutting_ditolak"
-		response.Message = "Crosscutting rejected successfully"
 		response.RejectedBy = &request.NipPegawai
 		response.RejectedAt = &currentTime
 	}
@@ -416,4 +345,67 @@ func (service *CrosscuttingOpdServiceImpl) DeleteUnused(ctx context.Context, cro
 	}
 
 	return nil
+}
+
+func (service *CrosscuttingOpdServiceImpl) FindPokinByCrosscuttingStatus(ctx context.Context, kodeOpd string, tahun string) ([]pohonkinerja.CrosscuttingOpdResponse, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	crosscuttings, err := service.CrosscuttingOpdRepository.FindPokinByCrosscuttingStatus(ctx, tx, kodeOpd, tahun)
+	if err != nil {
+		return nil, err
+	}
+
+	var responses []pohonkinerja.CrosscuttingOpdResponse
+	for _, crosscutting := range crosscuttings {
+		// Dapatkan data OPD
+		opd, err := service.OpdRepository.FindByKodeOpd(ctx, tx, crosscutting.KodeOpd)
+		if err != nil {
+			return nil, err
+		}
+
+		response := pohonkinerja.CrosscuttingOpdResponse{
+			Id:         crosscutting.Id,
+			Keterangan: crosscutting.Keterangan,
+			KodeOpd:    crosscutting.KodeOpd,
+			NamaOpd:    opd.NamaOpd,
+			Tahun:      crosscutting.Tahun,
+			Status:     crosscutting.Status,
+		}
+		responses = append(responses, response)
+	}
+
+	return responses, nil
+}
+
+func (service *CrosscuttingOpdServiceImpl) FindOPDCrosscuttingFrom(ctx context.Context, crosscuttingTo int) (pohonkinerja.CrosscuttingFromResponse, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return pohonkinerja.CrosscuttingFromResponse{}, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	kodeOpd, err := service.CrosscuttingOpdRepository.FindOPDCrosscuttingFrom(ctx, tx, crosscuttingTo)
+	if err != nil {
+		return pohonkinerja.CrosscuttingFromResponse{}, err
+	}
+
+	response := pohonkinerja.CrosscuttingFromResponse{
+		KodeOpd: kodeOpd,
+		NamaOpd: "", // Default kosong
+	}
+
+	// Hanya cari nama OPD jika kodeOpd tidak kosong
+	if kodeOpd != "" {
+		opd, err := service.OpdRepository.FindByKodeOpd(ctx, tx, kodeOpd)
+		if err != nil {
+			return pohonkinerja.CrosscuttingFromResponse{}, err
+		}
+		response.NamaOpd = opd.NamaOpd
+	}
+
+	return response, nil
 }

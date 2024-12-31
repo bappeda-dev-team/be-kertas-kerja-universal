@@ -274,17 +274,6 @@ func (controller *CrosscuttingOpdControllerImpl) ApproveOrReject(writer http.Res
 		return
 	}
 
-	parentId, err := strconv.Atoi(params.ByName("parentId"))
-	if err != nil {
-		webResponse := web.WebResponse{
-			Code:   400,
-			Status: "BAD REQUEST",
-			Data:   "Invalid parent ID",
-		}
-		helper.WriteToResponseBody(writer, webResponse)
-		return
-	}
-
 	var approveRequest pohonkinerja.CrosscuttingApproveRequest
 	decoder := json.NewDecoder(request.Body)
 	err = decoder.Decode(&approveRequest)
@@ -298,21 +287,8 @@ func (controller *CrosscuttingOpdControllerImpl) ApproveOrReject(writer http.Res
 		return
 	}
 
-	// Set parent ID dari parameter URL
-	approveRequest.ParentId = parentId
-
 	response, err := controller.CrosscuttingOpdService.ApproveOrReject(request.Context(), crosscuttingId, approveRequest)
 	if err != nil {
-		if err.Error() == "crosscutting sudah disetujui atau ditolak" {
-			webResponse := web.WebResponse{
-				Code:   400,
-				Status: "BAD REQUEST",
-				Data:   err.Error(),
-			}
-			helper.WriteToResponseBody(writer, webResponse)
-			return
-		}
-
 		webResponse := web.WebResponse{
 			Code:   500,
 			Status: "INTERNAL SERVER ERROR",
@@ -370,5 +346,70 @@ func (controller *CrosscuttingOpdControllerImpl) DeleteUnused(writer http.Respon
 		Data:   "Crosscutting dengan status menunggu dan ditolak berhasil dihapus",
 	}
 
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *CrosscuttingOpdControllerImpl) FindPokinByCrosscuttingStatus(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	kodeOpd := params.ByName("kode_opd")
+	tahun := params.ByName("tahun")
+
+	if kodeOpd == "" || tahun == "" {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   "kode_opd dan tahun harus diisi",
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	crosscuttingResponses, err := controller.CrosscuttingOpdService.FindPokinByCrosscuttingStatus(request.Context(), kodeOpd, tahun)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusInternalServerError,
+			Status: "INTERNAL SERVER ERROR",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "OK",
+		Data:   crosscuttingResponses,
+	}
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *CrosscuttingOpdControllerImpl) FindOPDCrosscuttingFrom(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	crosscuttingTo := params.ByName("crosscuttingTo")
+	id, err := strconv.Atoi(crosscuttingTo)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   "Invalid crosscutting_to ID",
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	response, err := controller.CrosscuttingOpdService.FindOPDCrosscuttingFrom(request.Context(), id)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusInternalServerError,
+			Status: "INTERNAL SERVER ERROR",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "OK",
+		Data:   response,
+	}
 	helper.WriteToResponseBody(writer, webResponse)
 }

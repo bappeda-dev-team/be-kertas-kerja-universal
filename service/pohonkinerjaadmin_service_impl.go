@@ -1665,6 +1665,39 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinFromPemda(ctx context.Cont
 			}
 		}
 
+		// Ambil data indikator
+		indikators, err := service.pohonKinerjaRepository.FindIndikatorByPokinId(ctx, tx, fmt.Sprint(pokin.Id))
+		if err != nil {
+			return nil, err
+		}
+
+		var indikatorResponses []pohonkinerja.IndikatorResponse
+		for _, indikator := range indikators {
+			// Ambil data target untuk setiap indikator
+			targets, err := service.pohonKinerjaRepository.FindTargetByIndikatorId(ctx, tx, indikator.Id)
+			if err != nil {
+				continue
+			}
+
+			// Konversi target ke response
+			var targetResponses []pohonkinerja.TargetResponse
+			for _, target := range targets {
+				targetResponses = append(targetResponses, pohonkinerja.TargetResponse{
+					Id:              target.Id,
+					IndikatorId:     target.IndikatorId,
+					TargetIndikator: target.Target,
+					SatuanIndikator: target.Satuan,
+				})
+			}
+
+			indikatorResponses = append(indikatorResponses, pohonkinerja.IndikatorResponse{
+				Id:            indikator.Id,
+				IdPokin:       fmt.Sprint(pokin.Id),
+				NamaIndikator: indikator.Indikator,
+				Target:        targetResponses,
+			})
+		}
+
 		result = append(result, pohonkinerja.PohonKinerjaAdminResponseData{
 			Id:         pokin.Id,
 			Parent:     pokin.Parent,
@@ -1674,7 +1707,9 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinFromPemda(ctx context.Cont
 			KodeOpd:    pokin.KodeOpd,
 			NamaOpd:    namaOpd,
 			Tahun:      pokin.Tahun,
+			Keterangan: pokin.Keterangan,
 			Status:     pokin.Status,
+			Indikators: indikatorResponses, // Menambahkan indikator ke response
 		})
 	}
 

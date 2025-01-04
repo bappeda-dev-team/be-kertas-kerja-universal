@@ -102,7 +102,7 @@ func InitializeServer() *http.Server {
 	tujuanOpdServiceImpl := service.NewTujuanOpdServiceImpl(tujuanOpdRepositoryImpl, opdRepositoryImpl, db)
 	tujuanOpdControllerImpl := controller.NewTujuanOpdControllerImpl(tujuanOpdServiceImpl)
 	crosscuttingOpdRepositoryImpl := repository.NewCrosscuttingOpdRepositoryImpl()
-	crosscuttingOpdServiceImpl := service.NewCrosscuttingOpdServiceImpl(crosscuttingOpdRepositoryImpl, pohonKinerjaRepositoryImpl, pegawaiRepositoryImpl, db)
+	crosscuttingOpdServiceImpl := service.NewCrosscuttingOpdServiceImpl(crosscuttingOpdRepositoryImpl, pohonKinerjaRepositoryImpl, pegawaiRepositoryImpl, opdRepositoryImpl, db)
 	crosscuttingOpdControllerImpl := controller.NewCrosscuttingOpdControllerImpl(crosscuttingOpdServiceImpl)
 	router := app.NewRouter(rencanaKinerjaControllerImpl, rencanaAksiControllerImpl, pelaksanaanRencanaAksiControllerImpl, usulanMusrebangControllerImpl, usulanMandatoriControllerImpl, usulanPokokPikiranControllerImpl, usulanInisiatifControllerImpl, usulanTerpilihControllerImpl, gambaranUmumControllerImpl, dasarHukumControllerImpl, inovasiControllerImpl, subKegiatanControllerImpl, subKegiatanTerpilihControllerImpl, pohonKinerjaOpdControllerImpl, pegawaiControllerImpl, lembagaControllerImpl, jabatanControllerImpl, pohonKinerjaAdminControllerImpl, opdControllerImpl, programControllerImpl, urusanControllerImpl, bidangUrusanControllerImpl, kegiatanControllerImpl, userControllerImpl, roleControllerImpl, tujuanOpdControllerImpl, crosscuttingOpdControllerImpl)
 	authMiddleware := middleware.NewAuthMiddleware(router)

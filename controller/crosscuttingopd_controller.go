@@ -13,4 +13,6 @@ type CrosscuttingOpdController interface {
 	FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	ApproveOrReject(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	DeleteUnused(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	FindPokinByCrosscuttingStatus(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	FindOPDCrosscuttingFrom(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 }

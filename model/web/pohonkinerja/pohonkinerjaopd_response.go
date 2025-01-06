@@ -39,7 +39,7 @@ type StrategicOpdResponse struct {
 	Pelaksana    []PelaksanaOpdResponse      `json:"pelaksana"`
 	Indikator    []IndikatorResponse         `json:"indikator"`
 	Tacticals    []TacticalOpdResponse       `json:"childs,omitempty"`
-	Crosscutting []CrosscuttingOpdResponse   `json:"ccrosscutting_strategic,omitempty"`
+	Crosscutting []CrosscuttingOpdResponse   `json:"crosscutting,omitempty"`
 }
 
 type TacticalOpdResponse struct {
@@ -54,7 +54,7 @@ type TacticalOpdResponse struct {
 	Pelaksana    []PelaksanaOpdResponse      `json:"pelaksana"`
 	Indikator    []IndikatorResponse         `json:"indikator"`
 	Operationals []OperationalOpdResponse    `json:"childs,omitempty"`
-	Crosscutting []CrosscuttingOpdResponse   `json:"ccrosscutting_tactical,omitempty"`
+	Crosscutting []CrosscuttingOpdResponse   `json:"crosscutting,omitempty"`
 }
 
 type OperationalOpdResponse struct {
@@ -69,7 +69,7 @@ type OperationalOpdResponse struct {
 	Pelaksana    []PelaksanaOpdResponse      `json:"pelaksana"`
 	Indikator    []IndikatorResponse         `json:"indikator"`
 	Childs       []OperationalNOpdResponse   `json:"childs,omitempty"`
-	Crosscutting []CrosscuttingOpdResponse   `json:"ccrosscutting_operational,omitempty"`
+	Crosscutting []CrosscuttingOpdResponse   `json:"crosscutting,omitempty"`
 }
 
 type OperationalNOpdResponse struct {

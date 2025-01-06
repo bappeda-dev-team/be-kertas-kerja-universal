@@ -3,6 +3,7 @@ package domain
 import "time"
 
 type PohonKinerja struct {
+	IdCrosscutting int
 	Id             int
 	Parent         int
 	NamaPohon      string

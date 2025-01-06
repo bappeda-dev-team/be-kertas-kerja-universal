@@ -155,6 +155,7 @@ func (service *CrosscuttingOpdServiceImpl) Update(ctx context.Context, request p
 
 	return response, nil
 }
+
 func (service *CrosscuttingOpdServiceImpl) FindAllByParent(ctx context.Context, parentId int) ([]pohonkinerja.CrosscuttingOpdResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
@@ -210,16 +211,17 @@ func (service *CrosscuttingOpdServiceImpl) FindAllByParent(ctx context.Context, 
 		helper.PanicIfError(err)
 
 		response := pohonkinerja.CrosscuttingOpdResponse{
-			Id:            pokin.Id,
-			NamaPohon:     pokin.NamaPohon,
-			JenisPohon:    pokin.JenisPohon,
-			LevelPohon:    pokin.LevelPohon,
-			KodeOpd:       pokin.KodeOpd,
-			NamaOpd:       opdRepo.NamaOpd,
-			Keterangan:    pokin.Keterangan,
-			Tahun:         pokin.Tahun,
-			Status:        pokin.Status,
-			PegawaiAction: pokin.PegawaiAction,
+			IdCrosscutting: pokin.IdCrosscutting,
+			Id:             pokin.Id,
+			NamaPohon:      pokin.NamaPohon,
+			JenisPohon:     pokin.JenisPohon,
+			LevelPohon:     pokin.LevelPohon,
+			KodeOpd:        pokin.KodeOpd,
+			NamaOpd:        opdRepo.NamaOpd,
+			Keterangan:     pokin.Keterangan,
+			Tahun:          pokin.Tahun,
+			Status:         pokin.Status,
+			PegawaiAction:  pokin.PegawaiAction,
 		}
 
 		// Proses pegawai_action untuk mendapatkan nama pegawai

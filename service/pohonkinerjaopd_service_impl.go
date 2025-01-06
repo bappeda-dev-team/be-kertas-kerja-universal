@@ -22,15 +22,17 @@ type PohonKinerjaOpdServiceImpl struct {
 	opdRepository             repository.OpdRepository
 	pegawaiRepository         repository.PegawaiRepository
 	tujuanOpdRepository       repository.TujuanOpdRepository
+	crosscuttingOpdRepository repository.CrosscuttingOpdRepository
 	DB                        *sql.DB
 }
 
-func NewPohonKinerjaOpdServiceImpl(pohonKinerjaOpdRepository repository.PohonKinerjaRepository, opdRepository repository.OpdRepository, pegawaiRepository repository.PegawaiRepository, tujuanOpdRepository repository.TujuanOpdRepository, DB *sql.DB) *PohonKinerjaOpdServiceImpl {
+func NewPohonKinerjaOpdServiceImpl(pohonKinerjaOpdRepository repository.PohonKinerjaRepository, opdRepository repository.OpdRepository, pegawaiRepository repository.PegawaiRepository, tujuanOpdRepository repository.TujuanOpdRepository, crosscuttingOpdRepository repository.CrosscuttingOpdRepository, DB *sql.DB) *PohonKinerjaOpdServiceImpl {
 	return &PohonKinerjaOpdServiceImpl{
 		pohonKinerjaOpdRepository: pohonKinerjaOpdRepository,
 		opdRepository:             opdRepository,
 		pegawaiRepository:         pegawaiRepository,
 		tujuanOpdRepository:       tujuanOpdRepository,
+		crosscuttingOpdRepository: crosscuttingOpdRepository,
 		DB:                        DB,
 	}
 }
@@ -789,6 +791,8 @@ func (service *PohonKinerjaOpdServiceImpl) buildStrategicResponse(ctx context.Co
 		strategicResp.Tacticals = tacticals
 	}
 
+	strategicResp.Crosscutting = service.buildCrosscuttingResponse(ctx, tx, strategic.Id, pelaksanaMap, indikatorMap)
+
 	return strategicResp
 }
 
@@ -827,6 +831,8 @@ func (service *PohonKinerjaOpdServiceImpl) buildTacticalResponse(ctx context.Con
 		tacticalResp.Operationals = operationals
 	}
 
+	tacticalResp.Crosscutting = service.buildCrosscuttingResponse(ctx, tx, tactical.Id, pelaksanaMap, indikatorMap)
+
 	return tacticalResp
 }
 
@@ -864,6 +870,8 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalResponse(ctx context.
 		}
 		operationalResp.Childs = childs
 	}
+
+	operationalResp.Crosscutting = service.buildCrosscuttingResponse(ctx, tx, operational.Id, pelaksanaMap, indikatorMap)
 
 	return operationalResp
 }
@@ -931,6 +939,66 @@ func (service *PohonKinerjaOpdServiceImpl) FindPokinByPelaksana(ctx context.Cont
 	return responses, nil
 }
 
+func (service *PohonKinerjaOpdServiceImpl) buildCrosscuttingResponse(ctx context.Context, tx *sql.Tx, pokinId int, pelaksanaMap map[int][]pohonkinerja.PelaksanaOpdResponse, indikatorMap map[int][]pohonkinerja.IndikatorResponse) []pohonkinerja.CrosscuttingOpdResponse {
+	// Ambil data crosscutting berdasarkan crosscutting_from
+	crosscuttings, err := service.crosscuttingOpdRepository.FindAllCrosscutting(ctx, tx, pokinId)
+	if err != nil {
+		log.Printf("Error getting crosscutting data: %v", err)
+		return nil
+	}
+
+	var crosscuttingResponses []pohonkinerja.CrosscuttingOpdResponse
+	for _, crosscutting := range crosscuttings {
+		// Filter status crosscutting yang akan ditampilkan
+		if crosscutting.Status != "crosscutting_disetujui" &&
+			crosscutting.Status != "crosscutting_disetujui_existing" {
+			continue
+		}
+
+		// Ambil data OPD
+		opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, crosscutting.KodeOpd)
+		if err != nil {
+			log.Printf("Gagal mengambil data OPD: %v", err)
+		}
+
+		// Jika status disetujui_existing, ambil data pohon kinerja yang di-crosscut
+		var namaPohon string
+		var jenisPohon string
+		var levelPohon int
+
+		if crosscutting.Status == "crosscutting_disetujui_existing" && crosscutting.CrosscuttingTo != 0 {
+			pokinExisting, err := service.pohonKinerjaOpdRepository.FindById(ctx, tx, crosscutting.CrosscuttingTo)
+			if err == nil {
+				namaPohon = pokinExisting.NamaPohon
+				jenisPohon = pokinExisting.JenisPohon
+				levelPohon = pokinExisting.LevelPohon
+			}
+		} else {
+			namaPohon = crosscutting.NamaPohon
+			jenisPohon = crosscutting.JenisPohon
+			levelPohon = crosscutting.LevelPohon
+		}
+
+		crosscuttingResp := pohonkinerja.CrosscuttingOpdResponse{
+			Id:         crosscutting.Id,
+			Parent:     pokinId,
+			NamaPohon:  namaPohon,
+			JenisPohon: jenisPohon,
+			LevelPohon: levelPohon,
+			Keterangan: crosscutting.Keterangan,
+			Status:     crosscutting.Status,
+			KodeOpd:    crosscutting.KodeOpd,
+			NamaOpd:    opd.NamaOpd,
+			Tahun:      crosscutting.Tahun,
+			Pelaksana:  pelaksanaMap[crosscutting.Id],
+			Indikator:  indikatorMap[crosscutting.Id],
+		}
+
+		crosscuttingResponses = append(crosscuttingResponses, crosscuttingResp)
+	}
+
+	return crosscuttingResponses
+}
 func (service *PohonKinerjaOpdServiceImpl) DeletePokinPemdaInOpd(ctx context.Context, id int) error {
 	tx, err := service.DB.Begin()
 	if err != nil {

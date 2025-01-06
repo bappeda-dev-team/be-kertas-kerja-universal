@@ -959,6 +959,57 @@ func (service *PohonKinerjaOpdServiceImpl) buildCrosscuttingResponse(ctx context
 		opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, crosscutting.KodeOpd)
 		if err != nil {
 			log.Printf("Gagal mengambil data OPD: %v", err)
+			continue
+		}
+
+		// Ambil data indikator untuk crosscutting
+		indikatorList, err := service.pohonKinerjaOpdRepository.FindIndikatorByPokinId(ctx, tx, fmt.Sprint(crosscutting.Id))
+		if err == nil {
+			var indikatorResponses []pohonkinerja.IndikatorResponse
+			for _, indikator := range indikatorList {
+				// Ambil target untuk setiap indikator
+				targetList, err := service.pohonKinerjaOpdRepository.FindTargetByIndikatorId(ctx, tx, indikator.Id)
+				if err != nil {
+					continue
+				}
+
+				var targetResponses []pohonkinerja.TargetResponse
+				for _, target := range targetList {
+					targetResponses = append(targetResponses, pohonkinerja.TargetResponse{
+						Id:              target.Id,
+						IndikatorId:     target.IndikatorId,
+						TargetIndikator: target.Target,
+						SatuanIndikator: target.Satuan,
+					})
+				}
+
+				indikatorResponses = append(indikatorResponses, pohonkinerja.IndikatorResponse{
+					Id:            indikator.Id,
+					IdPokin:       fmt.Sprint(crosscutting.Id),
+					NamaIndikator: indikator.Indikator,
+					Target:        targetResponses,
+				})
+			}
+			indikatorMap[crosscutting.Id] = indikatorResponses
+		}
+
+		// Ambil data pelaksana untuk crosscutting
+		pelaksanaList, err := service.pohonKinerjaOpdRepository.FindPelaksanaPokin(ctx, tx, fmt.Sprint(crosscutting.Id))
+		if err == nil {
+			var pelaksanaResponses []pohonkinerja.PelaksanaOpdResponse
+			for _, pelaksana := range pelaksanaList {
+				pegawai, err := service.pegawaiRepository.FindById(ctx, tx, pelaksana.PegawaiId)
+				if err != nil {
+					continue
+				}
+				pelaksanaResponses = append(pelaksanaResponses, pohonkinerja.PelaksanaOpdResponse{
+					Id:             pelaksana.Id,
+					PohonKinerjaId: fmt.Sprint(crosscutting.Id),
+					PegawaiId:      pelaksana.PegawaiId,
+					NamaPegawai:    pegawai.NamaPegawai,
+				})
+			}
+			pelaksanaMap[crosscutting.Id] = pelaksanaResponses
 		}
 
 		// Jika status disetujui_existing, ambil data pohon kinerja yang di-crosscut
@@ -999,6 +1050,7 @@ func (service *PohonKinerjaOpdServiceImpl) buildCrosscuttingResponse(ctx context
 
 	return crosscuttingResponses
 }
+
 func (service *PohonKinerjaOpdServiceImpl) DeletePokinPemdaInOpd(ctx context.Context, id int) error {
 	tx, err := service.DB.Begin()
 	if err != nil {

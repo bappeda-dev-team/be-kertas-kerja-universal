@@ -684,3 +684,36 @@ func ToTujuanOpdResponses(tujuanOpds []domain.TujuanOpd) []tujuanopd.TujuanOpdRe
 	}
 	return tujuanOpdResponses
 }
+
+func ToManualIKResponse(manualIK domain.ManualIK) rencanakinerja.ManualIKResponse {
+	outputData := rencanakinerja.OutputData{
+		Kinerja:  manualIK.Kinerja,
+		Penduduk: manualIK.Penduduk,
+		Spatial:  manualIK.Spatial,
+	}
+	return rencanakinerja.ManualIKResponse{
+		Id:                  manualIK.Id,
+		IndikatorId:         manualIK.IndikatorId,
+		Perspektif:          manualIK.Perspektif,
+		TujuanRekin:         manualIK.TujuanRekin,
+		Definisi:            manualIK.Definisi,
+		KeyActivities:       manualIK.KeyActivities,
+		Formula:             manualIK.Formula,
+		JenisIndikator:      manualIK.JenisIndikator,
+		OutputData:          outputData,
+		UnitPenanggungJawab: manualIK.UnitPenanggungJawab,
+		UnitPenyediaJasa:    manualIK.UnitPenyediaJasa,
+		SumberData:          manualIK.SumberData,
+		JangkaWaktuAwal:     manualIK.JangkaWaktuAwal,
+		JangkaWaktuAkhir:    manualIK.JangkaWaktuAkhir,
+		PeriodePelaporan:    manualIK.PeriodePelaporan,
+	}
+}
+
+func ToManualIKResponses(manualIKs []domain.ManualIK) []rencanakinerja.ManualIKResponse {
+	var manualIKResponses []rencanakinerja.ManualIKResponse
+	for _, manualIK := range manualIKs {
+		manualIKResponses = append(manualIKResponses, ToManualIKResponse(manualIK))
+	}
+	return manualIKResponses
+}

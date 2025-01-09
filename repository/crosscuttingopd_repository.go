@@ -19,4 +19,5 @@ type CrosscuttingOpdRepository interface {
 	DeleteUnused(ctx context.Context, tx *sql.Tx, crosscuttingId int) error
 	FindPokinByCrosscuttingStatus(ctx context.Context, tx *sql.Tx, kodeOpd string, tahun string) ([]domain.Crosscutting, error)
 	FindOPDCrosscuttingFrom(ctx context.Context, tx *sql.Tx, crosscuttingTo int) (string, error)
+	// DeleteCrosscuttingExisting(ctx context.Context, tx *sql.Tx, crosscuttingId int) error
 }

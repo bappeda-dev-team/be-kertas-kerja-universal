@@ -37,6 +37,7 @@ func NewRouter(
 	roleController controller.RoleController,
 	tujuanOpdController controller.TujuanOpdController,
 	crosscuttingOpdController controller.CrosscuttingOpdController,
+	manualIKController controller.ManualIKController,
 ) *httprouter.Router {
 	router := httprouter.New()
 
@@ -273,6 +274,11 @@ func NewRouter(
 	router.DELETE("/crosscutting/:crosscuttingId/unused", crosscuttingOpdController.DeleteUnused)
 	router.GET("/crosscutting_menunggu/:kode_opd/:tahun", crosscuttingOpdController.FindPokinByCrosscuttingStatus)
 	router.GET("/crosscutting_opd/opd-from/:crosscuttingTo", crosscuttingOpdController.FindOPDCrosscuttingFrom)
+
+	//manual ik
+	router.POST("/manual_ik/create/:indikatorId", manualIKController.Create)
+	router.PUT("/manual_ik/update/:indikatorId", manualIKController.Update)
+	router.GET("/manual_ik/detail/:indikatorId", manualIKController.FindManualIKByIndikatorId)
 
 	return router
 }

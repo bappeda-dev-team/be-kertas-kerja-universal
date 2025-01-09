@@ -270,6 +270,15 @@ var crosscuttingOpdSet = wire.NewSet(
 	wire.Bind(new(controller.CrosscuttingOpdController), new(*controller.CrosscuttingOpdControllerImpl)),
 )
 
+var manualIKSet = wire.NewSet(
+	repository.NewManualIKRepositoryImpl,
+	wire.Bind(new(repository.ManualIKRepository), new(*repository.ManualIKRepositoryImpl)),
+	service.NewManualIKServiceImpl,
+	wire.Bind(new(service.ManualIKService), new(*service.ManualIKServiceImpl)),
+	controller.NewManualIKControllerImpl,
+	wire.Bind(new(controller.ManualIKController), new(*controller.ManualIKControllerImpl)),
+)
+
 func InitializeServer() *http.Server {
 
 	wire.Build(
@@ -303,6 +312,7 @@ func InitializeServer() *http.Server {
 		userSet,
 		tujuanOpdSet,
 		crosscuttingOpdSet,
+		manualIKSet,
 		app.NewRouter,
 		wire.Bind(new(http.Handler), new(*httprouter.Router)),
 		middleware.NewAuthMiddleware,

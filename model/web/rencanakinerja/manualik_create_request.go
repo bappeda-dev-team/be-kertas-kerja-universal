@@ -11,7 +11,7 @@ type ManualIKCreateRequest struct {
 	JenisIndikator      string                  `json:"jenis_indikator"`
 	OutputData          OutputDataCreateRequest `json:"output_data"`
 	UnitPenanggungJawab string                  `json:"unit_penanggung_jawab"`
-	UnitPenyediaJasa    string                  `json:"unit_penyedia_jasa"`
+	UnitPenyediaData    string                  `json:"unit_penyedia_data"`
 	SumberData          string                  `json:"sumber_data"`
 	JangkaWaktuAwal     string                  `json:"jangka_waktu_awal"`
 	JangkaWaktuAkhir    string                  `json:"jangka_waktu_akhir"`

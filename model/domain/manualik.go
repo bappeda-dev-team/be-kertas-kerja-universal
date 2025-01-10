@@ -13,7 +13,7 @@ type ManualIK struct {
 	Penduduk            bool
 	Spatial             bool
 	UnitPenanggungJawab string
-	UnitPenyediaJasa    string
+	UnitPenyediaData    string
 	SumberData          string
 	JangkaWaktuAwal     string
 	JangkaWaktuAkhir    string

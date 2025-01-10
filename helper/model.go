@@ -702,7 +702,7 @@ func ToManualIKResponse(manualIK domain.ManualIK) rencanakinerja.ManualIKRespons
 		JenisIndikator:      manualIK.JenisIndikator,
 		OutputData:          outputData,
 		UnitPenanggungJawab: manualIK.UnitPenanggungJawab,
-		UnitPenyediaJasa:    manualIK.UnitPenyediaJasa,
+		UnitPenyediaData:    manualIK.UnitPenyediaData,
 		SumberData:          manualIK.SumberData,
 		JangkaWaktuAwal:     manualIK.JangkaWaktuAwal,
 		JangkaWaktuAkhir:    manualIK.JangkaWaktuAkhir,

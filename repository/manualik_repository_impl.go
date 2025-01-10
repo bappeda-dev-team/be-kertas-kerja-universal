@@ -17,7 +17,7 @@ func (repository *ManualIKRepositoryImpl) Create(ctx context.Context, tx *sql.Tx
 	script := `INSERT INTO tb_manual_ik (
         id, indikator_id, perspektif, tujuan_rekin, definisi, key_activities, 
         formula, jenis_indikator, kinerja, penduduk, spasial,
-        unit_penanggung_jawab, unit_penyedia_jasa, sumber_data,
+        unit_penanggung_jawab, unit_penyedia_data, sumber_data,
         jangka_waktu_awal, jangka_waktu_akhir, periode_pelaporan
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)`
 
@@ -34,7 +34,7 @@ func (repository *ManualIKRepositoryImpl) Create(ctx context.Context, tx *sql.Tx
 		manualik.Penduduk,
 		manualik.Spatial,
 		manualik.UnitPenanggungJawab,
-		manualik.UnitPenyediaJasa,
+		manualik.UnitPenyediaData,
 		manualik.SumberData,
 		manualik.JangkaWaktuAwal,
 		manualik.JangkaWaktuAkhir,
@@ -59,7 +59,7 @@ func (repository *ManualIKRepositoryImpl) Update(ctx context.Context, tx *sql.Tx
         penduduk = ?,
         spasial = ?,
         unit_penanggung_jawab = ?,
-        unit_penyedia_jasa = ?,
+        unit_penyedia_data = ?,
         sumber_data = ?,
         jangka_waktu_awal = ?,
         jangka_waktu_akhir = ?,
@@ -77,7 +77,7 @@ func (repository *ManualIKRepositoryImpl) Update(ctx context.Context, tx *sql.Tx
 		manualik.Penduduk,
 		manualik.Spatial,
 		manualik.UnitPenanggungJawab,
-		manualik.UnitPenyediaJasa,
+		manualik.UnitPenyediaData,
 		manualik.SumberData,
 		manualik.JangkaWaktuAwal,
 		manualik.JangkaWaktuAkhir,
@@ -91,7 +91,7 @@ func (repository *ManualIKRepositoryImpl) Update(ctx context.Context, tx *sql.Tx
 	// Ambil data yang baru diupdate menggunakan SELECT
 	script = `SELECT id, indikator_id, perspektif, tujuan_rekin, definisi, key_activities, 
         formula, jenis_indikator, kinerja, penduduk, spasial,
-        unit_penanggung_jawab, unit_penyedia_jasa, sumber_data,
+        unit_penanggung_jawab, unit_penyedia_data, sumber_data,
         jangka_waktu_awal, jangka_waktu_akhir, periode_pelaporan 
         FROM tb_manual_ik WHERE indikator_id = ?`
 
@@ -109,7 +109,7 @@ func (repository *ManualIKRepositoryImpl) Update(ctx context.Context, tx *sql.Tx
 		&result.Penduduk,
 		&result.Spatial,
 		&result.UnitPenanggungJawab,
-		&result.UnitPenyediaJasa,
+		&result.UnitPenyediaData,
 		&result.SumberData,
 		&result.JangkaWaktuAwal,
 		&result.JangkaWaktuAkhir,
@@ -125,7 +125,7 @@ func (repository *ManualIKRepositoryImpl) Update(ctx context.Context, tx *sql.Tx
 func (repository *ManualIKRepositoryImpl) FindManualIKByIndikatorId(ctx context.Context, tx *sql.Tx, indikatorId string) ([]domain.ManualIK, error) {
 	script := `SELECT id, indikator_id, perspektif, tujuan_rekin, definisi, key_activities, 
         formula, jenis_indikator, kinerja, penduduk, spasial,
-        unit_penanggung_jawab, unit_penyedia_jasa, sumber_data,
+        unit_penanggung_jawab, unit_penyedia_data, sumber_data,
         jangka_waktu_awal, jangka_waktu_akhir, periode_pelaporan 
         FROM tb_manual_ik WHERE indikator_id = ?`
 	rows, err := tx.QueryContext(ctx, script, indikatorId)
@@ -137,7 +137,7 @@ func (repository *ManualIKRepositoryImpl) FindManualIKByIndikatorId(ctx context.
 	var manualiks []domain.ManualIK
 	for rows.Next() {
 		manualik := domain.ManualIK{}
-		err := rows.Scan(&manualik.Id, &manualik.IndikatorId, &manualik.Perspektif, &manualik.TujuanRekin, &manualik.Definisi, &manualik.KeyActivities, &manualik.Formula, &manualik.JenisIndikator, &manualik.Kinerja, &manualik.Penduduk, &manualik.Spatial, &manualik.UnitPenanggungJawab, &manualik.UnitPenyediaJasa, &manualik.SumberData, &manualik.JangkaWaktuAwal, &manualik.JangkaWaktuAkhir, &manualik.PeriodePelaporan)
+		err := rows.Scan(&manualik.Id, &manualik.IndikatorId, &manualik.Perspektif, &manualik.TujuanRekin, &manualik.Definisi, &manualik.KeyActivities, &manualik.Formula, &manualik.JenisIndikator, &manualik.Kinerja, &manualik.Penduduk, &manualik.Spatial, &manualik.UnitPenanggungJawab, &manualik.UnitPenyediaData, &manualik.SumberData, &manualik.JangkaWaktuAwal, &manualik.JangkaWaktuAkhir, &manualik.PeriodePelaporan)
 		if err != nil {
 			return nil, err
 		}

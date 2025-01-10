@@ -11,7 +11,7 @@ CREATE TABLE tb_manual_ik (
     penduduk TINYINT(1) DEFAULT 0,
     spasial TINYINT(1) DEFAULT 0,
     unit_penanggung_jawab TEXT,
-    unit_penyedia_jasa TEXT,
+    unit_penyedia_data TEXT,
     sumber_data TEXT,
     jangka_waktu_awal VARCHAR(255),
     jangka_waktu_akhir VARCHAR(255),

@@ -242,7 +242,7 @@ func (repository *CrosscuttingOpdRepositoryImpl) UpdateCrosscutting(ctx context.
 		if crosscuttingTo > 0 {
 			scriptPokin := `
                 UPDATE tb_pohon_kinerja 
-                SET keterangan = ?
+                SET keterangan_crosscutting = ?
                 WHERE id = ?
             `
 			_, err = tx.ExecContext(ctx, scriptPokin,
@@ -385,7 +385,7 @@ func (repository *CrosscuttingOpdRepositoryImpl) ApproveOrRejectCrosscutting(ctx
 			scriptNewPokin := `
                 INSERT INTO tb_pohon_kinerja (
                     nama_pohon, parent, level_pohon, jenis_pohon, 
-                    kode_opd, keterangan, tahun, status, 
+                    kode_opd, keterangan_crosscutting, tahun, status, 
                     pegawai_action
                 ) VALUES ('', ?, ?, ?, ?, ?, ?, 'crosscutting_disetujui', ?)
             `
@@ -417,7 +417,7 @@ func (repository *CrosscuttingOpdRepositoryImpl) ApproveOrRejectCrosscutting(ctx
 			// Logic 2: Gunakan pohon kinerja yang sudah ada
 			scriptUpdateExisting := `
                 UPDATE tb_pohon_kinerja 
-                SET keterangan = ?,
+                SET keterangan_crosscutting = ?,
                     status = 'crosscutting_disetujui_existing',
                     pegawai_action = ?
                 WHERE id = ?
@@ -441,10 +441,10 @@ func (repository *CrosscuttingOpdRepositoryImpl) ApproveOrRejectCrosscutting(ctx
 			}
 		}
 	} else {
-		// Logic 3: Tolak crosscutting
+		// Logic 3: Balikkan crosscutting
 		scriptUpdatePokin := `
             UPDATE tb_pohon_kinerja 
-            SET status = 'crosscutting_ditolak',
+            SET status = 'crosscutting_menunggu',
                 pegawai_action = ?
             WHERE id = ?
         `
@@ -455,7 +455,7 @@ func (repository *CrosscuttingOpdRepositoryImpl) ApproveOrRejectCrosscutting(ctx
 
 		scriptReject := `
             UPDATE tb_crosscutting 
-            SET status = 'crosscutting_ditolak'
+            SET status = 'crosscutting_menunggu'
             WHERE id = ?
         `
 		_, err = tx.ExecContext(ctx, scriptReject, crosscuttingId)

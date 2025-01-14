@@ -761,14 +761,19 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalNResponse(ctx context
 
 // Helper functions untuk membangun response
 func (service *PohonKinerjaOpdServiceImpl) buildStrategicResponse(ctx context.Context, tx *sql.Tx, pohonMap map[int]map[int][]domain.PohonKinerja, strategic domain.PohonKinerja, pelaksanaMap map[int][]pohonkinerja.PelaksanaOpdResponse, indikatorMap map[int][]pohonkinerja.IndikatorResponse) pohonkinerja.StrategicOpdResponse {
+	var keteranganCrosscutting *string
+	if strategic.KeteranganCrosscutting != nil && *strategic.KeteranganCrosscutting != "" {
+		keteranganCrosscutting = strategic.KeteranganCrosscutting
+	}
 	strategicResp := pohonkinerja.StrategicOpdResponse{
-		Id:         strategic.Id,
-		Parent:     nil,
-		Strategi:   strategic.NamaPohon,
-		JenisPohon: strategic.JenisPohon,
-		LevelPohon: strategic.LevelPohon,
-		Keterangan: strategic.Keterangan,
-		Status:     strategic.Status,
+		Id:                     strategic.Id,
+		Parent:                 nil,
+		Strategi:               strategic.NamaPohon,
+		JenisPohon:             strategic.JenisPohon,
+		LevelPohon:             strategic.LevelPohon,
+		Keterangan:             strategic.Keterangan,
+		KeteranganCrosscutting: keteranganCrosscutting,
+		Status:                 strategic.Status,
 		KodeOpd: opdmaster.OpdResponseForAll{
 			KodeOpd: strategic.KodeOpd,
 			NamaOpd: strategic.NamaOpd,
@@ -801,14 +806,19 @@ func (service *PohonKinerjaOpdServiceImpl) buildTacticalResponse(ctx context.Con
 	if err == nil {
 		tactical.NamaOpd = opd.NamaOpd
 	}
+	var keteranganCrosscutting *string
+	if tactical.KeteranganCrosscutting != nil && *tactical.KeteranganCrosscutting != "" {
+		keteranganCrosscutting = tactical.KeteranganCrosscutting
+	}
 	tacticalResp := pohonkinerja.TacticalOpdResponse{
-		Id:         tactical.Id,
-		Parent:     tactical.Parent,
-		Strategi:   tactical.NamaPohon,
-		JenisPohon: tactical.JenisPohon,
-		LevelPohon: tactical.LevelPohon,
-		Keterangan: tactical.Keterangan,
-		Status:     tactical.Status,
+		Id:                     tactical.Id,
+		Parent:                 tactical.Parent,
+		Strategi:               tactical.NamaPohon,
+		JenisPohon:             tactical.JenisPohon,
+		LevelPohon:             tactical.LevelPohon,
+		Keterangan:             tactical.Keterangan,
+		KeteranganCrosscutting: keteranganCrosscutting,
+		Status:                 tactical.Status,
 		KodeOpd: opdmaster.OpdResponseForAll{
 			KodeOpd: tactical.KodeOpd,
 			NamaOpd: tactical.NamaOpd,
@@ -841,13 +851,19 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalResponse(ctx context.
 	if err == nil {
 		operational.NamaOpd = opd.NamaOpd
 	}
+	var keteranganCrosscutting *string
+	if operational.KeteranganCrosscutting != nil && *operational.KeteranganCrosscutting != "" {
+		keteranganCrosscutting = operational.KeteranganCrosscutting
+	}
 	operationalResp := pohonkinerja.OperationalOpdResponse{
-		Id:         operational.Id,
-		Parent:     operational.Parent,
-		Strategi:   operational.NamaPohon,
-		JenisPohon: operational.JenisPohon,
-		LevelPohon: operational.LevelPohon,
-		Keterangan: operational.Keterangan,
+		Id:                     operational.Id,
+		Parent:                 operational.Parent,
+		Strategi:               operational.NamaPohon,
+		JenisPohon:             operational.JenisPohon,
+		LevelPohon:             operational.LevelPohon,
+		Keterangan:             operational.Keterangan,
+		KeteranganCrosscutting: keteranganCrosscutting,
+		Status:                 operational.Status,
 		KodeOpd: opdmaster.OpdResponseForAll{
 			KodeOpd: operational.KodeOpd,
 			NamaOpd: operational.NamaOpd,

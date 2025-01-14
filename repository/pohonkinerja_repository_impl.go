@@ -278,6 +278,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *s
             COALESCE(level_pohon, 0) as level_pohon,
             COALESCE(kode_opd, '') as kode_opd,
             COALESCE(keterangan, '') as keterangan,
+            COALESCE(keterangan_crosscutting, '') as keterangan_crosscutting,
             COALESCE(tahun, '') as tahun,
             COALESCE(status, '') as status
         FROM tb_pohon_kinerja 
@@ -303,6 +304,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindAll(ctx context.Context, tx *s
 			&pokin.LevelPohon,
 			&pokin.KodeOpd,
 			&pokin.Keterangan,
+			&pokin.KeteranganCrosscutting,
 			&pokin.Tahun,
 			&pokin.Status,
 		)

@@ -685,29 +685,74 @@ func ToTujuanOpdResponses(tujuanOpds []domain.TujuanOpd) []tujuanopd.TujuanOpdRe
 	return tujuanOpdResponses
 }
 
+func toTargetResponses(targets []domain.Target) []rencanakinerja.TargetResponse {
+	var targetResponses []rencanakinerja.TargetResponse
+	for _, target := range targets {
+		targetResponses = append(targetResponses, rencanakinerja.TargetResponse{
+			TargetIndikator: target.Target,
+			SatuanIndikator: target.Satuan,
+		})
+	}
+	return targetResponses
+}
+
 func ToManualIKResponse(manualIK domain.ManualIK) rencanakinerja.ManualIKResponse {
+	// Buat output data default
 	outputData := rencanakinerja.OutputData{
-		Kinerja:  manualIK.Kinerja,
-		Penduduk: manualIK.Penduduk,
-		Spatial:  manualIK.Spatial,
+		Kinerja:  false,
+		Penduduk: false,
+		Spatial:  false,
 	}
-	return rencanakinerja.ManualIKResponse{
-		Id:                  manualIK.Id,
-		IndikatorId:         manualIK.IndikatorId,
-		Perspektif:          manualIK.Perspektif,
-		TujuanRekin:         manualIK.TujuanRekin,
-		Definisi:            manualIK.Definisi,
-		KeyActivities:       manualIK.KeyActivities,
-		Formula:             manualIK.Formula,
-		JenisIndikator:      manualIK.JenisIndikator,
-		OutputData:          outputData,
-		UnitPenanggungJawab: manualIK.UnitPenanggungJawab,
-		UnitPenyediaData:    manualIK.UnitPenyediaData,
-		SumberData:          manualIK.SumberData,
-		JangkaWaktuAwal:     manualIK.JangkaWaktuAwal,
-		JangkaWaktuAkhir:    manualIK.JangkaWaktuAkhir,
-		PeriodePelaporan:    manualIK.PeriodePelaporan,
+
+	// Jika ada data manual IK, gunakan nilainya
+	if manualIK.Id != 0 {
+		outputData = rencanakinerja.OutputData{
+			Kinerja:  manualIK.Kinerja,
+			Penduduk: manualIK.Penduduk,
+			Spatial:  manualIK.Spatial,
+		}
 	}
+
+	// Buat indikator response
+	indikatorResponse := []rencanakinerja.IndikatorResponse{
+		{
+			Id:               manualIK.DataIndikator.Id,
+			RencanaKinerjaId: manualIK.DataIndikator.RencanaKinerjaId,
+			NamaIndikator:    manualIK.DataIndikator.Indikator,
+			Target:           toTargetResponses(manualIK.DataIndikator.Target),
+		},
+	}
+
+	// Buat rencana kinerja response
+	rencanaKinerjaResponse := rencanakinerja.RekinResponse{
+		RencanaKinerja: manualIK.DataIndikator.RencanaKinerja.NamaRencanaKinerja,
+		Indikator:      indikatorResponse,
+	}
+
+	response := rencanakinerja.ManualIKResponse{
+		IndikatorId:   manualIK.IndikatorId,
+		DataIndikator: rencanaKinerjaResponse,
+	}
+
+	// Hanya isi field manual IK jika data ditemukan
+	if manualIK.Id != 0 {
+		response.Id = manualIK.Id
+		response.Perspektif = manualIK.Perspektif
+		response.TujuanRekin = manualIK.TujuanRekin
+		response.Definisi = manualIK.Definisi
+		response.KeyActivities = manualIK.KeyActivities
+		response.Formula = manualIK.Formula
+		response.JenisIndikator = manualIK.JenisIndikator
+		response.OutputData = outputData
+		response.UnitPenanggungJawab = manualIK.UnitPenanggungJawab
+		response.UnitPenyediaData = manualIK.UnitPenyediaData
+		response.SumberData = manualIK.SumberData
+		response.JangkaWaktuAwal = manualIK.JangkaWaktuAwal
+		response.JangkaWaktuAkhir = manualIK.JangkaWaktuAkhir
+		response.PeriodePelaporan = manualIK.PeriodePelaporan
+	}
+
+	return response
 }
 
 func ToManualIKResponses(manualIKs []domain.ManualIK) []rencanakinerja.ManualIKResponse {

@@ -11,5 +11,8 @@ type ManualIKRepository interface {
 	Update(ctx context.Context, tx *sql.Tx, manualik domain.ManualIK) (domain.ManualIK, error)
 	// Delete(ctx context.Context, tx *sql.Tx, manualikId int) error
 	// FindBy(ctx context.Context, tx *sql.Tx, manualikId int) ([]domain.ManualIK, error)
-	FindManualIKByIndikatorId(ctx context.Context, tx *sql.Tx, indikatorId string) ([]domain.ManualIK, error)
+	// FindManualIKByIndikatorId(ctx context.Context, tx *sql.Tx, indikatorId string) ([]domain.ManualIK, error)
+	GetManualIK(ctx context.Context, tx *sql.Tx, indikatorId string) ([]domain.ManualIK, error)
+	GetRencanaKinerjaWithTarget(ctx context.Context, tx *sql.Tx, indikatorId string) (domain.Indikator, domain.RencanaKinerja, []domain.Target, error)
+	FindByIndikatorId(ctx context.Context, tx *sql.Tx, indikatorId string) (domain.ManualIK, error)
 }

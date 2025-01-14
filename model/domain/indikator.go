@@ -12,4 +12,5 @@ type Indikator struct {
 	Tahun            string
 	CloneFrom        string
 	Target           []Target
+	RencanaKinerja   RencanaKinerja
 }

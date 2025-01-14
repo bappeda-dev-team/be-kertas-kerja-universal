@@ -18,4 +18,6 @@ type ManualIK struct {
 	JangkaWaktuAwal     string
 	JangkaWaktuAkhir    string
 	PeriodePelaporan    string
+	DataIndikator       Indikator `json:"data_indikator"`
+	DataTarget          []Target  `json:"data_target"`
 }

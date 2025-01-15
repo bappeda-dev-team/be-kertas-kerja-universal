@@ -62,7 +62,6 @@ func (service *RencanaAksiServiceImpl) Create(ctx context.Context, request renca
 	rencanaAksi := domain.RencanaAksi{
 		Id:               uuId,
 		RencanaKinerjaId: request.RencanaKinerjaId,
-		PegawaiId:        request.PegawaiId,
 		KodeOpd:          request.KodeOpd,
 		Urutan:           request.Urutan,
 		NamaRencanaAksi:  request.NamaRencanaAksi,
@@ -79,7 +78,6 @@ func (service *RencanaAksiServiceImpl) Create(ctx context.Context, request renca
 	response := rencanaaksi.RencanaAksiResponse{
 		Id:               result.Id,
 		RencanaKinerjaId: result.RencanaKinerjaId,
-		PegawaiId:        result.PegawaiId,
 		KodeOpd:          result.KodeOpd,
 		Urutan:           result.Urutan,
 		NamaRencanaAksi:  result.NamaRencanaAksi,
@@ -133,7 +131,6 @@ func (service *RencanaAksiServiceImpl) Update(ctx context.Context, request renca
 	response := rencanaaksi.RencanaAksiResponse{
 		Id:               updatedRencanaAksi.Id,
 		RencanaKinerjaId: updatedRencanaAksi.RencanaKinerjaId,
-		PegawaiId:        updatedRencanaAksi.PegawaiId,
 		Urutan:           updatedRencanaAksi.Urutan,
 		NamaRencanaAksi:  updatedRencanaAksi.NamaRencanaAksi,
 	}
@@ -141,7 +138,7 @@ func (service *RencanaAksiServiceImpl) Update(ctx context.Context, request renca
 	return response, nil
 }
 
-func (service *RencanaAksiServiceImpl) FindAll(ctx context.Context, rencanaKinerjaId string, pegawaiId string) ([]rencanaaksi.RencanaAksiResponse, error) {
+func (service *RencanaAksiServiceImpl) FindAll(ctx context.Context, rencanaKinerjaId string) ([]rencanaaksi.RencanaAksiResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		log.Printf("Gagal memulai transaksi: %v", err)
@@ -150,7 +147,7 @@ func (service *RencanaAksiServiceImpl) FindAll(ctx context.Context, rencanaKiner
 	defer helper.CommitOrRollback(tx)
 
 	// Panggil repository untuk mendapatkan semua rencana aksi
-	rencanaAksiList, err := service.rencanaAksiRepository.FindAll(ctx, tx, rencanaKinerjaId, pegawaiId)
+	rencanaAksiList, err := service.rencanaAksiRepository.FindAll(ctx, tx, rencanaKinerjaId)
 	if err != nil {
 		return nil, fmt.Errorf("gagal mengambil daftar rencana aksi: %v", err)
 	}
@@ -226,7 +223,6 @@ func (service *RencanaAksiServiceImpl) FindAll(ctx context.Context, rencanaKiner
 			Id:                     rencanaAksi.Id,
 			RencanaKinerjaId:       rencanaAksi.RencanaKinerjaId,
 			KodeOpd:                rencanaAksi.KodeOpd,
-			PegawaiId:              rencanaAksi.PegawaiId,
 			Urutan:                 rencanaAksi.Urutan,
 			NamaRencanaAksi:        rencanaAksi.NamaRencanaAksi,
 			PelaksanaanRencanaAksi: pelaksanaanResponses,

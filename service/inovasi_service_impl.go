@@ -37,7 +37,6 @@ func (service *InovasiServiceImpl) Create(ctx context.Context, request inovasi.I
 	domainInovasi := domain.Inovasi{
 		Id:                    uuId,
 		RekinId:               request.RekinId,
-		PegawaiId:             request.PegawaiId,
 		KodeOpd:               request.KodeOpd,
 		JudulInovasi:          request.JudulInovasi,
 		JenisInovasi:          request.JenisInovasi,
@@ -77,14 +76,14 @@ func (service *InovasiServiceImpl) Update(ctx context.Context, request inovasi.I
 	return response, nil
 }
 
-func (service *InovasiServiceImpl) FindAll(ctx context.Context, rekinId string, pegawaiId string) ([]inovasi.InovasiResponse, error) {
+func (service *InovasiServiceImpl) FindAll(ctx context.Context, rekinId string) ([]inovasi.InovasiResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return []inovasi.InovasiResponse{}, fmt.Errorf("gagal memulai transaksi: %v", err)
 	}
 	defer helper.CommitOrRollback(tx)
 
-	inovasis, err := service.InovasiRepository.FindAll(ctx, tx, rekinId, pegawaiId)
+	inovasis, err := service.InovasiRepository.FindAll(ctx, tx, rekinId)
 	if err != nil {
 		return []inovasi.InovasiResponse{}, err
 	}

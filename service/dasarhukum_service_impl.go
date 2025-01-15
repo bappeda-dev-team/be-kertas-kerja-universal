@@ -36,18 +36,19 @@ func (service *DasarHukumServiceImpl) Create(ctx context.Context, request dasarh
 	uuId := fmt.Sprintf("DASHU-REKIN-%s", randomDigits)
 
 	// Mendapatkan urutan terakhir
-	lastUrutan, err := service.DasarHukumRepository.GetLastUrutan(ctx, tx)
+	lastUrutan, err := service.DasarHukumRepository.GetLastUrutanByRekinId(ctx, tx, request.RekinId)
 	if err != nil {
 		return dasarhukum.DasarHukumResponse{}, err
 	}
 
-	// Menambahkan 1 ke urutan terakhir
-	newUrutan := lastUrutan + 1
+	newUrutan := 1
+	if lastUrutan > 0 {
+		newUrutan = lastUrutan + 1
+	}
 
 	dasarHukum := domain.DasarHukum{
 		Id:               uuId,
 		RekinId:          request.RekinId,
-		PegawaiId:        request.PegawaiId,
 		KodeOpd:          request.KodeOpd,
 		Urutan:           newUrutan,
 		PeraturanTerkait: request.PeraturanTerkait,
@@ -98,12 +99,12 @@ func (service *DasarHukumServiceImpl) Delete(ctx context.Context, id string) err
 	return nil
 }
 
-func (service *DasarHukumServiceImpl) FindAll(ctx context.Context, rekinId string, pegawaiId string) ([]dasarhukum.DasarHukumResponse, error) {
+func (service *DasarHukumServiceImpl) FindAll(ctx context.Context, rekinId string) ([]dasarhukum.DasarHukumResponse, error) {
 	tx, err := service.DB.Begin()
 	helper.PanicIfError(err)
 	defer helper.CommitOrRollback(tx)
 
-	dasarHukums, err := service.DasarHukumRepository.FindAll(ctx, tx, rekinId, pegawaiId)
+	dasarHukums, err := service.DasarHukumRepository.FindAll(ctx, tx, rekinId)
 	if err != nil {
 		return []dasarhukum.DasarHukumResponse{}, err
 	}

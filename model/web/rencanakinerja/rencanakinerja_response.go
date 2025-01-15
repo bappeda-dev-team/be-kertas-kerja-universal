@@ -26,6 +26,7 @@ type IndikatorResponse struct {
 	RencanaKinerjaId string           `json:"rencana_kinerja_id,omitempty"`
 	NamaIndikator    string           `json:"nama_indikator,omitempty"`
 	Target           []TargetResponse `json:"targets,omitempty"`
+	ManualIK         *DataOutput      `json:"data_output,omitempty"`
 }
 
 type TargetResponse struct {

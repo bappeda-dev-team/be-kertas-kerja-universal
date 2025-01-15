@@ -105,9 +105,8 @@ func (controller *DasarHukumControllerImpl) FindById(writer http.ResponseWriter,
 
 func (controller *DasarHukumControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	rekinId := params.ByName("rencana_kinerja_id")
-	pegawaiId := params.ByName("pegawai_id")
 
-	dasarHukumResponses, err := controller.DasarHukumService.FindAll(request.Context(), rekinId, pegawaiId)
+	dasarHukumResponses, err := controller.DasarHukumService.FindAll(request.Context(), rekinId)
 	if err != nil {
 		helper.WriteToResponseBody(writer, web.WebDasarHukumResponse{
 			Code:   http.StatusInternalServerError,
@@ -146,9 +145,8 @@ func (controller *DasarHukumControllerImpl) Delete(writer http.ResponseWriter, r
 
 func (controller *DasarHukumControllerImpl) FindAllByRekinId(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	rekinId := params.ByName("rencana_kinerja_id")
-	pegawaiId := params.ByName("pegawai_id")
 
-	dasarHukumResponses, err := controller.DasarHukumService.FindAll(request.Context(), rekinId, pegawaiId)
+	dasarHukumResponses, err := controller.DasarHukumService.FindAll(request.Context(), rekinId)
 	if err != nil {
 		helper.WriteToResponseBody(writer, web.WebDasarHukumResponse{
 			Code:   http.StatusInternalServerError,

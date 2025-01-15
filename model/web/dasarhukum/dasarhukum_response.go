@@ -5,7 +5,6 @@ import "ekak_kabupaten_madiun/model/web"
 type DasarHukumResponse struct {
 	Id               string             `json:"id"`
 	RekinId          string             `json:"rencana_kinerja_id"`
-	PegawaiId        string             `json:"pegawai_id"`
 	KodeOpd          string             `json:"kode_opd"`
 	Urutan           int                `json:"urutan"`
 	PeraturanTerkait string             `json:"peraturan_terkait"`

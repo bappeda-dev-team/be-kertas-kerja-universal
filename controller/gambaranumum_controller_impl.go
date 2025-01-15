@@ -150,10 +150,8 @@ func (controller *GambaranUmumControllerImpl) FindAll(writer http.ResponseWriter
 		return
 	}
 
-	pegawaiId := params.ByName("pegawai_id")
-
 	// Panggil service untuk mendapatkan semua gambaran umum
-	gambaranUmumResponses, err := controller.GambaranUmumService.FindAll(request.Context(), rekinId, pegawaiId)
+	gambaranUmumResponses, err := controller.GambaranUmumService.FindAll(request.Context(), rekinId)
 	if err != nil {
 		helper.WriteToResponseBody(writer, web.WebGambaranUmumResponse{
 			Code:   http.StatusInternalServerError,
@@ -214,10 +212,8 @@ func (controller *GambaranUmumControllerImpl) FindAllByRekinId(writer http.Respo
 		return
 	}
 
-	pegawaiId := params.ByName("pegawai_id")
-
 	// Panggil service untuk mendapatkan semua gambaran umum
-	gambaranUmumResponses, err := controller.GambaranUmumService.FindAll(request.Context(), rekinId, pegawaiId)
+	gambaranUmumResponses, err := controller.GambaranUmumService.FindAll(request.Context(), rekinId)
 	if err != nil {
 		helper.WriteToResponseBody(writer, web.WebGambaranUmumResponse{
 			Code:   http.StatusInternalServerError,

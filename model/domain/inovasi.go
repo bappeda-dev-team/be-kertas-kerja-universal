@@ -8,7 +8,6 @@ type Inovasi struct {
 	JudulInovasi          string
 	JenisInovasi          string
 	GambaranNilaiKebaruan string
-	PegawaiId             string
 	KodeOpd               string
 	CreatedAt             time.Time
 }

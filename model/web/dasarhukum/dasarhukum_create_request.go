@@ -2,7 +2,6 @@ package dasarhukum
 
 type DasarHukumCreateRequest struct {
 	RekinId          string `json:"rencana_kinerja_id"`
-	PegawaiId        string `json:"pegawai_id"`
 	KodeOpd          string `json:"kode_opd"`
 	Urutan           int    `json:"urutan"`
 	PeraturanTerkait string `json:"peraturan_terkait"`

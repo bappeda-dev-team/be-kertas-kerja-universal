@@ -67,7 +67,8 @@ func InitializeServer() *http.Server {
 	subKegiatanTerpilihServiceImpl := service.NewSubKegiatanTerpilihServiceImpl(rencanaKinerjaRepositoryImpl, subKegiatanRepositoryImpl, subKegiatanTerpilihRepositoryImpl, db)
 	subKegiatanTerpilihControllerImpl := controller.NewSubKegiatanTerpilihControllerImpl(subKegiatanTerpilihServiceImpl)
 	tujuanOpdRepositoryImpl := repository.NewTujuanOpdRepositoryImpl()
-	pohonKinerjaOpdServiceImpl := service.NewPohonKinerjaOpdServiceImpl(pohonKinerjaRepositoryImpl, opdRepositoryImpl, pegawaiRepositoryImpl, tujuanOpdRepositoryImpl, db)
+	crosscuttingOpdRepositoryImpl := repository.NewCrosscuttingOpdRepositoryImpl()
+	pohonKinerjaOpdServiceImpl := service.NewPohonKinerjaOpdServiceImpl(pohonKinerjaRepositoryImpl, opdRepositoryImpl, pegawaiRepositoryImpl, tujuanOpdRepositoryImpl, crosscuttingOpdRepositoryImpl, db)
 	pohonKinerjaOpdControllerImpl := controller.NewPohonKinerjaOpdControllerImpl(pohonKinerjaOpdServiceImpl)
 	pegawaiServiceImpl := service.NewPegawaiServiceImpl(pegawaiRepositoryImpl, opdRepositoryImpl, db)
 	pegawaiControllerImpl := controller.NewPegawaiControllerImpl(pegawaiServiceImpl)
@@ -101,10 +102,12 @@ func InitializeServer() *http.Server {
 	roleControllerImpl := controller.NewRoleControllerImpl(roleServiceImpl)
 	tujuanOpdServiceImpl := service.NewTujuanOpdServiceImpl(tujuanOpdRepositoryImpl, opdRepositoryImpl, db)
 	tujuanOpdControllerImpl := controller.NewTujuanOpdControllerImpl(tujuanOpdServiceImpl)
-	crosscuttingOpdRepositoryImpl := repository.NewCrosscuttingOpdRepositoryImpl()
 	crosscuttingOpdServiceImpl := service.NewCrosscuttingOpdServiceImpl(crosscuttingOpdRepositoryImpl, pohonKinerjaRepositoryImpl, pegawaiRepositoryImpl, opdRepositoryImpl, db)
 	crosscuttingOpdControllerImpl := controller.NewCrosscuttingOpdControllerImpl(crosscuttingOpdServiceImpl)
-	router := app.NewRouter(rencanaKinerjaControllerImpl, rencanaAksiControllerImpl, pelaksanaanRencanaAksiControllerImpl, usulanMusrebangControllerImpl, usulanMandatoriControllerImpl, usulanPokokPikiranControllerImpl, usulanInisiatifControllerImpl, usulanTerpilihControllerImpl, gambaranUmumControllerImpl, dasarHukumControllerImpl, inovasiControllerImpl, subKegiatanControllerImpl, subKegiatanTerpilihControllerImpl, pohonKinerjaOpdControllerImpl, pegawaiControllerImpl, lembagaControllerImpl, jabatanControllerImpl, pohonKinerjaAdminControllerImpl, opdControllerImpl, programControllerImpl, urusanControllerImpl, bidangUrusanControllerImpl, kegiatanControllerImpl, userControllerImpl, roleControllerImpl, tujuanOpdControllerImpl, crosscuttingOpdControllerImpl)
+	manualIKRepositoryImpl := repository.NewManualIKRepositoryImpl()
+	manualIKServiceImpl := service.NewManualIKServiceImpl(manualIKRepositoryImpl, db, validate)
+	manualIKControllerImpl := controller.NewManualIKControllerImpl(manualIKServiceImpl)
+	router := app.NewRouter(rencanaKinerjaControllerImpl, rencanaAksiControllerImpl, pelaksanaanRencanaAksiControllerImpl, usulanMusrebangControllerImpl, usulanMandatoriControllerImpl, usulanPokokPikiranControllerImpl, usulanInisiatifControllerImpl, usulanTerpilihControllerImpl, gambaranUmumControllerImpl, dasarHukumControllerImpl, inovasiControllerImpl, subKegiatanControllerImpl, subKegiatanTerpilihControllerImpl, pohonKinerjaOpdControllerImpl, pegawaiControllerImpl, lembagaControllerImpl, jabatanControllerImpl, pohonKinerjaAdminControllerImpl, opdControllerImpl, programControllerImpl, urusanControllerImpl, bidangUrusanControllerImpl, kegiatanControllerImpl, userControllerImpl, roleControllerImpl, tujuanOpdControllerImpl, crosscuttingOpdControllerImpl, manualIKControllerImpl)
 	authMiddleware := middleware.NewAuthMiddleware(router)
 	server := NewServer(authMiddleware)
 	return server
@@ -183,3 +186,5 @@ var seederProviderSet = wire.NewSet(dataseeder.NewSeederImpl, wire.Bind(new(data
 var tujuanOpdSet = wire.NewSet(repository.NewTujuanOpdRepositoryImpl, wire.Bind(new(repository.TujuanOpdRepository), new(*repository.TujuanOpdRepositoryImpl)), service.NewTujuanOpdServiceImpl, wire.Bind(new(service.TujuanOpdService), new(*service.TujuanOpdServiceImpl)), controller.NewTujuanOpdControllerImpl, wire.Bind(new(controller.TujuanOpdController), new(*controller.TujuanOpdControllerImpl)))
 
 var crosscuttingOpdSet = wire.NewSet(repository.NewCrosscuttingOpdRepositoryImpl, wire.Bind(new(repository.CrosscuttingOpdRepository), new(*repository.CrosscuttingOpdRepositoryImpl)), service.NewCrosscuttingOpdServiceImpl, wire.Bind(new(service.CrosscuttingOpdService), new(*service.CrosscuttingOpdServiceImpl)), controller.NewCrosscuttingOpdControllerImpl, wire.Bind(new(controller.CrosscuttingOpdController), new(*controller.CrosscuttingOpdControllerImpl)))
+
+var manualIKSet = wire.NewSet(repository.NewManualIKRepositoryImpl, wire.Bind(new(repository.ManualIKRepository), new(*repository.ManualIKRepositoryImpl)), service.NewManualIKServiceImpl, wire.Bind(new(service.ManualIKService), new(*service.ManualIKServiceImpl)), controller.NewManualIKControllerImpl, wire.Bind(new(controller.ManualIKController), new(*controller.ManualIKControllerImpl)))

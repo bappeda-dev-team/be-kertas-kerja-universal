@@ -190,6 +190,7 @@ func (repository *RencanaKinerjaRepositoryImpl) FindById(ctx context.Context, tx
 
 func (repository *RencanaKinerjaRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, id string) error {
 	script := []string{
+		"DELETE FROM tb_manual_ik WHERE indikator_id IN (SELECT id FROM tb_indikator WHERE rencana_kinerja_id = ?)",
 		"DELETE FROM tb_target WHERE indikator_id IN (SELECT id FROM tb_indikator WHERE rencana_kinerja_id = ?)",
 		"DELETE FROM tb_indikator WHERE rencana_kinerja_id = ?",
 		"DELETE FROM tb_rencana_kinerja WHERE id = ?",

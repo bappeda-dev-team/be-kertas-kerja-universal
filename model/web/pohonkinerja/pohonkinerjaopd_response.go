@@ -28,45 +28,51 @@ type PohonKinerjaOpdAllResponse struct {
 }
 
 type StrategicOpdResponse struct {
-	Id         int                         `json:"id"`
-	Parent     *int                        `json:"parent"`
-	Strategi   string                      `json:"nama_pohon"`
-	JenisPohon string                      `json:"jenis_pohon"`
-	LevelPohon int                         `json:"level_pohon"`
-	Keterangan string                      `json:"keterangan"`
-	Status     string                      `json:"status"`
-	KodeOpd    opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
-	Pelaksana  []PelaksanaOpdResponse      `json:"pelaksana"`
-	Indikator  []IndikatorResponse         `json:"indikator"`
-	Tacticals  []TacticalOpdResponse       `json:"childs,omitempty"`
+	Id                     int                         `json:"id"`
+	Parent                 *int                        `json:"parent"`
+	Strategi               string                      `json:"nama_pohon"`
+	JenisPohon             string                      `json:"jenis_pohon"`
+	LevelPohon             int                         `json:"level_pohon"`
+	Keterangan             string                      `json:"keterangan"`
+	KeteranganCrosscutting *string                     `json:"keterangan_crosscutting,omitempty"`
+	Status                 string                      `json:"status"`
+	KodeOpd                opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
+	Pelaksana              []PelaksanaOpdResponse      `json:"pelaksana"`
+	Indikator              []IndikatorResponse         `json:"indikator"`
+	Tacticals              []TacticalOpdResponse       `json:"childs,omitempty"`
+	Crosscutting           []CrosscuttingOpdResponse   `json:"crosscutting,omitempty"`
 }
 
 type TacticalOpdResponse struct {
-	Id           int                         `json:"id"`
-	Parent       int                         `json:"parent"`
-	Strategi     string                      `json:"nama_pohon"`
-	JenisPohon   string                      `json:"jenis_pohon"`
-	LevelPohon   int                         `json:"level_pohon"`
-	Keterangan   string                      `json:"keterangan"`
-	Status       string                      `json:"status"`
-	KodeOpd      opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
-	Pelaksana    []PelaksanaOpdResponse      `json:"pelaksana"`
-	Indikator    []IndikatorResponse         `json:"indikator"`
-	Operationals []OperationalOpdResponse    `json:"childs,omitempty"`
+	Id                     int                         `json:"id"`
+	Parent                 int                         `json:"parent"`
+	Strategi               string                      `json:"nama_pohon"`
+	JenisPohon             string                      `json:"jenis_pohon"`
+	LevelPohon             int                         `json:"level_pohon"`
+	Keterangan             string                      `json:"keterangan"`
+	KeteranganCrosscutting *string                     `json:"keterangan_crosscutting,omitempty"`
+	Status                 string                      `json:"status"`
+	KodeOpd                opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
+	Pelaksana              []PelaksanaOpdResponse      `json:"pelaksana"`
+	Indikator              []IndikatorResponse         `json:"indikator"`
+	Operationals           []OperationalOpdResponse    `json:"childs,omitempty"`
+	Crosscutting           []CrosscuttingOpdResponse   `json:"crosscutting,omitempty"`
 }
 
 type OperationalOpdResponse struct {
-	Id         int                         `json:"id"`
-	Parent     int                         `json:"parent"`
-	Strategi   string                      `json:"nama_pohon"`
-	JenisPohon string                      `json:"jenis_pohon"`
-	LevelPohon int                         `json:"level_pohon"`
-	Keterangan string                      `json:"keterangan"`
-	Status     string                      `json:"status"`
-	KodeOpd    opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
-	Pelaksana  []PelaksanaOpdResponse      `json:"pelaksana"`
-	Indikator  []IndikatorResponse         `json:"indikator"`
-	Childs     []OperationalNOpdResponse   `json:"childs,omitempty"`
+	Id                     int                         `json:"id"`
+	Parent                 int                         `json:"parent"`
+	Strategi               string                      `json:"nama_pohon"`
+	JenisPohon             string                      `json:"jenis_pohon"`
+	LevelPohon             int                         `json:"level_pohon"`
+	Keterangan             string                      `json:"keterangan"`
+	KeteranganCrosscutting *string                     `json:"keterangan_crosscutting,omitempty"`
+	Status                 string                      `json:"status"`
+	KodeOpd                opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
+	Pelaksana              []PelaksanaOpdResponse      `json:"pelaksana"`
+	Indikator              []IndikatorResponse         `json:"indikator"`
+	Childs                 []OperationalNOpdResponse   `json:"childs,omitempty"`
+	Crosscutting           []CrosscuttingOpdResponse   `json:"crosscutting,omitempty"`
 }
 
 type OperationalNOpdResponse struct {

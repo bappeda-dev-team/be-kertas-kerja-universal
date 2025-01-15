@@ -19,6 +19,6 @@ type OpdResponse struct {
 }
 
 type OpdResponseForAll struct {
-	KodeOpd string `json:"kode_opd"`
-	NamaOpd string `json:"nama_opd"`
+	KodeOpd string `json:"kode_opd,omitempty"`
+	NamaOpd string `json:"nama_opd,omitempty"`
 }

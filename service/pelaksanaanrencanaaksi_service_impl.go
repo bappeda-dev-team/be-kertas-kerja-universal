@@ -104,7 +104,7 @@ func (service *PelaksanaanRencanaAksiServiceImpl) Create(ctx context.Context, re
 func (service *PelaksanaanRencanaAksiServiceImpl) Update(ctx context.Context, request rencanaaksi.PelaksanaanRencanaAksiUpdateRequest) (rencanaaksi.PelaksanaanRencanaAksiResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
-		return rencanaaksi.PelaksanaanRencanaAksiResponse{}, fmt.Errorf(fmt.Sprintf("gagal memulai transaksi: %v", err))
+		return rencanaaksi.PelaksanaanRencanaAksiResponse{}, fmt.Errorf("gagal mendapatkan PelaksanaanRencanaAksi: %v", err)
 	}
 	defer tx.Rollback()
 
@@ -124,14 +124,14 @@ func (service *PelaksanaanRencanaAksiServiceImpl) Update(ctx context.Context, re
 		if err == sql.ErrNoRows {
 			return rencanaaksi.PelaksanaanRencanaAksiResponse{}, web.NewNotFoundError(fmt.Sprintf("PelaksanaanRencanaAksi dengan ID %s tidak ditemukan", request.Id))
 		}
-		return rencanaaksi.PelaksanaanRencanaAksiResponse{}, fmt.Errorf(fmt.Sprintf("gagal mendapatkan PelaksanaanRencanaAksi: %v", err))
+		return rencanaaksi.PelaksanaanRencanaAksiResponse{}, fmt.Errorf("gagal mendapatkan PelaksanaanRencanaAksi: %v", err)
 	}
 
 	// Periksa apakah bulan sudah ada untuk rencana aksi ini (kecuali untuk bulan yang sama dengan yang sedang diupdate)
 	if request.Bulan != existingPelaksanaan.Bulan {
 		exists, err := service.PelaksanaanRencanaAksiRepository.ExistsByRencanaAksiIdAndBulan(ctx, tx, existingPelaksanaan.RencanaAksiId, request.Bulan)
 		if err != nil {
-			return rencanaaksi.PelaksanaanRencanaAksiResponse{}, fmt.Errorf(fmt.Sprintf("gagal memeriksa keberadaan bulan: %v", err))
+			return rencanaaksi.PelaksanaanRencanaAksiResponse{}, fmt.Errorf("gagal mendapatkan PelaksanaanRencanaAksi: %v", err)
 		}
 		if exists {
 			return rencanaaksi.PelaksanaanRencanaAksiResponse{}, web.NewBadRequestError(fmt.Sprintf("bulan %d sudah ada untuk rencana aksi ini", request.Bulan))
@@ -144,13 +144,13 @@ func (service *PelaksanaanRencanaAksiServiceImpl) Update(ctx context.Context, re
 		if err == sql.ErrNoRows {
 			return rencanaaksi.PelaksanaanRencanaAksiResponse{}, web.NewNotFoundError(fmt.Sprintf("RencanaAksi dengan ID %s tidak ditemukan", existingPelaksanaan.RencanaAksiId))
 		}
-		return rencanaaksi.PelaksanaanRencanaAksiResponse{}, fmt.Errorf(fmt.Sprintf("gagal mendapatkan RencanaAksi: %v", err))
+		return rencanaaksi.PelaksanaanRencanaAksiResponse{}, fmt.Errorf("gagal mendapatkan PelaksanaanRencanaAksi: %v", err)
 	}
 
 	// Periksa total bobot yang sudah ada untuk rencana kinerja ini
 	totalBobot, err := service.RencanaAksiRepository.GetTotalBobotForRencanaKinerja(ctx, tx, rencanaAksi.RencanaKinerjaId)
 	if err != nil {
-		return rencanaaksi.PelaksanaanRencanaAksiResponse{}, fmt.Errorf(fmt.Sprintf("gagal mendapatkan total bobot: %v", err))
+		return rencanaaksi.PelaksanaanRencanaAksiResponse{}, fmt.Errorf("gagal mendapatkan PelaksanaanRencanaAksi: %v", err)
 	}
 
 	// Hitung sisa bobot yang tersedia (tambahkan bobot yang ada saat ini karena akan diganti)
@@ -171,12 +171,12 @@ func (service *PelaksanaanRencanaAksiServiceImpl) Update(ctx context.Context, re
 
 	result, err := service.PelaksanaanRencanaAksiRepository.Update(ctx, tx, updatedPelaksanaan)
 	if err != nil {
-		return rencanaaksi.PelaksanaanRencanaAksiResponse{}, fmt.Errorf(fmt.Sprintf("gagal mengupdate pelaksanaan rencana aksi: %v", err))
+		return rencanaaksi.PelaksanaanRencanaAksiResponse{}, fmt.Errorf("gagal mendapatkan PelaksanaanRencanaAksi: %v", err)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return rencanaaksi.PelaksanaanRencanaAksiResponse{}, fmt.Errorf(fmt.Sprintf("gagal melakukan commit transaksi: %v", err))
+		return rencanaaksi.PelaksanaanRencanaAksiResponse{}, fmt.Errorf("gagal mendapatkan PelaksanaanRencanaAksi: %v", err)
 	}
 
 	response := rencanaaksi.PelaksanaanRencanaAksiResponse{

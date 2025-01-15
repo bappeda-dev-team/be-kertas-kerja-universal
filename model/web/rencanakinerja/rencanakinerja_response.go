@@ -6,31 +6,31 @@ import (
 )
 
 type RencanaKinerjaResponse struct {
-	Id                   string                      `json:"id_rencana_kinerja"`
-	IdPohon              int                         `json:"id_pohon"`
-	NamaPohon            string                      `json:"nama_pohon"`
-	NamaRencanaKinerja   string                      `json:"nama_rencana_kinerja"`
-	Tahun                string                      `json:"tahun"`
-	StatusRencanaKinerja string                      `json:"status_rencana_kinerja"`
-	Catatan              string                      `json:"catatan"`
-	KodeOpd              opdmaster.OpdResponseForAll `json:"operasioanl_daerah"`
-	PegawaiId            string                      `json:"pegawai_id"`
-	NamaPegawai          string                      `json:"nama_pegawai"`
-	Indikator            []IndikatorResponse         `json:"indikator"`
+	Id                   string                      `json:"id_rencana_kinerja,omitempty"`
+	IdPohon              int                         `json:"id_pohon,omitempty"`
+	NamaPohon            string                      `json:"nama_pohon,omitempty"`
+	NamaRencanaKinerja   string                      `json:"nama_rencana_kinerja,omitempty"`
+	Tahun                string                      `json:"tahun,omitempty"`
+	StatusRencanaKinerja string                      `json:"status_rencana_kinerja,omitempty"`
+	Catatan              string                      `json:"catatan,omitempty"`
+	KodeOpd              opdmaster.OpdResponseForAll `json:"operasioanl_daerah,omitempty"`
+	PegawaiId            string                      `json:"pegawai_id,omitempty"`
+	NamaPegawai          string                      `json:"nama_pegawai,omitempty"`
+	Indikator            []IndikatorResponse         `json:"indikator,omitempty"`
 	// SubKegiatan          subkegiatan.SubKegiatanResponse `json:"sub_kegiatan,omitempty"`
-	Action []web.ActionButton `json:"action"`
+	Action []web.ActionButton `json:"action,omitempty"`
 }
 
 type IndikatorResponse struct {
-	Id               string           `json:"id_indikator"`
-	RencanaKinerjaId string           `json:"rencana_kinerja_id"`
-	NamaIndikator    string           `json:"nama_indikator"`
-	Target           []TargetResponse `json:"targets"`
+	Id               string           `json:"id_indikator,omitempty"`
+	RencanaKinerjaId string           `json:"rencana_kinerja_id,omitempty"`
+	NamaIndikator    string           `json:"nama_indikator,omitempty"`
+	Target           []TargetResponse `json:"targets,omitempty"`
 }
 
 type TargetResponse struct {
-	Id              string `json:"id_target"`
-	IndikatorId     string `json:"indikator_id"`
-	TargetIndikator string `json:"target"`
-	SatuanIndikator string `json:"satuan"`
+	Id              string `json:"id_target,omitempty"`
+	IndikatorId     string `json:"indikator_id,omitempty"`
+	TargetIndikator string `json:"target,omitempty"`
+	SatuanIndikator string `json:"satuan,omitempty"`
 }

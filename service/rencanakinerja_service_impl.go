@@ -13,6 +13,7 @@ import (
 	"ekak_kabupaten_madiun/repository"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -90,15 +91,15 @@ func (service *RencanaKinerjaServiceImpl) Create(ctx context.Context, request re
 		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("kode OPD %s tidak valid", request.KodeOpd)
 	}
 
-	pegawais, err := service.pegawaiRepository.FindById(ctx, tx, request.PegawaiId)
+	pegawais, err := service.pegawaiRepository.FindByNip(ctx, tx, request.PegawaiId)
 	if err != nil {
 		log.Printf("Gagal mengambil data pegawai: %v", err)
 		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("gagal mengambil data pegawai: %v", err)
 	}
 
 	if pegawais.Id == "" {
-		log.Printf("Pegawai dengan ID %s tidak ditemukan", request.PegawaiId)
-		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("pegawai dengan ID %s tidak ditemukan", request.PegawaiId)
+		log.Printf("Pegawai dengan Nip %s tidak ditemukan", request.PegawaiId)
+		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("pegawai dengan Nip %s tidak ditemukan", request.PegawaiId)
 	}
 
 	pohon, err := service.pohonKinerjaRepository.FindById(ctx, tx, request.IdPohon)
@@ -113,7 +114,8 @@ func (service *RencanaKinerjaServiceImpl) Create(ctx context.Context, request re
 	}
 
 	randomDigits := fmt.Sprintf("%05d", uuid.New().ID()%100000)
-	customId := fmt.Sprintf("REKIN-PEG-%s", randomDigits)
+	year := time.Now().Year()
+	customId := fmt.Sprintf("REKIN-PEG-%v-%v", year, randomDigits)
 
 	rencanaKinerja := domain.RencanaKinerja{
 		Id:                   customId,
@@ -123,7 +125,7 @@ func (service *RencanaKinerjaServiceImpl) Create(ctx context.Context, request re
 		StatusRencanaKinerja: request.StatusRencanaKinerja,
 		Catatan:              request.Catatan,
 		KodeOpd:              request.KodeOpd,
-		PegawaiId:            pegawais.Id,
+		PegawaiId:            pegawais.Nip,
 		KodeSubKegiatan:      "",
 		Indikator:            make([]domain.Indikator, len(request.Indikator)),
 	}
@@ -214,15 +216,15 @@ func (service *RencanaKinerjaServiceImpl) Update(ctx context.Context, request re
 	}
 
 	// Validasi Pegawai
-	pegawai, err := service.pegawaiRepository.FindById(ctx, tx, request.PegawaiId)
+	pegawai, err := service.pegawaiRepository.FindByNip(ctx, tx, request.PegawaiId)
 	if err != nil {
 		log.Printf("Gagal mengambil data pegawai: %v", err)
 		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("gagal mengambil data pegawai: %v", err)
 	}
 
 	if pegawai.Id == "" {
-		log.Printf("Pegawai dengan ID %s tidak ditemukan", request.PegawaiId)
-		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("pegawai dengan ID %s tidak ditemukan", request.PegawaiId)
+		log.Printf("Pegawai dengan NIP %s tidak ditemukan", request.PegawaiId)
+		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("pegawai dengan NIP %s tidak ditemukan", request.PegawaiId)
 	}
 
 	pohon, err := service.pohonKinerjaRepository.FindById(ctx, tx, request.IdPohon)
@@ -396,7 +398,7 @@ func (service *RencanaKinerjaServiceImpl) FindAll(ctx context.Context, pegawaiId
 			return nil, fmt.Errorf("gagal mencari OPD: %v", err)
 		}
 
-		pegawai, err := service.pegawaiRepository.FindById(ctx, tx, rencana.PegawaiId)
+		pegawai, err := service.pegawaiRepository.FindByNip(ctx, tx, rencana.PegawaiId)
 		if err != nil {
 			log.Printf("Gagal mencari Pegawai: %v", err)
 			return nil, fmt.Errorf("gagal mencari Pegawai: %v", err)
@@ -478,7 +480,7 @@ func (service *RencanaKinerjaServiceImpl) FindById(ctx context.Context, id strin
 		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("gagal mengambil data OPD: %v", err)
 	}
 
-	pegawai, err := service.pegawaiRepository.FindById(ctx, tx, rencanaKinerja.PegawaiId)
+	pegawai, err := service.pegawaiRepository.FindByNip(ctx, tx, rencanaKinerja.PegawaiId)
 	if err != nil {
 		log.Printf("Gagal mengambil data pegawai: %v", err)
 		return rencanakinerja.RencanaKinerjaResponse{}, fmt.Errorf("gagal mengambil data pegawai: %v", err)

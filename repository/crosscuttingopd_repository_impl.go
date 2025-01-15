@@ -55,6 +55,7 @@ func (repository *CrosscuttingOpdRepositoryImpl) CreateCrosscutting(ctx context.
 func (repository *CrosscuttingOpdRepositoryImpl) FindAllCrosscutting(ctx context.Context, tx *sql.Tx, parentId int) ([]domain.PohonKinerja, error) {
 	script := `
         SELECT 
+		c.id as id_crosscutting,
             CASE 
                 WHEN c.crosscutting_to = 0 THEN c.id
                 ELSE p.id 
@@ -84,6 +85,7 @@ func (repository *CrosscuttingOpdRepositoryImpl) FindAllCrosscutting(ctx context
 		pokin := domain.PohonKinerja{}
 		var pegawaiActionJSON sql.NullString
 		err := rows.Scan(
+			&pokin.IdCrosscutting,
 			&pokin.Id,
 			&pokin.NamaPohon,
 			&pokin.Parent,
@@ -240,7 +242,7 @@ func (repository *CrosscuttingOpdRepositoryImpl) UpdateCrosscutting(ctx context.
 		if crosscuttingTo > 0 {
 			scriptPokin := `
                 UPDATE tb_pohon_kinerja 
-                SET keterangan = ?
+                SET keterangan_crosscutting = ?
                 WHERE id = ?
             `
 			_, err = tx.ExecContext(ctx, scriptPokin,
@@ -286,26 +288,31 @@ func (repository *CrosscuttingOpdRepositoryImpl) DeleteCrosscutting(ctx context.
 		return errors.New("crosscutting hanya dapat dihapus saat status crosscutting_disetujui")
 	}
 
-	// Buat pegawai_action
-	currentTime := time.Now()
-	pegawaiAction := map[string]interface{}{
-		"reject_by": nipPegawai,
-		"reject_at": currentTime,
-	}
+	// // Buat pegawai_action
+	// currentTime := time.Now()
+	// pegawaiAction := map[string]interface{}{
+	// 	"reject_by": nipPegawai,
+	// 	"reject_at": currentTime,
+	// }
 
-	pegawaiActionJSON, err := json.Marshal(pegawaiAction)
-	if err != nil {
-		return err
-	}
+	// pegawaiActionJSON, err := json.Marshal(pegawaiAction)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// scriptUpdatePokin := `
+	//     UPDATE tb_pohon_kinerja
+	//     SET parent = 0,
+	//         status = 'crosscutting_ditolak',
+	//         pegawai_action = ?
+	//     WHERE id = ?
+	// `
 
 	scriptUpdatePokin := `
-        UPDATE tb_pohon_kinerja 
-        SET parent = 0,
-            status = 'crosscutting_ditolak',
-            pegawai_action = ?
-        WHERE id = ?
-    `
-	_, err = tx.ExecContext(ctx, scriptUpdatePokin, pegawaiActionJSON, pokinId)
+	DELETE FROM tb_pohon_kinerja 
+	WHERE id = ?
+	`
+	_, err = tx.ExecContext(ctx, scriptUpdatePokin, pokinId)
 	if err != nil {
 		return err
 	}
@@ -378,7 +385,7 @@ func (repository *CrosscuttingOpdRepositoryImpl) ApproveOrRejectCrosscutting(ctx
 			scriptNewPokin := `
                 INSERT INTO tb_pohon_kinerja (
                     nama_pohon, parent, level_pohon, jenis_pohon, 
-                    kode_opd, keterangan, tahun, status, 
+                    kode_opd, keterangan_crosscutting, tahun, status, 
                     pegawai_action
                 ) VALUES ('', ?, ?, ?, ?, ?, ?, 'crosscutting_disetujui', ?)
             `
@@ -410,7 +417,7 @@ func (repository *CrosscuttingOpdRepositoryImpl) ApproveOrRejectCrosscutting(ctx
 			// Logic 2: Gunakan pohon kinerja yang sudah ada
 			scriptUpdateExisting := `
                 UPDATE tb_pohon_kinerja 
-                SET keterangan = ?,
+                SET keterangan_crosscutting = ?,
                     status = 'crosscutting_disetujui_existing',
                     pegawai_action = ?
                 WHERE id = ?
@@ -434,10 +441,10 @@ func (repository *CrosscuttingOpdRepositoryImpl) ApproveOrRejectCrosscutting(ctx
 			}
 		}
 	} else {
-		// Logic 3: Tolak crosscutting
+		// Logic 3: Balikkan crosscutting
 		scriptUpdatePokin := `
             UPDATE tb_pohon_kinerja 
-            SET status = 'crosscutting_ditolak',
+            SET status = 'crosscutting_menunggu',
                 pegawai_action = ?
             WHERE id = ?
         `
@@ -448,7 +455,7 @@ func (repository *CrosscuttingOpdRepositoryImpl) ApproveOrRejectCrosscutting(ctx
 
 		scriptReject := `
             UPDATE tb_crosscutting 
-            SET status = 'crosscutting_ditolak'
+            SET status = 'crosscutting_menunggu'
             WHERE id = ?
         `
 		_, err = tx.ExecContext(ctx, scriptReject, crosscuttingId)
@@ -459,14 +466,14 @@ func (repository *CrosscuttingOpdRepositoryImpl) ApproveOrRejectCrosscutting(ctx
 
 	return nil
 }
+
 func (repository *CrosscuttingOpdRepositoryImpl) DeleteUnused(ctx context.Context, tx *sql.Tx, crosscuttingId int) error {
-	// Cek apakah ada data yang bisa dihapus
+	// Cek apakah data dengan status yang sesuai ada
 	checkQuery := `
-        SELECT COUNT(p.id) 
-        FROM tb_pohon_kinerja p
-        JOIN tb_crosscutting c ON p.id = c.crosscutting_to
-        WHERE p.status IN ('crosscutting_menunggu', 'crosscutting_ditolak')
-        AND c.crosscutting_to = ?
+        SELECT COUNT(id) 
+        FROM tb_crosscutting
+        WHERE id = ? 
+        AND status IN ('crosscutting_menunggu', 'crosscutting_ditolak')
     `
 	var count int
 	err := tx.QueryRowContext(ctx, checkQuery, crosscuttingId).Scan(&count)
@@ -475,76 +482,27 @@ func (repository *CrosscuttingOpdRepositoryImpl) DeleteUnused(ctx context.Contex
 	}
 
 	if count == 0 {
-		return errors.New("crosscutting tidak dapat dihapus")
+		return errors.New("crosscutting tidak dapat dihapus karena status tidak sesuai atau data tidak ditemukan")
 	}
 
-	query := `
-        SELECT p.id 
-        FROM tb_pohon_kinerja p
-        JOIN tb_crosscutting c ON p.id = c.crosscutting_to
-        WHERE p.status IN ('crosscutting_menunggu', 'crosscutting_ditolak')
-        AND c.crosscutting_to = ?
+	// Hapus data di tb_crosscutting
+	deleteQuery := `
+        DELETE FROM tb_crosscutting 
+        WHERE id = ? 
+        AND status IN ('crosscutting_menunggu', 'crosscutting_ditolak')
     `
-
-	rows, err := tx.QueryContext(ctx, query, crosscuttingId)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	var pokinIds []int
-	for rows.Next() {
-		var id int
-		if err := rows.Scan(&id); err != nil {
-			return err
-		}
-		pokinIds = append(pokinIds, id)
-	}
-
-	placeholders := make([]string, len(pokinIds))
-	args := make([]interface{}, len(pokinIds))
-	for i, id := range pokinIds {
-		placeholders[i] = "?"
-		args[i] = id
-	}
-	inClause := strings.Join(placeholders, ",")
-
-	// Hapus pelaksana (perbaikan nama kolom dari pokin_id menjadi id_pokin)
-	pelaksanaQuery := "DELETE FROM tb_pelaksana_pokin WHERE pohon_kinerja_id IN (" + inClause + ")"
-	_, err = tx.ExecContext(ctx, pelaksanaQuery, args...)
+	result, err := tx.ExecContext(ctx, deleteQuery, crosscuttingId)
 	if err != nil {
 		return err
 	}
 
-	// Hapus target
-	targetQuery := `
-        DELETE t FROM tb_target t
-        INNER JOIN tb_indikator i ON t.indikator_id = i.id
-        WHERE i.pokin_id IN (` + inClause + ")"
-	_, err = tx.ExecContext(ctx, targetQuery, args...)
+	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return err
 	}
 
-	// Hapus indikator
-	indikatorQuery := "DELETE FROM tb_indikator WHERE pokin_id IN (" + inClause + ")"
-	_, err = tx.ExecContext(ctx, indikatorQuery, args...)
-	if err != nil {
-		return err
-	}
-
-	// Hapus crosscutting
-	crosscuttingQuery := "DELETE FROM tb_crosscutting WHERE crosscutting_to IN (" + inClause + ")"
-	_, err = tx.ExecContext(ctx, crosscuttingQuery, args...)
-	if err != nil {
-		return err
-	}
-
-	// Hapus pohon kinerja
-	pokinQuery := "DELETE FROM tb_pohon_kinerja WHERE id IN (" + inClause + ")"
-	_, err = tx.ExecContext(ctx, pokinQuery, args...)
-	if err != nil {
-		return err
+	if rowsAffected == 0 {
+		return errors.New("gagal menghapus data crosscutting")
 	}
 
 	return nil

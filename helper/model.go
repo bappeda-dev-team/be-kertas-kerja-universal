@@ -178,7 +178,6 @@ func ToRencanaAksiResponse(rencanaAksi domain.RencanaAksi, pelaksanaanList []dom
 		Id:                     rencanaAksi.Id,
 		RencanaKinerjaId:       rencanaAksi.RencanaKinerjaId,
 		KodeOpd:                rencanaAksi.KodeOpd,
-		PegawaiId:              rencanaAksi.PegawaiId,
 		Urutan:                 rencanaAksi.Urutan,
 		NamaRencanaAksi:        rencanaAksi.NamaRencanaAksi,
 		PelaksanaanRencanaAksi: pelaksanaanResponses,
@@ -354,7 +353,6 @@ func ToGambaranUmumResponse(gambaranUmum domain.GambaranUmum) gambaranumum.Gamba
 	return gambaranumum.GambaranUmumResponse{
 		Id:           gambaranUmum.Id,
 		RekinId:      gambaranUmum.RekinId,
-		PegawaiId:    gambaranUmum.PegawaiId,
 		KodeOpd:      gambaranUmum.KodeOpd,
 		Urutan:       gambaranUmum.Urutan,
 		GambaranUmum: gambaranUmum.GambaranUmum,
@@ -393,7 +391,6 @@ func ToDasarHukumResponse(dasarHukum domain.DasarHukum) dasarhukum.DasarHukumRes
 	return dasarhukum.DasarHukumResponse{
 		Id:               dasarHukum.Id,
 		RekinId:          dasarHukum.RekinId,
-		PegawaiId:        dasarHukum.PegawaiId,
 		KodeOpd:          dasarHukum.KodeOpd,
 		Urutan:           dasarHukum.Urutan,
 		PeraturanTerkait: dasarHukum.PeraturanTerkait,
@@ -433,7 +430,6 @@ func ToInovasiResponse(Inovasi domain.Inovasi) inovasi.InovasiResponse {
 	return inovasi.InovasiResponse{
 		Id:                    Inovasi.Id,
 		RekinId:               Inovasi.RekinId,
-		PegawaiId:             Inovasi.PegawaiId,
 		KodeOpd:               Inovasi.KodeOpd,
 		JudulInovasi:          Inovasi.JudulInovasi,
 		JenisInovasi:          Inovasi.JenisInovasi,

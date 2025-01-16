@@ -79,9 +79,8 @@ func (controller *RencanaAksiControllerImpl) Update(writer http.ResponseWriter, 
 
 func (controller *RencanaAksiControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	rencanaKinerjaId := params.ByName("rencana_kinerja_id")
-	pegawaiId := params.ByName("pegawai_id")
 
-	rencanaAksiResponses, err := controller.RencanaAksiService.FindAll(request.Context(), rencanaKinerjaId, pegawaiId)
+	rencanaAksiResponses, err := controller.RencanaAksiService.FindAll(request.Context(), rencanaKinerjaId)
 	if err != nil {
 		webResponse := web.WebRencanaAksiResponse{
 			Code:   http.StatusInternalServerError,
@@ -149,9 +148,8 @@ func (controller *RencanaAksiControllerImpl) Delete(writer http.ResponseWriter, 
 
 func (controller *RencanaAksiControllerImpl) FindAllByRekin(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	rencanaKinerjaId := params.ByName("rencana_kinerja_id")
-	pegawaiId := params.ByName("pegawai_id")
 
-	rencanaAksiResponses, err := controller.RencanaAksiService.FindAll(request.Context(), rencanaKinerjaId, pegawaiId)
+	rencanaAksiResponses, err := controller.RencanaAksiService.FindAll(request.Context(), rencanaKinerjaId)
 	if err != nil {
 		webResponse := web.WebRencanaAksiResponse{
 			Code:   http.StatusInternalServerError,

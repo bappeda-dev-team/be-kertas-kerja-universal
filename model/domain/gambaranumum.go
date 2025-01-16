@@ -6,5 +6,4 @@ type GambaranUmum struct {
 	KodeOpd      string
 	Urutan       int
 	GambaranUmum string
-	PegawaiId    string
 }

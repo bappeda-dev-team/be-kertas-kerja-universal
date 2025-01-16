@@ -36,7 +36,7 @@ func (service *GambaranUmumServiceImpl) Create(ctx context.Context, request gamb
 	uuId := fmt.Sprintf("GMBRUMUM-REKIN-%s", randomDigits)
 
 	// Mendapatkan urutan terakhir
-	lastUrutan, err := service.gambaranUmumRepository.GetLastUrutan(ctx, tx)
+	lastUrutan, err := service.gambaranUmumRepository.GetLastUrutanByRekinId(ctx, tx, request.RekinId)
 	if err != nil {
 		return gambaranumum.GambaranUmumResponse{}, err
 	}
@@ -47,7 +47,6 @@ func (service *GambaranUmumServiceImpl) Create(ctx context.Context, request gamb
 	gambaranUmum := domain.GambaranUmum{
 		Id:           uuId,
 		RekinId:      request.RekinId,
-		PegawaiId:    request.PegawaiId,
 		KodeOpd:      request.KodeOpd,
 		Urutan:       newUrutan,
 		GambaranUmum: request.GambaranUmum,
@@ -89,14 +88,14 @@ func (service *GambaranUmumServiceImpl) Delete(ctx context.Context, id string) e
 
 }
 
-func (service *GambaranUmumServiceImpl) FindAll(ctx context.Context, rekinId string, pegawaiId string) ([]gambaranumum.GambaranUmumResponse, error) {
+func (service *GambaranUmumServiceImpl) FindAll(ctx context.Context, rekinId string) ([]gambaranumum.GambaranUmumResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("gagal memulai transaksi: %v", err)
 	}
 	defer tx.Rollback() // Hanya melakukan rollback jika belum di-commit
 
-	gambaranUmums, err := service.gambaranUmumRepository.FindAll(ctx, tx, rekinId, pegawaiId)
+	gambaranUmums, err := service.gambaranUmumRepository.FindAll(ctx, tx, rekinId)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("rekin dengan ID %s tidak ditemukan", rekinId)

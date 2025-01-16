@@ -6,6 +6,5 @@ type DasarHukum struct {
 	Urutan           int
 	PeraturanTerkait string
 	Uraian           string
-	PegawaiId        string
 	KodeOpd          string
 }

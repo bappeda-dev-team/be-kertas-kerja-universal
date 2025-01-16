@@ -85,9 +85,8 @@ func (controller *InovasiControllerImpl) Update(writer http.ResponseWriter, requ
 
 func (controller *InovasiControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	rekinId := params.ByName("rencana_kinerja_id")
-	pegawaiId := params.ByName("pegawai_id")
 
-	inovasiResponses, err := controller.InovasiService.FindAll(request.Context(), rekinId, pegawaiId)
+	inovasiResponses, err := controller.InovasiService.FindAll(request.Context(), rekinId)
 	if err != nil {
 		helper.WriteToResponseBody(writer, web.WebInovasiResponse{
 			Code:   http.StatusNotFound,
@@ -164,9 +163,8 @@ func (controller *InovasiControllerImpl) Delete(writer http.ResponseWriter, requ
 }
 func (controller *InovasiControllerImpl) FindAllByRekinId(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	rekinId := params.ByName("rencana_kinerja_id")
-	pegawaiId := params.ByName("pegawai_id")
 
-	inovasiResponses, err := controller.InovasiService.FindAll(request.Context(), rekinId, pegawaiId)
+	inovasiResponses, err := controller.InovasiService.FindAll(request.Context(), rekinId)
 	if err != nil {
 		helper.WriteToResponseBody(writer, web.WebInovasiResponse{
 			Code:   http.StatusNotFound,

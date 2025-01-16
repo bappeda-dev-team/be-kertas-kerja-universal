@@ -15,8 +15,8 @@ func NewRencanaAksiRepositoryImpl() *RencanaAksiRepositoryImpl {
 }
 
 func (repository *RencanaAksiRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, rencanaAksi domain.RencanaAksi) (domain.RencanaAksi, error) {
-	script := "INSERT INTO tb_rencana_aksi (id, rencana_kinerja_id, kode_opd, urutan, nama_rencana_aksi, pegawai_id) VALUES (?, ?, ?, ?, ?, ?)"
-	_, err := tx.ExecContext(ctx, script, rencanaAksi.Id, rencanaAksi.RencanaKinerjaId, rencanaAksi.KodeOpd, rencanaAksi.Urutan, rencanaAksi.NamaRencanaAksi, rencanaAksi.PegawaiId)
+	script := "INSERT INTO tb_rencana_aksi (id, rencana_kinerja_id, kode_opd, urutan, nama_rencana_aksi) VALUES (?, ?, ?, ?, ?)"
+	_, err := tx.ExecContext(ctx, script, rencanaAksi.Id, rencanaAksi.RencanaKinerjaId, rencanaAksi.KodeOpd, rencanaAksi.Urutan, rencanaAksi.NamaRencanaAksi)
 	if err != nil {
 		return domain.RencanaAksi{}, err
 	}
@@ -51,28 +51,23 @@ func (repository *RencanaAksiRepositoryImpl) Delete(ctx context.Context, tx *sql
 }
 
 func (repository *RencanaAksiRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, id string) (domain.RencanaAksi, error) {
-	script := "SELECT id, rencana_kinerja_id, kode_opd, urutan, nama_rencana_aksi, pegawai_id FROM tb_rencana_aksi WHERE id = ?"
+	script := "SELECT id, rencana_kinerja_id, kode_opd, urutan, nama_rencana_aksi FROM tb_rencana_aksi WHERE id = ?"
 	row := tx.QueryRowContext(ctx, script, id)
 	var rencanaAksi domain.RencanaAksi
-	err := row.Scan(&rencanaAksi.Id, &rencanaAksi.RencanaKinerjaId, &rencanaAksi.KodeOpd, &rencanaAksi.Urutan, &rencanaAksi.NamaRencanaAksi, &rencanaAksi.PegawaiId)
+	err := row.Scan(&rencanaAksi.Id, &rencanaAksi.RencanaKinerjaId, &rencanaAksi.KodeOpd, &rencanaAksi.Urutan, &rencanaAksi.NamaRencanaAksi)
 	if err != nil {
 		return domain.RencanaAksi{}, err
 	}
 	return rencanaAksi, nil
 }
 
-func (repository *RencanaAksiRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, rencanaKinerjaId string, pegawaiId string) ([]domain.RencanaAksi, error) {
-	script := "SELECT id, rencana_kinerja_id, kode_opd, urutan, nama_rencana_aksi, pegawai_id FROM tb_rencana_aksi"
+func (repository *RencanaAksiRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, rencanaKinerjaId string) ([]domain.RencanaAksi, error) {
+	script := "SELECT id, rencana_kinerja_id, kode_opd, urutan, nama_rencana_aksi FROM tb_rencana_aksi"
 	var args []interface{}
 
 	if rencanaKinerjaId != "" {
 		script += " WHERE rencana_kinerja_id = ?"
 		args = append(args, rencanaKinerjaId)
-	}
-
-	if pegawaiId != "" {
-		script += " AND pegawai_id = ?"
-		args = append(args, pegawaiId)
 	}
 
 	script += " ORDER BY urutan ASC"
@@ -86,7 +81,7 @@ func (repository *RencanaAksiRepositoryImpl) FindAll(ctx context.Context, tx *sq
 	var rencanaAksis []domain.RencanaAksi
 	for rows.Next() {
 		var rencanaAksi domain.RencanaAksi
-		err := rows.Scan(&rencanaAksi.Id, &rencanaAksi.RencanaKinerjaId, &rencanaAksi.KodeOpd, &rencanaAksi.Urutan, &rencanaAksi.NamaRencanaAksi, &rencanaAksi.PegawaiId)
+		err := rows.Scan(&rencanaAksi.Id, &rencanaAksi.RencanaKinerjaId, &rencanaAksi.KodeOpd, &rencanaAksi.Urutan, &rencanaAksi.NamaRencanaAksi)
 		if err != nil {
 			return []domain.RencanaAksi{}, err
 		}

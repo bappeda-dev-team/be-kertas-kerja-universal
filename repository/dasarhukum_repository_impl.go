@@ -14,8 +14,8 @@ func NewDasarHukumRepositoryImpl() *DasarHukumRepositoryImpl {
 }
 
 func (repository *DasarHukumRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, dasarHukum domain.DasarHukum) (domain.DasarHukum, error) {
-	script := "INSERT INTO tb_dasar_hukum (id, rekin_id, pegawai_id, kode_opd, urutan, peraturan_terkait, uraian) VALUES (?, ?, ?, ?, ?, ?, ?)"
-	_, err := tx.ExecContext(ctx, script, dasarHukum.Id, dasarHukum.RekinId, dasarHukum.PegawaiId, dasarHukum.KodeOpd, dasarHukum.Urutan, dasarHukum.PeraturanTerkait, dasarHukum.Uraian)
+	script := "INSERT INTO tb_dasar_hukum (id, rekin_id, kode_opd, urutan, peraturan_terkait, uraian) VALUES (?, ?, ?, ?, ?, ?)"
+	_, err := tx.ExecContext(ctx, script, dasarHukum.Id, dasarHukum.RekinId, dasarHukum.KodeOpd, dasarHukum.Urutan, dasarHukum.PeraturanTerkait, dasarHukum.Uraian)
 	if err != nil {
 		return domain.DasarHukum{}, err
 	}
@@ -32,17 +32,13 @@ func (repository *DasarHukumRepositoryImpl) Update(ctx context.Context, tx *sql.
 
 	return dasarHukum, nil
 }
-func (repository *DasarHukumRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, rekinId string, pegawaiId string) ([]domain.DasarHukum, error) {
-	script := "SELECT id, rekin_id, pegawai_id, kode_opd, urutan, peraturan_terkait, uraian FROM tb_dasar_hukum WHERE 1=1"
+func (repository *DasarHukumRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, rekinId string) ([]domain.DasarHukum, error) {
+	script := "SELECT id, rekin_id, kode_opd, urutan, peraturan_terkait, uraian FROM tb_dasar_hukum WHERE 1=1"
 	var params []interface{}
 
 	if rekinId != "" {
 		script += " AND rekin_id = ?"
 		params = append(params, rekinId)
-	}
-	if pegawaiId != "" {
-		script += " AND pegawai_id = ?"
-		params = append(params, pegawaiId)
 	}
 	script += " ORDER BY urutan ASC"
 	rows, err := tx.QueryContext(ctx, script, params...)
@@ -54,7 +50,7 @@ func (repository *DasarHukumRepositoryImpl) FindAll(ctx context.Context, tx *sql
 	var dasarHukum []domain.DasarHukum
 	for rows.Next() {
 		var dh domain.DasarHukum
-		err = rows.Scan(&dh.Id, &dh.RekinId, &dh.PegawaiId, &dh.KodeOpd, &dh.Urutan, &dh.PeraturanTerkait, &dh.Uraian)
+		err = rows.Scan(&dh.Id, &dh.RekinId, &dh.KodeOpd, &dh.Urutan, &dh.PeraturanTerkait, &dh.Uraian)
 		if err != nil {
 			return []domain.DasarHukum{}, err
 		}
@@ -74,9 +70,9 @@ func (repository *DasarHukumRepositoryImpl) Delete(ctx context.Context, tx *sql.
 }
 
 func (repository *DasarHukumRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, id string) (domain.DasarHukum, error) {
-	script := "SELECT id, rekin_id, pegawai_id, kode_opd, urutan, peraturan_terkait, uraian FROM tb_dasar_hukum WHERE id = ? ORDER BY urutan ASC"
+	script := "SELECT id, rekin_id, kode_opd, urutan, peraturan_terkait, uraian FROM tb_dasar_hukum WHERE id = ? ORDER BY urutan ASC"
 	var dh domain.DasarHukum
-	err := tx.QueryRowContext(ctx, script, id).Scan(&dh.Id, &dh.RekinId, &dh.PegawaiId, &dh.KodeOpd, &dh.Urutan, &dh.PeraturanTerkait, &dh.Uraian)
+	err := tx.QueryRowContext(ctx, script, id).Scan(&dh.Id, &dh.RekinId, &dh.KodeOpd, &dh.Urutan, &dh.PeraturanTerkait, &dh.Uraian)
 	if err != nil {
 		return domain.DasarHukum{}, err
 	}
@@ -87,6 +83,16 @@ func (repository *DasarHukumRepositoryImpl) GetLastUrutan(ctx context.Context, t
 	script := "SELECT COALESCE(MAX(urutan), 0) FROM tb_dasar_hukum"
 	var lastUrutan int
 	err := tx.QueryRowContext(ctx, script).Scan(&lastUrutan)
+	if err != nil {
+		return 0, err
+	}
+	return lastUrutan, nil
+}
+
+func (r *DasarHukumRepositoryImpl) GetLastUrutanByRekinId(ctx context.Context, tx *sql.Tx, rekinId string) (int, error) {
+	SQL := "SELECT COALESCE(MAX(urutan), 0) FROM tb_dasar_hukum WHERE rekin_id = ?"
+	var lastUrutan int
+	err := tx.QueryRowContext(ctx, SQL, rekinId).Scan(&lastUrutan)
 	if err != nil {
 		return 0, err
 	}

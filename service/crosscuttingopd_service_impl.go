@@ -369,13 +369,23 @@ func (service *CrosscuttingOpdServiceImpl) FindPokinByCrosscuttingStatus(ctx con
 			return nil, err
 		}
 
+		var namaOpdPengirim string
+		if crosscutting.OpdPengirim != "" {
+			opdPengirim, err := service.OpdRepository.FindByKodeOpd(ctx, tx, crosscutting.OpdPengirim)
+			if err != nil {
+				return nil, err
+			}
+			namaOpdPengirim = opdPengirim.NamaOpd
+		}
+
 		response := pohonkinerja.CrosscuttingOpdResponse{
-			Id:         crosscutting.Id,
-			Keterangan: crosscutting.Keterangan,
-			KodeOpd:    crosscutting.KodeOpd,
-			NamaOpd:    opd.NamaOpd,
-			Tahun:      crosscutting.Tahun,
-			Status:     crosscutting.Status,
+			Id:              crosscutting.Id,
+			Keterangan:      crosscutting.Keterangan,
+			KodeOpd:         crosscutting.KodeOpd,
+			NamaOpd:         opd.NamaOpd,
+			Tahun:           crosscutting.Tahun,
+			Status:          crosscutting.Status,
+			NamaOpdPengirim: namaOpdPengirim,
 		}
 		responses = append(responses, response)
 	}

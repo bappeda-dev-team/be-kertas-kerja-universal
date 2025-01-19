@@ -1009,6 +1009,29 @@ func (service *PohonKinerjaOpdServiceImpl) FindPokinByPelaksana(ctx context.Cont
 			return nil, fmt.Errorf("gagal mengambil data OPD: %v", err)
 		}
 
+		indikators, err := service.pohonKinerjaOpdRepository.FindIndikatorByPokinId(ctx, tx, fmt.Sprint(pokin.Id))
+		var indikatorResponses []pohonkinerja.IndikatorResponse
+		if err == nil {
+			for _, indikator := range indikators {
+				var targetResponses []pohonkinerja.TargetResponse
+				for _, target := range indikator.Target {
+					targetResponses = append(targetResponses, pohonkinerja.TargetResponse{
+						Id:              target.Id,
+						IndikatorId:     target.IndikatorId,
+						TargetIndikator: target.Target,
+						SatuanIndikator: target.Satuan,
+					})
+				}
+
+				indikatorResponses = append(indikatorResponses, pohonkinerja.IndikatorResponse{
+					Id:            indikator.Id,
+					IdPokin:       indikator.PokinId,
+					NamaIndikator: indikator.Indikator,
+					Target:        targetResponses,
+				})
+			}
+		}
+
 		// Buat response pelaksana hanya untuk pegawai yang bersangkutan
 		pelaksanaResponse := pohonkinerja.PelaksanaOpdResponse{
 			Id:             pokin.Pelaksana[0].Id, // Mengambil ID pelaksana pertama karena sudah difilter di repository
@@ -1027,6 +1050,7 @@ func (service *PohonKinerjaOpdServiceImpl) FindPokinByPelaksana(ctx context.Cont
 			NamaOpd:    opd.NamaOpd,
 			Keterangan: pokin.Keterangan,
 			Tahun:      pokin.Tahun,
+			Indikator:  indikatorResponses,
 			Pelaksana:  []pohonkinerja.PelaksanaOpdResponse{pelaksanaResponse}, // Hanya menampilkan pelaksana yang sesuai
 		})
 	}

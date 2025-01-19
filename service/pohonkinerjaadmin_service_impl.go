@@ -1812,6 +1812,30 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinFromOpd(ctx context.Contex
 			}
 		}
 
+		// Konversi indikator dan target
+		indikators, err := service.pohonKinerjaRepository.FindIndikatorByPokinId(ctx, tx, fmt.Sprint(pokin.Id))
+		var indikatorResponses []pohonkinerja.IndikatorResponse
+		if err == nil {
+			for _, indikator := range indikators {
+				var targetResponses []pohonkinerja.TargetResponse
+				for _, target := range indikator.Target {
+					targetResponses = append(targetResponses, pohonkinerja.TargetResponse{
+						Id:              target.Id,
+						IndikatorId:     target.IndikatorId,
+						TargetIndikator: target.Target,
+						SatuanIndikator: target.Satuan,
+					})
+				}
+
+				indikatorResponses = append(indikatorResponses, pohonkinerja.IndikatorResponse{
+					Id:            indikator.Id,
+					IdPokin:       indikator.PokinId,
+					NamaIndikator: indikator.Indikator,
+					Target:        targetResponses,
+				})
+			}
+		}
+
 		result = append(result, pohonkinerja.PohonKinerjaAdminResponseData{
 			Id:         pokin.Id,
 			Parent:     pokin.Parent,
@@ -1822,6 +1846,7 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinFromOpd(ctx context.Contex
 			NamaOpd:    namaOpd,
 			Tahun:      pokin.Tahun,
 			Status:     pokin.Status,
+			Indikators: indikatorResponses,
 		})
 	}
 

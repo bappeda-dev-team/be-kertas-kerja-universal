@@ -1980,6 +1980,15 @@ func (repository *PohonKinerjaRepositoryImpl) UpdatePokinStatusFromApproved(ctx 
 	return nil
 }
 
+func (repository *PohonKinerjaRepositoryImpl) UpdateParent(ctx context.Context, tx *sql.Tx, pohonKinerja domain.PohonKinerja) (domain.PohonKinerja, error) {
+	script := `UPDATE tb_pohon_kinerja SET parent = ? WHERE id = ?`
+	_, err := tx.ExecContext(ctx, script, pohonKinerja.Parent, pohonKinerja.Id)
+	if err != nil {
+		return domain.PohonKinerja{}, err
+	}
+	return pohonKinerja, nil
+}
+
 func (repository *PohonKinerjaRepositoryImpl) ValidatePokinId(ctx context.Context, tx *sql.Tx, pokinId int) error {
 	script := "SELECT COUNT(*) FROM tb_pohon_kinerja WHERE id = ?"
 

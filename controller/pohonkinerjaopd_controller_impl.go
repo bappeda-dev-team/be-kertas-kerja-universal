@@ -332,3 +332,38 @@ func (controller *PohonKinerjaOpdControllerImpl) DeletePokinPemdaInOpd(writer ht
 	helper.WriteToResponseBody(writer, webResponse)
 
 }
+
+func (controller *PohonKinerjaOpdControllerImpl) UpdateParent(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	pohonKinerjaUpdateRequest := pohonkinerja.PohonKinerjaUpdateRequest{}
+	helper.ReadFromRequestBody(request, &pohonKinerjaUpdateRequest)
+
+	id, err := strconv.Atoi(params.ByName("id"))
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   400,
+			Status: "Bad Request",
+			Data:   "ID harus berupa angka",
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+	pohonKinerjaUpdateRequest.Id = id
+
+	_, err = controller.PohonKinerjaOpdService.UpdateParent(request.Context(), pohonKinerjaUpdateRequest)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   400,
+			Status: "Error",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   200,
+		Status: "Success Update Parent",
+		Data:   "berhasil mengupdate parent",
+	}
+	helper.WriteToResponseBody(writer, webResponse)
+}

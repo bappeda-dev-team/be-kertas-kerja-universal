@@ -1225,3 +1225,26 @@ func (service *PohonKinerjaOpdServiceImpl) DeletePokinPemdaInOpd(ctx context.Con
 
 	return nil
 }
+
+func (service *PohonKinerjaOpdServiceImpl) UpdateParent(ctx context.Context, pohonKinerja pohonkinerja.PohonKinerjaUpdateRequest) (pohonkinerja.PohonKinerjaOpdResponse, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return pohonkinerja.PohonKinerjaOpdResponse{}, fmt.Errorf("gagal memulai transaksi: %v", err)
+	}
+	defer helper.CommitOrRollback(tx)
+
+	pokin := domain.PohonKinerja{
+		Id:     pohonKinerja.Id,
+		Parent: pohonKinerja.Parent,
+	}
+
+	pokin, err = service.pohonKinerjaOpdRepository.UpdateParent(ctx, tx, pokin)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaOpdResponse{}, err
+	}
+
+	return pohonkinerja.PohonKinerjaOpdResponse{
+		Id:     pokin.Id,
+		Parent: fmt.Sprint(pokin.Parent),
+	}, nil
+}

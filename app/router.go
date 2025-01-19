@@ -38,6 +38,7 @@ func NewRouter(
 	tujuanOpdController controller.TujuanOpdController,
 	crosscuttingOpdController controller.CrosscuttingOpdController,
 	manualIKController controller.ManualIKController,
+	reviewController controller.ReviewController,
 ) *httprouter.Router {
 	router := httprouter.New()
 
@@ -279,6 +280,13 @@ func NewRouter(
 	router.POST("/manual_ik/create/:indikatorId", manualIKController.Create)
 	router.PUT("/manual_ik/update/:indikatorId", manualIKController.Update)
 	router.GET("/manual_ik/detail/:indikatorId", manualIKController.FindManualIKByIndikatorId)
+
+	//review
+	router.POST("/review_pokin/create/:pokinId", reviewController.Create)
+	router.PUT("/review_pokin/update/:id", reviewController.Update)
+	router.DELETE("/review_pokin/delete/:id", reviewController.Delete)
+	router.GET("/review_pokin/findall/:pokin_id", reviewController.FindAll)
+	router.GET("/review_pokin/detail/:id", reviewController.FindById)
 
 	return router
 }

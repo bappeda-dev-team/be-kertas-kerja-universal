@@ -45,6 +45,8 @@ type PohonKinerjaRepository interface {
 	FindChildPokins(ctx context.Context, tx *sql.Tx, parentId int64) ([]domain.PohonKinerja, error)
 	InsertClonedPelaksana(ctx context.Context, tx *sql.Tx, newId string, pokinId int64, pelaksana domain.PelaksanaPokin) error
 
+	ValidatePokinId(ctx context.Context, tx *sql.Tx, pokinId int) error
+
 	//find pokin for dropdown
 	FindPokinByJenisPohon(ctx context.Context, tx *sql.Tx, jenisPohon string, levelPohon int, tahun string, kodeOpd string, status string) ([]domain.PohonKinerja, error)
 	FindPokinByPelaksana(ctx context.Context, tx *sql.Tx, pelaksanaId string, tahun string) ([]domain.PohonKinerja, error)

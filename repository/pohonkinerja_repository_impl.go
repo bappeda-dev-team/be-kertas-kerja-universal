@@ -1979,3 +1979,19 @@ func (repository *PohonKinerjaRepositoryImpl) UpdatePokinStatusFromApproved(ctx 
 
 	return nil
 }
+
+func (repository *PohonKinerjaRepositoryImpl) ValidatePokinId(ctx context.Context, tx *sql.Tx, pokinId int) error {
+	script := "SELECT COUNT(*) FROM tb_pohon_kinerja WHERE id = ?"
+
+	var count int
+	err := tx.QueryRowContext(ctx, script, pokinId).Scan(&count)
+	if err != nil {
+		return fmt.Errorf("gagal melakukan validasi pohon kinerja: %v", err)
+	}
+
+	if count == 0 {
+		return fmt.Errorf("pohon kinerja dengan ID %d tidak ditemukan", pokinId)
+	}
+
+	return nil
+}

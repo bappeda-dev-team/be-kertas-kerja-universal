@@ -23,16 +23,18 @@ type PohonKinerjaOpdServiceImpl struct {
 	pegawaiRepository         repository.PegawaiRepository
 	tujuanOpdRepository       repository.TujuanOpdRepository
 	crosscuttingOpdRepository repository.CrosscuttingOpdRepository
+	reviewRepository          repository.ReviewRepository
 	DB                        *sql.DB
 }
 
-func NewPohonKinerjaOpdServiceImpl(pohonKinerjaOpdRepository repository.PohonKinerjaRepository, opdRepository repository.OpdRepository, pegawaiRepository repository.PegawaiRepository, tujuanOpdRepository repository.TujuanOpdRepository, crosscuttingOpdRepository repository.CrosscuttingOpdRepository, DB *sql.DB) *PohonKinerjaOpdServiceImpl {
+func NewPohonKinerjaOpdServiceImpl(pohonKinerjaOpdRepository repository.PohonKinerjaRepository, opdRepository repository.OpdRepository, pegawaiRepository repository.PegawaiRepository, tujuanOpdRepository repository.TujuanOpdRepository, crosscuttingOpdRepository repository.CrosscuttingOpdRepository, reviewRepository repository.ReviewRepository, DB *sql.DB) *PohonKinerjaOpdServiceImpl {
 	return &PohonKinerjaOpdServiceImpl{
 		pohonKinerjaOpdRepository: pohonKinerjaOpdRepository,
 		opdRepository:             opdRepository,
 		pegawaiRepository:         pegawaiRepository,
 		tujuanOpdRepository:       tujuanOpdRepository,
 		crosscuttingOpdRepository: crosscuttingOpdRepository,
+		reviewRepository:          reviewRepository,
 		DB:                        DB,
 	}
 }
@@ -725,6 +727,24 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalNResponse(ctx context
 	if err == nil {
 		operationalN.NamaOpd = opd.NamaOpd
 	}
+	//review
+	reviews, err := service.reviewRepository.FindByPohonKinerja(ctx, tx, operationalN.Id)
+	var reviewResponses []pohonkinerja.ReviewResponse
+	if err == nil {
+		for _, review := range reviews {
+			pegawai, err := service.pegawaiRepository.FindByNip(ctx, tx, reviews[0].CreatedBy)
+			if err != nil {
+				return pohonkinerja.OperationalNOpdResponse{}
+			}
+			reviewResponses = append(reviewResponses, pohonkinerja.ReviewResponse{
+				Id:             review.Id,
+				IdPohonKinerja: review.IdPohonKinerja,
+				Review:         review.Review,
+				Keterangan:     review.Keterangan,
+				CreatedBy:      pegawai.NamaPegawai,
+			})
+		}
+	}
 	operationalNResp := pohonkinerja.OperationalNOpdResponse{
 		Id:         operationalN.Id,
 		Parent:     operationalN.Parent,
@@ -739,6 +759,7 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalNResponse(ctx context
 		},
 		Pelaksana: pelaksanaMap[operationalN.Id],
 		Indikator: indikatorMap[operationalN.Id],
+		Review:    reviewResponses,
 	}
 
 	// Build child nodes secara rekursif
@@ -765,6 +786,26 @@ func (service *PohonKinerjaOpdServiceImpl) buildStrategicResponse(ctx context.Co
 	if strategic.KeteranganCrosscutting != nil && *strategic.KeteranganCrosscutting != "" {
 		keteranganCrosscutting = strategic.KeteranganCrosscutting
 	}
+
+	//review
+	reviews, err := service.reviewRepository.FindByPohonKinerja(ctx, tx, strategic.Id)
+	var reviewResponses []pohonkinerja.ReviewResponse
+	if err == nil {
+		for _, review := range reviews {
+			pegawai, err := service.pegawaiRepository.FindByNip(ctx, tx, reviews[0].CreatedBy)
+			if err != nil {
+				return pohonkinerja.StrategicOpdResponse{}
+			}
+			reviewResponses = append(reviewResponses, pohonkinerja.ReviewResponse{
+				Id:             review.Id,
+				IdPohonKinerja: review.IdPohonKinerja,
+				Review:         review.Review,
+				Keterangan:     review.Keterangan,
+				CreatedBy:      pegawai.NamaPegawai,
+			})
+		}
+	}
+
 	strategicResp := pohonkinerja.StrategicOpdResponse{
 		Id:                     strategic.Id,
 		Parent:                 nil,
@@ -780,6 +821,7 @@ func (service *PohonKinerjaOpdServiceImpl) buildStrategicResponse(ctx context.Co
 		},
 		Pelaksana: pelaksanaMap[strategic.Id],
 		Indikator: indikatorMap[strategic.Id],
+		Review:    reviewResponses,
 	}
 
 	// Build tactical (level 5)
@@ -810,6 +852,24 @@ func (service *PohonKinerjaOpdServiceImpl) buildTacticalResponse(ctx context.Con
 	if tactical.KeteranganCrosscutting != nil && *tactical.KeteranganCrosscutting != "" {
 		keteranganCrosscutting = tactical.KeteranganCrosscutting
 	}
+	//review
+	reviews, err := service.reviewRepository.FindByPohonKinerja(ctx, tx, tactical.Id)
+	var reviewResponses []pohonkinerja.ReviewResponse
+	if err == nil {
+		for _, review := range reviews {
+			pegawai, err := service.pegawaiRepository.FindByNip(ctx, tx, reviews[0].CreatedBy)
+			if err != nil {
+				return pohonkinerja.TacticalOpdResponse{}
+			}
+			reviewResponses = append(reviewResponses, pohonkinerja.ReviewResponse{
+				Id:             review.Id,
+				IdPohonKinerja: review.IdPohonKinerja,
+				Review:         review.Review,
+				Keterangan:     review.Keterangan,
+				CreatedBy:      pegawai.NamaPegawai,
+			})
+		}
+	}
 	tacticalResp := pohonkinerja.TacticalOpdResponse{
 		Id:                     tactical.Id,
 		Parent:                 tactical.Parent,
@@ -825,6 +885,7 @@ func (service *PohonKinerjaOpdServiceImpl) buildTacticalResponse(ctx context.Con
 		},
 		Pelaksana: pelaksanaMap[tactical.Id],
 		Indikator: indikatorMap[tactical.Id],
+		Review:    reviewResponses,
 	}
 
 	// Build operational (level 6)
@@ -855,6 +916,24 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalResponse(ctx context.
 	if operational.KeteranganCrosscutting != nil && *operational.KeteranganCrosscutting != "" {
 		keteranganCrosscutting = operational.KeteranganCrosscutting
 	}
+	//review
+	reviews, err := service.reviewRepository.FindByPohonKinerja(ctx, tx, operational.Id)
+	var reviewResponses []pohonkinerja.ReviewResponse
+	if err == nil {
+		for _, review := range reviews {
+			pegawai, err := service.pegawaiRepository.FindByNip(ctx, tx, reviews[0].CreatedBy)
+			if err != nil {
+				return pohonkinerja.OperationalOpdResponse{}
+			}
+			reviewResponses = append(reviewResponses, pohonkinerja.ReviewResponse{
+				Id:             review.Id,
+				IdPohonKinerja: review.IdPohonKinerja,
+				Review:         review.Review,
+				Keterangan:     review.Keterangan,
+				CreatedBy:      pegawai.NamaPegawai,
+			})
+		}
+	}
 	operationalResp := pohonkinerja.OperationalOpdResponse{
 		Id:                     operational.Id,
 		Parent:                 operational.Parent,
@@ -870,6 +949,7 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalResponse(ctx context.
 		},
 		Pelaksana: pelaksanaMap[operational.Id],
 		Indikator: indikatorMap[operational.Id],
+		Review:    reviewResponses,
 	}
 
 	// Build operational-n untuk level > 6

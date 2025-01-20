@@ -1248,3 +1248,229 @@ func (service *PohonKinerjaOpdServiceImpl) UpdateParent(ctx context.Context, poh
 		Parent: fmt.Sprint(pokin.Parent),
 	}, nil
 }
+
+func (service *PohonKinerjaOpdServiceImpl) FindidPokinWithAllTema(ctx context.Context, id int) (pohonkinerja.PohonKinerjaAdminResponse, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponse{}, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	pokins, err := service.pohonKinerjaOpdRepository.FindidPokinWithAllTema(ctx, tx, id)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponse{}, err
+	}
+
+	// Temukan node target dan level parentnya
+	var targetPokin domain.PohonKinerja
+	var parentLevel int
+	var strategicId int // Untuk menyimpan ID dari node Strategic
+
+	for _, pokin := range pokins {
+		if pokin.Id == id {
+			targetPokin = pokin
+			// Jika level 4, cari level parentnya
+			if pokin.LevelPohon == 4 {
+				for _, p := range pokins {
+					if p.Id == pokin.Parent {
+						parentLevel = p.LevelPohon
+						break
+					}
+				}
+				strategicId = pokin.Id
+			} else if pokin.LevelPohon == 5 || pokin.LevelPohon == 6 {
+				// Untuk level 5 dan 6, cari node Strategic (level 4) di ancestors
+				for _, p := range pokins {
+					if p.LevelPohon == 4 {
+						strategicId = p.Id
+						// Cari level parent dari Strategic
+						for _, grandParent := range pokins {
+							if grandParent.Id == p.Parent {
+								parentLevel = grandParent.LevelPohon
+								break
+							}
+						}
+						break
+					}
+				}
+			}
+			break
+		}
+	}
+
+	// Validasi level
+	if targetPokin.LevelPohon < 4 || targetPokin.LevelPohon > 6 {
+		return pohonkinerja.PohonKinerjaAdminResponse{}, fmt.Errorf("ID harus merujuk ke level Strategic (4), Tactical (5), atau Operational (6)")
+	}
+
+	// Helper functions (sama seperti sebelumnya)
+	createIndikatorResponse := func(pokin domain.PohonKinerja) []pohonkinerja.IndikatorResponse {
+		var indikators []pohonkinerja.IndikatorResponse
+		for _, ind := range pokin.Indikator {
+			var targets []pohonkinerja.TargetResponse
+			for _, t := range ind.Target {
+				targets = append(targets, pohonkinerja.TargetResponse{
+					Id:              t.Id,
+					IndikatorId:     t.IndikatorId,
+					TargetIndikator: t.Target,
+					SatuanIndikator: t.Satuan,
+				})
+			}
+			indikators = append(indikators, pohonkinerja.IndikatorResponse{
+				Id:            ind.Id,
+				IdPokin:       ind.PokinId,
+				NamaIndikator: ind.Indikator,
+				Target:        targets,
+			})
+		}
+		return indikators
+	}
+
+	// Buat responses untuk setiap level yang diperlukan
+	var strategicResp pohonkinerja.StrategicResponse
+	var tacticalResp *pohonkinerja.TacticalResponse
+	var operationalResp *pohonkinerja.OperationalResponse
+
+	// Bangun response berdasarkan level target
+	for _, pokin := range pokins {
+		if pokin.Id == strategicId {
+			// Buat Strategic Response
+			strategicResp = pohonkinerja.StrategicResponse{
+				Id:         pokin.Id,
+				Parent:     pokin.Parent,
+				Strategi:   pokin.NamaPohon,
+				JenisPohon: pokin.JenisPohon,
+				LevelPohon: pokin.LevelPohon,
+				Keterangan: pokin.Keterangan,
+				Status:     pokin.Status,
+				Indikators: createIndikatorResponse(pokin),
+				Childs:     []interface{}{},
+			}
+		} else if pokin.LevelPohon == 5 && targetPokin.LevelPohon >= 5 {
+			// Buat Tactical Response
+			tacticalResp = &pohonkinerja.TacticalResponse{
+				Id:         pokin.Id,
+				Parent:     pokin.Parent,
+				Strategi:   pokin.NamaPohon,
+				JenisPohon: pokin.JenisPohon,
+				LevelPohon: pokin.LevelPohon,
+				Keterangan: &pokin.Keterangan,
+				Status:     pokin.Status,
+				Indikators: createIndikatorResponse(pokin),
+				Childs:     []interface{}{},
+			}
+			strategicResp.Childs = append(strategicResp.Childs, tacticalResp)
+		} else if pokin.LevelPohon == 6 && targetPokin.LevelPohon == 6 {
+			// Buat Operational Response
+			operationalResp = &pohonkinerja.OperationalResponse{
+				Id:         pokin.Id,
+				Parent:     pokin.Parent,
+				Strategi:   pokin.NamaPohon,
+				JenisPohon: pokin.JenisPohon,
+				LevelPohon: pokin.LevelPohon,
+				Keterangan: &pokin.Keterangan,
+				Status:     pokin.Status,
+				Indikators: createIndikatorResponse(pokin),
+				Childs:     []interface{}{},
+			}
+			if tacticalResp != nil {
+				tacticalResp.Childs = append(tacticalResp.Childs, operationalResp)
+			}
+		}
+	}
+
+	// Bangun hierarki dari Tematik ke bawah
+	var tematikResp pohonkinerja.TematikResponse
+	for _, pokin := range pokins {
+		if pokin.LevelPohon == 0 { // Tematik
+			parentInt := pokin.Parent
+			tematikResp = pohonkinerja.TematikResponse{
+				Id:         pokin.Id,
+				Parent:     &parentInt,
+				Tema:       pokin.NamaPohon,
+				JenisPohon: pokin.JenisPohon,
+				LevelPohon: pokin.LevelPohon,
+				Keterangan: pokin.Keterangan,
+				Indikators: createIndikatorResponse(pokin),
+				Child:      []interface{}{},
+			}
+
+			if parentLevel == 0 {
+				tematikResp.Child = append(tematikResp.Child, strategicResp)
+			}
+		} else if pokin.LevelPohon <= parentLevel {
+			switch pokin.LevelPohon {
+			case 1: // Subtematik
+				subtematikResp := pohonkinerja.SubtematikResponse{
+					Id:         pokin.Id,
+					Parent:     pokin.Parent,
+					Tema:       pokin.NamaPohon,
+					JenisPohon: pokin.JenisPohon,
+					LevelPohon: pokin.LevelPohon,
+					Keterangan: pokin.Keterangan,
+					Indikators: createIndikatorResponse(pokin),
+					Child:      []interface{}{},
+				}
+				if parentLevel == 1 {
+					subtematikResp.Child = append(subtematikResp.Child, strategicResp)
+				}
+				tematikResp.Child = append(tematikResp.Child, subtematikResp)
+
+			case 2: // SubSubTematik
+				subsubtematikResp := pohonkinerja.SubSubTematikResponse{
+					Id:         pokin.Id,
+					Parent:     pokin.Parent,
+					Tema:       pokin.NamaPohon,
+					JenisPohon: pokin.JenisPohon,
+					LevelPohon: pokin.LevelPohon,
+					Keterangan: pokin.Keterangan,
+					Indikators: createIndikatorResponse(pokin),
+					Child:      []interface{}{},
+				}
+				if parentLevel == 2 {
+					subsubtematikResp.Child = append(subsubtematikResp.Child, strategicResp)
+				}
+				for i := range tematikResp.Child {
+					if sub, ok := tematikResp.Child[i].(pohonkinerja.SubtematikResponse); ok && sub.Id == pokin.Parent {
+						sub.Child = append(sub.Child, subsubtematikResp)
+						tematikResp.Child[i] = sub
+					}
+				}
+
+			case 3: // SuperSubTematik
+				supersubtematikResp := pohonkinerja.SuperSubTematikResponse{
+					Id:         pokin.Id,
+					Parent:     pokin.Parent,
+					Tema:       pokin.NamaPohon,
+					JenisPohon: pokin.JenisPohon,
+					LevelPohon: pokin.LevelPohon,
+					Keterangan: pokin.Keterangan,
+					Indikators: createIndikatorResponse(pokin),
+					Childs:     []interface{}{},
+				}
+				if parentLevel == 3 {
+					supersubtematikResp.Childs = append(supersubtematikResp.Childs, strategicResp)
+				}
+				// Tambahkan ke parent yang sesuai
+				for i := range tematikResp.Child {
+					if sub, ok := tematikResp.Child[i].(pohonkinerja.SubtematikResponse); ok {
+						for j := range sub.Child {
+							if subsub, ok := sub.Child[j].(pohonkinerja.SubSubTematikResponse); ok && subsub.Id == pokin.Parent {
+								subsub.Child = append(subsub.Child, supersubtematikResp)
+								sub.Child[j] = subsub
+								tematikResp.Child[i] = sub
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	response := pohonkinerja.PohonKinerjaAdminResponse{
+		Tahun:   targetPokin.Tahun,
+		Tematik: []pohonkinerja.TematikResponse{tematikResp},
+	}
+
+	return response, nil
+}

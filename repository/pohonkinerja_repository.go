@@ -18,6 +18,8 @@ type PohonKinerjaRepository interface {
 	DeletePelaksanaPokin(ctx context.Context, tx *sql.Tx, pelaksanaId string) error
 	UpdatePokinStatusFromApproved(ctx context.Context, tx *sql.Tx, id int) error
 	UpdateParent(ctx context.Context, tx *sql.Tx, pohonKinerja domain.PohonKinerja) (domain.PohonKinerja, error)
+	FindidPokinWithAllTema(ctx context.Context, tx *sql.Tx, id int) ([]domain.PohonKinerja, error)
+
 	//admin pokin
 	CreatePokinAdmin(ctx context.Context, tx *sql.Tx, pokinAdmin domain.PohonKinerja) (domain.PohonKinerja, error)
 	UpdatePokinAdmin(ctx context.Context, tx *sql.Tx, pokinAdmin domain.PohonKinerja) (domain.PohonKinerja, error)

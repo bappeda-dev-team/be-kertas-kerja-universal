@@ -1989,6 +1989,153 @@ func (repository *PohonKinerjaRepositoryImpl) UpdateParent(ctx context.Context, 
 	return pohonKinerja, nil
 }
 
+func (repository *PohonKinerjaRepositoryImpl) FindidPokinWithAllTema(ctx context.Context, tx *sql.Tx, id int) ([]domain.PohonKinerja, error) {
+	script := `
+                 WITH RECURSIVE ancestor_tree AS (
+            -- Base case: node yang dicari
+            SELECT 
+                pk.id, pk.nama_pohon, pk.parent, pk.jenis_pohon, 
+                pk.level_pohon, pk.kode_opd, pk.keterangan, 
+                pk.tahun, pk.status,
+                i.id as indikator_id, i.indikator as nama_indikator,
+                t.id as target_id, t.target as target_value, 
+                t.satuan as target_satuan,
+                pp.id as pelaksana_id, pp.pegawai_id
+            FROM tb_pohon_kinerja pk
+            LEFT JOIN tb_indikator i ON pk.id = i.pokin_id
+            LEFT JOIN tb_target t ON i.id = t.indikator_id
+            LEFT JOIN tb_pelaksana_pokin pp ON pk.id = pp.pohon_kinerja_id
+            WHERE pk.id = ?
+            
+            UNION ALL
+            
+            -- Recursive case: ambil parent nodes
+            SELECT 
+                pk.id, pk.nama_pohon, pk.parent, pk.jenis_pohon, 
+                pk.level_pohon, pk.kode_opd, pk.keterangan, 
+                pk.tahun, pk.status,
+                i.id as indikator_id, i.indikator as nama_indikator,
+                t.id as target_id, t.target as target_value, 
+                t.satuan as target_satuan,
+                pp.id as pelaksana_id, pp.pegawai_id
+            FROM tb_pohon_kinerja pk
+            LEFT JOIN tb_indikator i ON pk.id = i.pokin_id
+            LEFT JOIN tb_target t ON i.id = t.indikator_id
+            LEFT JOIN tb_pelaksana_pokin pp ON pk.id = pp.pohon_kinerja_id
+            INNER JOIN ancestor_tree at ON pk.id = at.parent
+        )
+        SELECT * FROM ancestor_tree
+        ORDER BY level_pohon ASC`
+
+	rows, err := tx.QueryContext(ctx, script, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	pokinMap := make(map[int]*domain.PohonKinerja)
+	processedIndikators := make(map[string]bool)
+
+	for rows.Next() {
+		var (
+			pokinId                                    int
+			namaPohon, jenisPohon, kodeOpd, keterangan string
+			parent, levelPohon                         int
+			tahun, status                              string
+			indikatorId, namaIndikator                 sql.NullString
+			targetId, targetValue, targetSatuan        sql.NullString
+			pelaksanaId, pegawaiId                     sql.NullString
+		)
+
+		err := rows.Scan(
+			&pokinId, &namaPohon, &parent, &jenisPohon,
+			&levelPohon, &kodeOpd, &keterangan,
+			&tahun, &status,
+			&indikatorId, &namaIndikator,
+			&targetId, &targetValue, &targetSatuan,
+			&pelaksanaId, &pegawaiId,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// Inisialisasi atau ambil pohon kinerja dari map
+		pokin, exists := pokinMap[pokinId]
+		if !exists {
+			pokin = &domain.PohonKinerja{
+				Id:         pokinId,
+				NamaPohon:  namaPohon,
+				Parent:     parent,
+				JenisPohon: jenisPohon,
+				LevelPohon: levelPohon,
+				KodeOpd:    kodeOpd,
+				Keterangan: keterangan,
+				Tahun:      tahun,
+				Status:     status,
+			}
+			pokinMap[pokinId] = pokin
+		}
+
+		// Proses Indikator dan Target
+		if indikatorId.Valid && namaIndikator.Valid {
+			if !processedIndikators[indikatorId.String] {
+				processedIndikators[indikatorId.String] = true
+				indikator := domain.Indikator{
+					Id:        indikatorId.String,
+					PokinId:   fmt.Sprint(pokinId),
+					Indikator: namaIndikator.String,
+					Tahun:     tahun,
+				}
+
+				if targetId.Valid && targetValue.Valid && targetSatuan.Valid {
+					target := domain.Target{
+						Id:          targetId.String,
+						IndikatorId: indikatorId.String,
+						Target:      targetValue.String,
+						Satuan:      targetSatuan.String,
+						Tahun:       tahun,
+					}
+					indikator.Target = append(indikator.Target, target)
+				}
+
+				pokin.Indikator = append(pokin.Indikator, indikator)
+			}
+		}
+
+		// Proses Pelaksana
+		if pelaksanaId.Valid && pegawaiId.Valid {
+			pelaksana := domain.PelaksanaPokin{
+				Id:        pelaksanaId.String,
+				PegawaiId: pegawaiId.String,
+			}
+			// Cek duplikasi
+			isDuplicate := false
+			for _, p := range pokin.Pelaksana {
+				if p.Id == pelaksana.Id {
+					isDuplicate = true
+					break
+				}
+			}
+			if !isDuplicate {
+				pokin.Pelaksana = append(pokin.Pelaksana, pelaksana)
+			}
+		}
+	}
+
+	// Convert map to sorted slice
+	var result []domain.PohonKinerja
+	for _, pokin := range pokinMap {
+		result = append(result, *pokin)
+	}
+
+	// Sort berdasarkan level_pohon
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].LevelPohon < result[j].LevelPohon
+	})
+
+	return result, nil
+}
+
 func (repository *PohonKinerjaRepositoryImpl) ValidatePokinId(ctx context.Context, tx *sql.Tx, pokinId int) error {
 	script := "SELECT COUNT(*) FROM tb_pohon_kinerja WHERE id = ?"
 

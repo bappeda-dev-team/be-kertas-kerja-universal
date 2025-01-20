@@ -20,7 +20,7 @@ type PohonKinerjaAdminResponseData struct {
 	LevelPohon     int                    `json:"level_pohon"`
 	Status         string                 `json:"status"`
 	Pelaksana      []PelaksanaOpdResponse `json:"pelaksana,omitempty"`
-	Indikators     []IndikatorResponse    `json:"indikators,omitempty"`
+	Indikators     []IndikatorResponse    `json:"indikator,omitempty"`
 	// SubTematiks []SubtematikResponse `json:"sub_tematiks,omitempty"`
 }
 

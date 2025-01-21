@@ -23,16 +23,18 @@ type PohonKinerjaOpdServiceImpl struct {
 	pegawaiRepository         repository.PegawaiRepository
 	tujuanOpdRepository       repository.TujuanOpdRepository
 	crosscuttingOpdRepository repository.CrosscuttingOpdRepository
+	reviewRepository          repository.ReviewRepository
 	DB                        *sql.DB
 }
 
-func NewPohonKinerjaOpdServiceImpl(pohonKinerjaOpdRepository repository.PohonKinerjaRepository, opdRepository repository.OpdRepository, pegawaiRepository repository.PegawaiRepository, tujuanOpdRepository repository.TujuanOpdRepository, crosscuttingOpdRepository repository.CrosscuttingOpdRepository, DB *sql.DB) *PohonKinerjaOpdServiceImpl {
+func NewPohonKinerjaOpdServiceImpl(pohonKinerjaOpdRepository repository.PohonKinerjaRepository, opdRepository repository.OpdRepository, pegawaiRepository repository.PegawaiRepository, tujuanOpdRepository repository.TujuanOpdRepository, crosscuttingOpdRepository repository.CrosscuttingOpdRepository, reviewRepository repository.ReviewRepository, DB *sql.DB) *PohonKinerjaOpdServiceImpl {
 	return &PohonKinerjaOpdServiceImpl{
 		pohonKinerjaOpdRepository: pohonKinerjaOpdRepository,
 		opdRepository:             opdRepository,
 		pegawaiRepository:         pegawaiRepository,
 		tujuanOpdRepository:       tujuanOpdRepository,
 		crosscuttingOpdRepository: crosscuttingOpdRepository,
+		reviewRepository:          reviewRepository,
 		DB:                        DB,
 	}
 }
@@ -725,6 +727,24 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalNResponse(ctx context
 	if err == nil {
 		operationalN.NamaOpd = opd.NamaOpd
 	}
+	//review
+	reviews, err := service.reviewRepository.FindByPohonKinerja(ctx, tx, operationalN.Id)
+	var reviewResponses []pohonkinerja.ReviewResponse
+	if err == nil {
+		for _, review := range reviews {
+			pegawai, err := service.pegawaiRepository.FindByNip(ctx, tx, reviews[0].CreatedBy)
+			if err != nil {
+				return pohonkinerja.OperationalNOpdResponse{}
+			}
+			reviewResponses = append(reviewResponses, pohonkinerja.ReviewResponse{
+				Id:             review.Id,
+				IdPohonKinerja: review.IdPohonKinerja,
+				Review:         review.Review,
+				Keterangan:     review.Keterangan,
+				CreatedBy:      pegawai.NamaPegawai,
+			})
+		}
+	}
 	operationalNResp := pohonkinerja.OperationalNOpdResponse{
 		Id:         operationalN.Id,
 		Parent:     operationalN.Parent,
@@ -739,6 +759,7 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalNResponse(ctx context
 		},
 		Pelaksana: pelaksanaMap[operationalN.Id],
 		Indikator: indikatorMap[operationalN.Id],
+		Review:    reviewResponses,
 	}
 
 	// Build child nodes secara rekursif
@@ -765,6 +786,26 @@ func (service *PohonKinerjaOpdServiceImpl) buildStrategicResponse(ctx context.Co
 	if strategic.KeteranganCrosscutting != nil && *strategic.KeteranganCrosscutting != "" {
 		keteranganCrosscutting = strategic.KeteranganCrosscutting
 	}
+
+	//review
+	reviews, err := service.reviewRepository.FindByPohonKinerja(ctx, tx, strategic.Id)
+	var reviewResponses []pohonkinerja.ReviewResponse
+	if err == nil {
+		for _, review := range reviews {
+			pegawai, err := service.pegawaiRepository.FindByNip(ctx, tx, reviews[0].CreatedBy)
+			if err != nil {
+				return pohonkinerja.StrategicOpdResponse{}
+			}
+			reviewResponses = append(reviewResponses, pohonkinerja.ReviewResponse{
+				Id:             review.Id,
+				IdPohonKinerja: review.IdPohonKinerja,
+				Review:         review.Review,
+				Keterangan:     review.Keterangan,
+				CreatedBy:      pegawai.NamaPegawai,
+			})
+		}
+	}
+
 	strategicResp := pohonkinerja.StrategicOpdResponse{
 		Id:                     strategic.Id,
 		Parent:                 nil,
@@ -780,6 +821,7 @@ func (service *PohonKinerjaOpdServiceImpl) buildStrategicResponse(ctx context.Co
 		},
 		Pelaksana: pelaksanaMap[strategic.Id],
 		Indikator: indikatorMap[strategic.Id],
+		Review:    reviewResponses,
 	}
 
 	// Build tactical (level 5)
@@ -810,6 +852,24 @@ func (service *PohonKinerjaOpdServiceImpl) buildTacticalResponse(ctx context.Con
 	if tactical.KeteranganCrosscutting != nil && *tactical.KeteranganCrosscutting != "" {
 		keteranganCrosscutting = tactical.KeteranganCrosscutting
 	}
+	//review
+	reviews, err := service.reviewRepository.FindByPohonKinerja(ctx, tx, tactical.Id)
+	var reviewResponses []pohonkinerja.ReviewResponse
+	if err == nil {
+		for _, review := range reviews {
+			pegawai, err := service.pegawaiRepository.FindByNip(ctx, tx, reviews[0].CreatedBy)
+			if err != nil {
+				return pohonkinerja.TacticalOpdResponse{}
+			}
+			reviewResponses = append(reviewResponses, pohonkinerja.ReviewResponse{
+				Id:             review.Id,
+				IdPohonKinerja: review.IdPohonKinerja,
+				Review:         review.Review,
+				Keterangan:     review.Keterangan,
+				CreatedBy:      pegawai.NamaPegawai,
+			})
+		}
+	}
 	tacticalResp := pohonkinerja.TacticalOpdResponse{
 		Id:                     tactical.Id,
 		Parent:                 tactical.Parent,
@@ -825,6 +885,7 @@ func (service *PohonKinerjaOpdServiceImpl) buildTacticalResponse(ctx context.Con
 		},
 		Pelaksana: pelaksanaMap[tactical.Id],
 		Indikator: indikatorMap[tactical.Id],
+		Review:    reviewResponses,
 	}
 
 	// Build operational (level 6)
@@ -855,6 +916,24 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalResponse(ctx context.
 	if operational.KeteranganCrosscutting != nil && *operational.KeteranganCrosscutting != "" {
 		keteranganCrosscutting = operational.KeteranganCrosscutting
 	}
+	//review
+	reviews, err := service.reviewRepository.FindByPohonKinerja(ctx, tx, operational.Id)
+	var reviewResponses []pohonkinerja.ReviewResponse
+	if err == nil {
+		for _, review := range reviews {
+			pegawai, err := service.pegawaiRepository.FindByNip(ctx, tx, reviews[0].CreatedBy)
+			if err != nil {
+				return pohonkinerja.OperationalOpdResponse{}
+			}
+			reviewResponses = append(reviewResponses, pohonkinerja.ReviewResponse{
+				Id:             review.Id,
+				IdPohonKinerja: review.IdPohonKinerja,
+				Review:         review.Review,
+				Keterangan:     review.Keterangan,
+				CreatedBy:      pegawai.NamaPegawai,
+			})
+		}
+	}
 	operationalResp := pohonkinerja.OperationalOpdResponse{
 		Id:                     operational.Id,
 		Parent:                 operational.Parent,
@@ -870,6 +949,7 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalResponse(ctx context.
 		},
 		Pelaksana: pelaksanaMap[operational.Id],
 		Indikator: indikatorMap[operational.Id],
+		Review:    reviewResponses,
 	}
 
 	// Build operational-n untuk level > 6
@@ -929,6 +1009,29 @@ func (service *PohonKinerjaOpdServiceImpl) FindPokinByPelaksana(ctx context.Cont
 			return nil, fmt.Errorf("gagal mengambil data OPD: %v", err)
 		}
 
+		indikators, err := service.pohonKinerjaOpdRepository.FindIndikatorByPokinId(ctx, tx, fmt.Sprint(pokin.Id))
+		var indikatorResponses []pohonkinerja.IndikatorResponse
+		if err == nil {
+			for _, indikator := range indikators {
+				var targetResponses []pohonkinerja.TargetResponse
+				for _, target := range indikator.Target {
+					targetResponses = append(targetResponses, pohonkinerja.TargetResponse{
+						Id:              target.Id,
+						IndikatorId:     target.IndikatorId,
+						TargetIndikator: target.Target,
+						SatuanIndikator: target.Satuan,
+					})
+				}
+
+				indikatorResponses = append(indikatorResponses, pohonkinerja.IndikatorResponse{
+					Id:            indikator.Id,
+					IdPokin:       indikator.PokinId,
+					NamaIndikator: indikator.Indikator,
+					Target:        targetResponses,
+				})
+			}
+		}
+
 		// Buat response pelaksana hanya untuk pegawai yang bersangkutan
 		pelaksanaResponse := pohonkinerja.PelaksanaOpdResponse{
 			Id:             pokin.Pelaksana[0].Id, // Mengambil ID pelaksana pertama karena sudah difilter di repository
@@ -947,6 +1050,7 @@ func (service *PohonKinerjaOpdServiceImpl) FindPokinByPelaksana(ctx context.Cont
 			NamaOpd:    opd.NamaOpd,
 			Keterangan: pokin.Keterangan,
 			Tahun:      pokin.Tahun,
+			Indikator:  indikatorResponses,
 			Pelaksana:  []pohonkinerja.PelaksanaOpdResponse{pelaksanaResponse}, // Hanya menampilkan pelaksana yang sesuai
 		})
 	}
@@ -1120,4 +1224,253 @@ func (service *PohonKinerjaOpdServiceImpl) DeletePokinPemdaInOpd(ctx context.Con
 	}
 
 	return nil
+}
+
+func (service *PohonKinerjaOpdServiceImpl) UpdateParent(ctx context.Context, pohonKinerja pohonkinerja.PohonKinerjaUpdateRequest) (pohonkinerja.PohonKinerjaOpdResponse, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return pohonkinerja.PohonKinerjaOpdResponse{}, fmt.Errorf("gagal memulai transaksi: %v", err)
+	}
+	defer helper.CommitOrRollback(tx)
+
+	pokin := domain.PohonKinerja{
+		Id:     pohonKinerja.Id,
+		Parent: pohonKinerja.Parent,
+	}
+
+	pokin, err = service.pohonKinerjaOpdRepository.UpdateParent(ctx, tx, pokin)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaOpdResponse{}, err
+	}
+
+	return pohonkinerja.PohonKinerjaOpdResponse{
+		Id:     pokin.Id,
+		Parent: fmt.Sprint(pokin.Parent),
+	}, nil
+}
+
+func (service *PohonKinerjaOpdServiceImpl) FindidPokinWithAllTema(ctx context.Context, id int) (pohonkinerja.PohonKinerjaAdminResponse, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponse{}, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	pokins, err := service.pohonKinerjaOpdRepository.FindidPokinWithAllTema(ctx, tx, id)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaAdminResponse{}, err
+	}
+
+	// Temukan node target dan level parentnya
+	var targetPokin domain.PohonKinerja
+	var parentLevel int
+	var strategicId int // Untuk menyimpan ID dari node Strategic
+
+	for _, pokin := range pokins {
+		if pokin.Id == id {
+			targetPokin = pokin
+			// Jika level 4, cari level parentnya
+			if pokin.LevelPohon == 4 {
+				for _, p := range pokins {
+					if p.Id == pokin.Parent {
+						parentLevel = p.LevelPohon
+						break
+					}
+				}
+				strategicId = pokin.Id
+			} else if pokin.LevelPohon == 5 || pokin.LevelPohon == 6 {
+				// Untuk level 5 dan 6, cari node Strategic (level 4) di ancestors
+				for _, p := range pokins {
+					if p.LevelPohon == 4 {
+						strategicId = p.Id
+						// Cari level parent dari Strategic
+						for _, grandParent := range pokins {
+							if grandParent.Id == p.Parent {
+								parentLevel = grandParent.LevelPohon
+								break
+							}
+						}
+						break
+					}
+				}
+			}
+			break
+		}
+	}
+
+	// Validasi level
+	if targetPokin.LevelPohon < 4 || targetPokin.LevelPohon > 6 {
+		return pohonkinerja.PohonKinerjaAdminResponse{}, fmt.Errorf("ID harus merujuk ke level Strategic (4), Tactical (5), atau Operational (6)")
+	}
+
+	// Helper functions (sama seperti sebelumnya)
+	createIndikatorResponse := func(pokin domain.PohonKinerja) []pohonkinerja.IndikatorResponse {
+		var indikators []pohonkinerja.IndikatorResponse
+		for _, ind := range pokin.Indikator {
+			var targets []pohonkinerja.TargetResponse
+			for _, t := range ind.Target {
+				targets = append(targets, pohonkinerja.TargetResponse{
+					Id:              t.Id,
+					IndikatorId:     t.IndikatorId,
+					TargetIndikator: t.Target,
+					SatuanIndikator: t.Satuan,
+				})
+			}
+			indikators = append(indikators, pohonkinerja.IndikatorResponse{
+				Id:            ind.Id,
+				IdPokin:       ind.PokinId,
+				NamaIndikator: ind.Indikator,
+				Target:        targets,
+			})
+		}
+		return indikators
+	}
+
+	// Buat responses untuk setiap level yang diperlukan
+	var strategicResp pohonkinerja.StrategicResponse
+	var tacticalResp *pohonkinerja.TacticalResponse
+	var operationalResp *pohonkinerja.OperationalResponse
+
+	// Bangun response berdasarkan level target
+	for _, pokin := range pokins {
+		if pokin.Id == strategicId {
+			// Buat Strategic Response
+			strategicResp = pohonkinerja.StrategicResponse{
+				Id:         pokin.Id,
+				Parent:     pokin.Parent,
+				Strategi:   pokin.NamaPohon,
+				JenisPohon: pokin.JenisPohon,
+				LevelPohon: pokin.LevelPohon,
+				Keterangan: pokin.Keterangan,
+				Status:     pokin.Status,
+				Indikators: createIndikatorResponse(pokin),
+				Childs:     []interface{}{},
+			}
+		} else if pokin.LevelPohon == 5 && targetPokin.LevelPohon >= 5 {
+			// Buat Tactical Response
+			tacticalResp = &pohonkinerja.TacticalResponse{
+				Id:         pokin.Id,
+				Parent:     pokin.Parent,
+				Strategi:   pokin.NamaPohon,
+				JenisPohon: pokin.JenisPohon,
+				LevelPohon: pokin.LevelPohon,
+				Keterangan: &pokin.Keterangan,
+				Status:     pokin.Status,
+				Indikators: createIndikatorResponse(pokin),
+				Childs:     []interface{}{},
+			}
+			strategicResp.Childs = append(strategicResp.Childs, tacticalResp)
+		} else if pokin.LevelPohon == 6 && targetPokin.LevelPohon == 6 {
+			// Buat Operational Response
+			operationalResp = &pohonkinerja.OperationalResponse{
+				Id:         pokin.Id,
+				Parent:     pokin.Parent,
+				Strategi:   pokin.NamaPohon,
+				JenisPohon: pokin.JenisPohon,
+				LevelPohon: pokin.LevelPohon,
+				Keterangan: &pokin.Keterangan,
+				Status:     pokin.Status,
+				Indikators: createIndikatorResponse(pokin),
+				Childs:     []interface{}{},
+			}
+			if tacticalResp != nil {
+				tacticalResp.Childs = append(tacticalResp.Childs, operationalResp)
+			}
+		}
+	}
+
+	// Bangun hierarki dari Tematik ke bawah
+	var tematikResp pohonkinerja.TematikResponse
+	for _, pokin := range pokins {
+		if pokin.LevelPohon == 0 { // Tematik
+			parentInt := pokin.Parent
+			tematikResp = pohonkinerja.TematikResponse{
+				Id:         pokin.Id,
+				Parent:     &parentInt,
+				Tema:       pokin.NamaPohon,
+				JenisPohon: pokin.JenisPohon,
+				LevelPohon: pokin.LevelPohon,
+				Keterangan: pokin.Keterangan,
+				Indikators: createIndikatorResponse(pokin),
+				Child:      []interface{}{},
+			}
+
+			if parentLevel == 0 {
+				tematikResp.Child = append(tematikResp.Child, strategicResp)
+			}
+		} else if pokin.LevelPohon <= parentLevel {
+			switch pokin.LevelPohon {
+			case 1: // Subtematik
+				subtematikResp := pohonkinerja.SubtematikResponse{
+					Id:         pokin.Id,
+					Parent:     pokin.Parent,
+					Tema:       pokin.NamaPohon,
+					JenisPohon: pokin.JenisPohon,
+					LevelPohon: pokin.LevelPohon,
+					Keterangan: pokin.Keterangan,
+					Indikators: createIndikatorResponse(pokin),
+					Child:      []interface{}{},
+				}
+				if parentLevel == 1 {
+					subtematikResp.Child = append(subtematikResp.Child, strategicResp)
+				}
+				tematikResp.Child = append(tematikResp.Child, subtematikResp)
+
+			case 2: // SubSubTematik
+				subsubtematikResp := pohonkinerja.SubSubTematikResponse{
+					Id:         pokin.Id,
+					Parent:     pokin.Parent,
+					Tema:       pokin.NamaPohon,
+					JenisPohon: pokin.JenisPohon,
+					LevelPohon: pokin.LevelPohon,
+					Keterangan: pokin.Keterangan,
+					Indikators: createIndikatorResponse(pokin),
+					Child:      []interface{}{},
+				}
+				if parentLevel == 2 {
+					subsubtematikResp.Child = append(subsubtematikResp.Child, strategicResp)
+				}
+				for i := range tematikResp.Child {
+					if sub, ok := tematikResp.Child[i].(pohonkinerja.SubtematikResponse); ok && sub.Id == pokin.Parent {
+						sub.Child = append(sub.Child, subsubtematikResp)
+						tematikResp.Child[i] = sub
+					}
+				}
+
+			case 3: // SuperSubTematik
+				supersubtematikResp := pohonkinerja.SuperSubTematikResponse{
+					Id:         pokin.Id,
+					Parent:     pokin.Parent,
+					Tema:       pokin.NamaPohon,
+					JenisPohon: pokin.JenisPohon,
+					LevelPohon: pokin.LevelPohon,
+					Keterangan: pokin.Keterangan,
+					Indikators: createIndikatorResponse(pokin),
+					Childs:     []interface{}{},
+				}
+				if parentLevel == 3 {
+					supersubtematikResp.Childs = append(supersubtematikResp.Childs, strategicResp)
+				}
+				// Tambahkan ke parent yang sesuai
+				for i := range tematikResp.Child {
+					if sub, ok := tematikResp.Child[i].(pohonkinerja.SubtematikResponse); ok {
+						for j := range sub.Child {
+							if subsub, ok := sub.Child[j].(pohonkinerja.SubSubTematikResponse); ok && subsub.Id == pokin.Parent {
+								subsub.Child = append(subsub.Child, supersubtematikResp)
+								sub.Child[j] = subsub
+								tematikResp.Child[i] = sub
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	response := pohonkinerja.PohonKinerjaAdminResponse{
+		Tahun:   targetPokin.Tahun,
+		Tematik: []pohonkinerja.TematikResponse{tematikResp},
+	}
+
+	return response, nil
 }

@@ -39,9 +39,6 @@ func (service *UserServiceImpl) Create(ctx context.Context, request user.UserCre
 	if request.Nip == "" {
 		return user.UserResponse{}, errors.New("nip harus diisi")
 	}
-	if request.Email == "" {
-		return user.UserResponse{}, errors.New("email harus diisi")
-	}
 	if request.Password == "" {
 		return user.UserResponse{}, errors.New("password harus diisi")
 	}
@@ -75,7 +72,7 @@ func (service *UserServiceImpl) Create(ctx context.Context, request user.UserCre
 
 	userDomain := domain.Users{
 		Nip:      request.Nip,
-		Email:    request.Email,
+		Email:    helper.EmptyStringIfNull(request.Email),
 		Password: request.Password,
 		IsActive: request.IsActive,
 		Role:     roles,
@@ -296,6 +293,63 @@ func (service *UserServiceImpl) FindById(ctx context.Context, id int) (user.User
 	return response, nil
 }
 
+// func (service *UserServiceImpl) Login(ctx context.Context, request user.UserLoginRequest) (user.UserLoginResponse, error) {
+// 	tx, err := service.DB.Begin()
+// 	if err != nil {
+// 		return user.UserLoginResponse{}, err
+// 	}
+// 	defer helper.CommitOrRollback(tx)
+
+// 	if request.Username == "" {
+// 		return user.UserLoginResponse{}, errors.New("email atau nip harus diisi")
+// 	}
+// 	if request.Password == "" {
+// 		return user.UserLoginResponse{}, errors.New("password harus diisi")
+// 	}
+
+// 	userDomain, err := service.UserRepository.FindByEmailOrNip(ctx, tx, request.Username)
+// 	if err != nil {
+// 		if err == sql.ErrNoRows {
+// 			return user.UserLoginResponse{}, errors.New("username atau password salah")
+// 		}
+// 		return user.UserLoginResponse{}, err
+// 	}
+
+// 	pegawaiDomain, err := service.PegawaiRepository.FindByNip(ctx, tx, userDomain.Nip)
+// 	if err != nil {
+// 		return user.UserLoginResponse{}, err
+// 	}
+
+// 	err = bcrypt.CompareHashAndPassword([]byte(userDomain.Password), []byte(request.Password))
+// 	if err != nil {
+// 		return user.UserLoginResponse{}, errors.New("username atau password salah")
+// 	}
+
+// 	if !userDomain.IsActive {
+// 		return user.UserLoginResponse{}, errors.New("akun tidak aktif")
+// 	}
+
+// 	roleNames := make([]string, 0, len(userDomain.Role))
+// 	for _, role := range userDomain.Role {
+// 		roleNames = append(roleNames, role.Role)
+// 	}
+
+// 	token := helper.CreateNewJWT(
+// 		userDomain.Id,
+// 		pegawaiDomain.Id,
+// 		userDomain.Email,
+// 		userDomain.Nip,
+// 		pegawaiDomain.KodeOpd,
+// 		roleNames,
+// 	)
+
+// 	response := user.UserLoginResponse{
+// 		Token: token,
+// 	}
+
+// 	return response, nil
+// }
+
 func (service *UserServiceImpl) Login(ctx context.Context, request user.UserLoginRequest) (user.UserLoginResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
@@ -303,19 +357,31 @@ func (service *UserServiceImpl) Login(ctx context.Context, request user.UserLogi
 	}
 	defer helper.CommitOrRollback(tx)
 
+	// Validasi input
 	if request.Username == "" {
-		return user.UserLoginResponse{}, errors.New("email atau nip harus diisi")
+		return user.UserLoginResponse{}, errors.New("nip harus diisi")
 	}
 	if request.Password == "" {
 		return user.UserLoginResponse{}, errors.New("password harus diisi")
 	}
 
+	// Validasi format NIP
+	// if !helper.IsValidNIP(request.Username) {
+	// 	return user.UserLoginResponse{}, errors.New("format nip tidak valid")
+	// }
+
+	// Cari user berdasarkan NIP saja
 	userDomain, err := service.UserRepository.FindByEmailOrNip(ctx, tx, request.Username)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return user.UserLoginResponse{}, errors.New("username atau password salah")
+			return user.UserLoginResponse{}, errors.New("nip atau password salah")
 		}
 		return user.UserLoginResponse{}, err
+	}
+
+	// Pastikan username yang digunakan adalah NIP
+	if userDomain.Nip != request.Username {
+		return user.UserLoginResponse{}, errors.New("silakan login menggunakan NIP")
 	}
 
 	pegawaiDomain, err := service.PegawaiRepository.FindByNip(ctx, tx, userDomain.Nip)
@@ -325,7 +391,7 @@ func (service *UserServiceImpl) Login(ctx context.Context, request user.UserLogi
 
 	err = bcrypt.CompareHashAndPassword([]byte(userDomain.Password), []byte(request.Password))
 	if err != nil {
-		return user.UserLoginResponse{}, errors.New("username atau password salah")
+		return user.UserLoginResponse{}, errors.New("nip atau password salah")
 	}
 
 	if !userDomain.IsActive {

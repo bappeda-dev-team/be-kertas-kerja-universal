@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"ekak_kabupaten_madiun/helper"
 	"ekak_kabupaten_madiun/model/web"
 	"net/http"
@@ -52,6 +53,9 @@ func (middleware *AuthMiddleware) ServeHTTP(writer http.ResponseWriter, request 
 		helper.WriteToResponseBody(writer, webResponse)
 		return
 	}
+
+	ctx := context.WithValue(request.Context(), helper.UserInfoKey, claims)
+	request = request.WithContext(ctx)
 
 	middleware.Handler.ServeHTTP(writer, request)
 }

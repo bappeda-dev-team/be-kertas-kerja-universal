@@ -17,6 +17,9 @@ type PohonKinerjaRepository interface {
 	FindPelaksanaPokin(ctx context.Context, tx *sql.Tx, pohonKinerjaId string) ([]domain.PelaksanaPokin, error)
 	DeletePelaksanaPokin(ctx context.Context, tx *sql.Tx, pelaksanaId string) error
 	UpdatePokinStatusFromApproved(ctx context.Context, tx *sql.Tx, id int) error
+	UpdateParent(ctx context.Context, tx *sql.Tx, pohonKinerja domain.PohonKinerja) (domain.PohonKinerja, error)
+	FindidPokinWithAllTema(ctx context.Context, tx *sql.Tx, id int) ([]domain.PohonKinerja, error)
+
 	//admin pokin
 	CreatePokinAdmin(ctx context.Context, tx *sql.Tx, pokinAdmin domain.PohonKinerja) (domain.PohonKinerja, error)
 	UpdatePokinAdmin(ctx context.Context, tx *sql.Tx, pokinAdmin domain.PohonKinerja) (domain.PohonKinerja, error)
@@ -44,6 +47,8 @@ type PohonKinerjaRepository interface {
 	DeleteClonedPokinHierarchy(ctx context.Context, tx *sql.Tx, id int) error
 	FindChildPokins(ctx context.Context, tx *sql.Tx, parentId int64) ([]domain.PohonKinerja, error)
 	InsertClonedPelaksana(ctx context.Context, tx *sql.Tx, newId string, pokinId int64, pelaksana domain.PelaksanaPokin) error
+
+	ValidatePokinId(ctx context.Context, tx *sql.Tx, pokinId int) error
 
 	//find pokin for dropdown
 	FindPokinByJenisPohon(ctx context.Context, tx *sql.Tx, jenisPohon string, levelPohon int, tahun string, kodeOpd string, status string) ([]domain.PohonKinerja, error)

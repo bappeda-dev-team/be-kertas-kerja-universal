@@ -3,22 +3,23 @@ package pohonkinerja
 import "time"
 
 type CrosscuttingOpdResponse struct {
-	IdCrosscutting int                    `json:"id_crosscutting"`
-	Id             int                    `json:"id"`
-	NamaPohon      string                 `json:"nama_pohon,omitempty"`
-	Parent         int                    `json:"parent,omitempty"`
-	JenisPohon     string                 `json:"jenis_pohon,omitempty"`
-	LevelPohon     int                    `json:"level_pohon,omitempty"`
-	KodeOpd        string                 `json:"kode_opd,omitempty"`
-	NamaOpd        string                 `json:"nama_opd"`
-	Keterangan     string                 `json:"keterangan"`
-	Tahun          string                 `json:"tahun"`
-	Status         string                 `json:"status"`
-	CreatedAt      time.Time              `json:"created_at,omitempty"`
-	UpdatedAt      time.Time              `json:"updated_at,omitempty"`
-	PegawaiAction  interface{}            `json:"pegawai_action,omitempty"`
-	Indikator      []IndikatorResponse    `json:"indikator,omitempty"`
-	Pelaksana      []PelaksanaOpdResponse `json:"pelaksana,omitempty"`
+	IdCrosscutting  int                    `json:"id_crosscutting,omitempty"`
+	Id              int                    `json:"id,omitempty"`
+	NamaPohon       string                 `json:"nama_pohon,omitempty"`
+	Parent          int                    `json:"parent,omitempty"`
+	JenisPohon      string                 `json:"jenis_pohon,omitempty"`
+	LevelPohon      int                    `json:"level_pohon,omitempty"`
+	KodeOpd         string                 `json:"kode_opd,omitempty"`
+	NamaOpd         string                 `json:"nama_opd"`
+	NamaOpdPengirim string                 `json:"opd_pengirim,omitempty"`
+	Keterangan      string                 `json:"keterangan"`
+	Tahun           string                 `json:"tahun"`
+	Status          string                 `json:"status"`
+	CreatedAt       time.Time              `json:"created_at,omitempty"`
+	UpdatedAt       time.Time              `json:"updated_at,omitempty"`
+	PegawaiAction   interface{}            `json:"pegawai_action,omitempty"`
+	Indikator       []IndikatorResponse    `json:"indikator,omitempty"`
+	Pelaksana       []PelaksanaOpdResponse `json:"pelaksana,omitempty"`
 }
 
 type CrosscuttingApproveRequest struct {

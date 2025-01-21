@@ -38,6 +38,7 @@ func NewRouter(
 	tujuanOpdController controller.TujuanOpdController,
 	crosscuttingOpdController controller.CrosscuttingOpdController,
 	manualIKController controller.ManualIKController,
+	reviewController controller.ReviewController,
 ) *httprouter.Router {
 	router := httprouter.New()
 
@@ -156,6 +157,7 @@ func NewRouter(
 	router.GET("/pohon_kinerja_opd/strategic_no_parent/:kode_opd/:tahun", pohonKinerjaOpdController.FindStrategicNoParent)
 	router.DELETE("/pohon_kinerja_opd/delete_pelaksana/:id", pohonKinerjaOpdController.DeletePelaksana)
 	router.DELETE("/pohon_kinerja_opd/delete_pokin_pemda/:id", pohonKinerjaOpdController.DeletePokinPemdaInOpd)
+	router.PUT("/pohon_kinerja_opd/pindah_parent/:id", pohonKinerjaOpdController.UpdateParent)
 
 	//pohon kinerja admin
 	router.POST("/pohon_kinerja_admin/create", pohonKinerjaAdminController.Create)
@@ -181,6 +183,7 @@ func NewRouter(
 	router.GET("/pohon_kinerja/status/:kode_opd/:tahun", pohonKinerjaAdminController.FindPokinByStatus)
 	router.GET("/pohon_kinerja/pemda/:kode_opd/:tahun", pohonKinerjaAdminController.FindPokinFromPemda)
 	router.GET("/pohon_kinerja/pilih_parent/:kode_opd/:tahun/:level_pohon", pohonKinerjaAdminController.FindPokinFromOpd)
+	router.GET("/pohon_kinerja_opd/pokinpemda_review/:id", pohonKinerjaOpdController.FindidPokinWithAllTema)
 
 	//DATA MASTER
 	//pegawai
@@ -279,6 +282,13 @@ func NewRouter(
 	router.POST("/manual_ik/create/:indikatorId", manualIKController.Create)
 	router.PUT("/manual_ik/update/:indikatorId", manualIKController.Update)
 	router.GET("/manual_ik/detail/:indikatorId", manualIKController.FindManualIKByIndikatorId)
+
+	//review
+	router.POST("/review_pokin/create/:pokinId", reviewController.Create)
+	router.PUT("/review_pokin/update/:id", reviewController.Update)
+	router.DELETE("/review_pokin/delete/:id", reviewController.Delete)
+	router.GET("/review_pokin/findall/:pokin_id", reviewController.FindAll)
+	router.GET("/review_pokin/detail/:id", reviewController.FindById)
 
 	return router
 }

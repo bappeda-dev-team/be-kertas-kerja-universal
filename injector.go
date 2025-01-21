@@ -279,6 +279,15 @@ var manualIKSet = wire.NewSet(
 	wire.Bind(new(controller.ManualIKController), new(*controller.ManualIKControllerImpl)),
 )
 
+var reviewSet = wire.NewSet(
+	repository.NewReviewRepositoryImpl,
+	wire.Bind(new(repository.ReviewRepository), new(*repository.ReviewRepositoryImpl)),
+	service.NewReviewServiceImpl,
+	wire.Bind(new(service.ReviewService), new(*service.ReviewServiceImpl)),
+	controller.NewReviewControllerImpl,
+	wire.Bind(new(controller.ReviewController), new(*controller.ReviewControllerImpl)),
+)
+
 func InitializeServer() *http.Server {
 
 	wire.Build(
@@ -313,6 +322,7 @@ func InitializeServer() *http.Server {
 		tujuanOpdSet,
 		crosscuttingOpdSet,
 		manualIKSet,
+		reviewSet,
 		app.NewRouter,
 		wire.Bind(new(http.Handler), new(*httprouter.Router)),
 		middleware.NewAuthMiddleware,

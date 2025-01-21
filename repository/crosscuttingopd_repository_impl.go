@@ -511,15 +511,17 @@ func (repository *CrosscuttingOpdRepositoryImpl) DeleteUnused(ctx context.Contex
 func (repository *CrosscuttingOpdRepositoryImpl) FindPokinByCrosscuttingStatus(ctx context.Context, tx *sql.Tx, kodeOpd string, tahun string) ([]domain.Crosscutting, error) {
 	script := `
         SELECT 
-            id, 
-            keterangan_crosscutting, 
-            kode_opd, 
-            tahun,
-            status
-        FROM tb_crosscutting 
-        WHERE kode_opd = ? 
-		AND tahun = ? 
-        AND status IN ('crosscutting_menunggu', 'crosscutting_ditolak')
+            c.id, 
+            c.keterangan_crosscutting, 
+            c.kode_opd, 
+            c.tahun,
+            c.status,
+            COALESCE(p.kode_opd, '') as opd_pengirim
+        FROM tb_crosscutting c
+        LEFT JOIN tb_pohon_kinerja p ON c.crosscutting_from = p.id
+        WHERE c.kode_opd = ? 
+        AND c.tahun = ? 
+        AND c.status IN ('crosscutting_menunggu', 'crosscutting_ditolak')
     `
 	rows, err := tx.QueryContext(ctx, script, kodeOpd, tahun)
 	if err != nil {
@@ -536,6 +538,7 @@ func (repository *CrosscuttingOpdRepositoryImpl) FindPokinByCrosscuttingStatus(c
 			&crosscutting.KodeOpd,
 			&crosscutting.Tahun,
 			&crosscutting.Status,
+			&crosscutting.OpdPengirim,
 		)
 		if err != nil {
 			return nil, err

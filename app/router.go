@@ -39,6 +39,7 @@ func NewRouter(
 	crosscuttingOpdController controller.CrosscuttingOpdController,
 	manualIKController controller.ManualIKController,
 	reviewController controller.ReviewController,
+	periodeController controller.PeriodeController,
 ) *httprouter.Router {
 	router := httprouter.New()
 
@@ -289,6 +290,11 @@ func NewRouter(
 	router.DELETE("/review_pokin/delete/:id", reviewController.Delete)
 	router.GET("/review_pokin/findall/:pokin_id", reviewController.FindAll)
 	router.GET("/review_pokin/detail/:id", reviewController.FindById)
+
+	//periode
+	router.POST("/periode/create", periodeController.Create)
+	router.PUT("/periode/update/:id", periodeController.Update)
+	router.GET("/periode/tahun/:tahun", periodeController.FindByTahun)
 
 	return router
 }

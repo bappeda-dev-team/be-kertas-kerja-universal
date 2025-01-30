@@ -288,6 +288,15 @@ var reviewSet = wire.NewSet(
 	wire.Bind(new(controller.ReviewController), new(*controller.ReviewControllerImpl)),
 )
 
+var periodeSet = wire.NewSet(
+	repository.NewPeriodeRepositoryImpl,
+	wire.Bind(new(repository.PeriodeRepository), new(*repository.PeriodeRepositoryImpl)),
+	service.NewPeriodeServiceImpl,
+	wire.Bind(new(service.PeriodeService), new(*service.PeriodeServiceImpl)),
+	controller.NewPeriodeControllerImpl,
+	wire.Bind(new(controller.PeriodeController), new(*controller.PeriodeControllerImpl)),
+)
+
 func InitializeServer() *http.Server {
 
 	wire.Build(
@@ -323,6 +332,7 @@ func InitializeServer() *http.Server {
 		crosscuttingOpdSet,
 		manualIKSet,
 		reviewSet,
+		periodeSet,
 		app.NewRouter,
 		wire.Bind(new(http.Handler), new(*httprouter.Router)),
 		middleware.NewAuthMiddleware,

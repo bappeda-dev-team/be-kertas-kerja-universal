@@ -110,7 +110,10 @@ func InitializeServer() *http.Server {
 	manualIKControllerImpl := controller.NewManualIKControllerImpl(manualIKServiceImpl)
 	reviewServiceImpl := service.NewReviewServiceImpl(reviewRepositoryImpl, db, pohonKinerjaRepositoryImpl, pegawaiRepositoryImpl)
 	reviewControllerImpl := controller.NewReviewControllerImpl(reviewServiceImpl)
-	router := app.NewRouter(rencanaKinerjaControllerImpl, rencanaAksiControllerImpl, pelaksanaanRencanaAksiControllerImpl, usulanMusrebangControllerImpl, usulanMandatoriControllerImpl, usulanPokokPikiranControllerImpl, usulanInisiatifControllerImpl, usulanTerpilihControllerImpl, gambaranUmumControllerImpl, dasarHukumControllerImpl, inovasiControllerImpl, subKegiatanControllerImpl, subKegiatanTerpilihControllerImpl, pohonKinerjaOpdControllerImpl, pegawaiControllerImpl, lembagaControllerImpl, jabatanControllerImpl, pohonKinerjaAdminControllerImpl, opdControllerImpl, programControllerImpl, urusanControllerImpl, bidangUrusanControllerImpl, kegiatanControllerImpl, userControllerImpl, roleControllerImpl, tujuanOpdControllerImpl, crosscuttingOpdControllerImpl, manualIKControllerImpl, reviewControllerImpl)
+	periodeRepositoryImpl := repository.NewPeriodeRepositoryImpl()
+	periodeServiceImpl := service.NewPeriodeServiceImpl(periodeRepositoryImpl, db)
+	periodeControllerImpl := controller.NewPeriodeControllerImpl(periodeServiceImpl)
+	router := app.NewRouter(rencanaKinerjaControllerImpl, rencanaAksiControllerImpl, pelaksanaanRencanaAksiControllerImpl, usulanMusrebangControllerImpl, usulanMandatoriControllerImpl, usulanPokokPikiranControllerImpl, usulanInisiatifControllerImpl, usulanTerpilihControllerImpl, gambaranUmumControllerImpl, dasarHukumControllerImpl, inovasiControllerImpl, subKegiatanControllerImpl, subKegiatanTerpilihControllerImpl, pohonKinerjaOpdControllerImpl, pegawaiControllerImpl, lembagaControllerImpl, jabatanControllerImpl, pohonKinerjaAdminControllerImpl, opdControllerImpl, programControllerImpl, urusanControllerImpl, bidangUrusanControllerImpl, kegiatanControllerImpl, userControllerImpl, roleControllerImpl, tujuanOpdControllerImpl, crosscuttingOpdControllerImpl, manualIKControllerImpl, reviewControllerImpl, periodeControllerImpl)
 	authMiddleware := middleware.NewAuthMiddleware(router)
 	server := NewServer(authMiddleware)
 	return server
@@ -193,3 +196,5 @@ var crosscuttingOpdSet = wire.NewSet(repository.NewCrosscuttingOpdRepositoryImpl
 var manualIKSet = wire.NewSet(repository.NewManualIKRepositoryImpl, wire.Bind(new(repository.ManualIKRepository), new(*repository.ManualIKRepositoryImpl)), service.NewManualIKServiceImpl, wire.Bind(new(service.ManualIKService), new(*service.ManualIKServiceImpl)), controller.NewManualIKControllerImpl, wire.Bind(new(controller.ManualIKController), new(*controller.ManualIKControllerImpl)))
 
 var reviewSet = wire.NewSet(repository.NewReviewRepositoryImpl, wire.Bind(new(repository.ReviewRepository), new(*repository.ReviewRepositoryImpl)), service.NewReviewServiceImpl, wire.Bind(new(service.ReviewService), new(*service.ReviewServiceImpl)), controller.NewReviewControllerImpl, wire.Bind(new(controller.ReviewController), new(*controller.ReviewControllerImpl)))
+
+var periodeSet = wire.NewSet(repository.NewPeriodeRepositoryImpl, wire.Bind(new(repository.PeriodeRepository), new(*repository.PeriodeRepositoryImpl)), service.NewPeriodeServiceImpl, wire.Bind(new(service.PeriodeService), new(*service.PeriodeServiceImpl)), controller.NewPeriodeControllerImpl, wire.Bind(new(controller.PeriodeController), new(*controller.PeriodeControllerImpl)))

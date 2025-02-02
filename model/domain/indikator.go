@@ -8,6 +8,7 @@ type Indikator struct {
 	KegiatanId       string
 	SubKegiatanId    string
 	TujuanOpdId      int
+	TujuanPemdaId    int
 	Indikator        string
 	Tahun            string
 	CloneFrom        string

@@ -40,6 +40,7 @@ func NewRouter(
 	manualIKController controller.ManualIKController,
 	reviewController controller.ReviewController,
 	periodeController controller.PeriodeController,
+	tujuanPemdaController controller.TujuanPemdaController,
 ) *httprouter.Router {
 	router := httprouter.New()
 
@@ -295,6 +296,13 @@ func NewRouter(
 	router.POST("/periode/create", periodeController.Create)
 	router.PUT("/periode/update/:id", periodeController.Update)
 	router.GET("/periode/tahun/:tahun", periodeController.FindByTahun)
+
+	//tujuan pemda
+	router.POST("/tujuan_pemda/create", tujuanPemdaController.Create)
+	router.PUT("/tujuan_pemda/update/:id", tujuanPemdaController.Update)
+	router.DELETE("/tujuan_pemda/delete/:id", tujuanPemdaController.Delete)
+	router.GET("/tujuan_pemda/detail/:id", tujuanPemdaController.FindById)
+	router.GET("/tujuan_pemda/findall/:tahun", tujuanPemdaController.FindAll)
 
 	return router
 }

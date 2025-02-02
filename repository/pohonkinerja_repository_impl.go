@@ -2151,3 +2151,23 @@ func (repository *PohonKinerjaRepositoryImpl) ValidatePokinId(ctx context.Contex
 
 	return nil
 }
+
+func (repository *PohonKinerjaRepositoryImpl) ValidatePokinLevel(ctx context.Context, tx *sql.Tx, pokinId int, expectedLevel int, purpose string) error {
+	script := "SELECT level_pohon FROM tb_pohon_kinerja WHERE id = ?"
+
+	var levelPohon int
+	err := tx.QueryRowContext(ctx, script, pokinId).Scan(&levelPohon)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("pohon kinerja dengan ID %d tidak ditemukan", pokinId)
+		}
+		return fmt.Errorf("gagal melakukan validasi pohon kinerja: %v", err)
+	}
+
+	if levelPohon != expectedLevel {
+		return fmt.Errorf("%s hanya bisa dibuat dari pohon kinerja level %d, bukan level %d",
+			purpose, expectedLevel, levelPohon)
+	}
+
+	return nil
+}

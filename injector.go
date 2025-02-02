@@ -297,6 +297,15 @@ var periodeSet = wire.NewSet(
 	wire.Bind(new(controller.PeriodeController), new(*controller.PeriodeControllerImpl)),
 )
 
+var tujuanPemdaSet = wire.NewSet(
+	repository.NewTujuanPemdaRepositoryImpl,
+	wire.Bind(new(repository.TujuanPemdaRepository), new(*repository.TujuanPemdaRepositoryImpl)),
+	service.NewTujuanPemdaServiceImpl,
+	wire.Bind(new(service.TujuanPemdaService), new(*service.TujuanPemdaServiceImpl)),
+	controller.NewTujuanPemdaControllerImpl,
+	wire.Bind(new(controller.TujuanPemdaController), new(*controller.TujuanPemdaControllerImpl)),
+)
+
 func InitializeServer() *http.Server {
 
 	wire.Build(
@@ -333,6 +342,7 @@ func InitializeServer() *http.Server {
 		manualIKSet,
 		reviewSet,
 		periodeSet,
+		tujuanPemdaSet,
 		app.NewRouter,
 		wire.Bind(new(http.Handler), new(*httprouter.Router)),
 		middleware.NewAuthMiddleware,

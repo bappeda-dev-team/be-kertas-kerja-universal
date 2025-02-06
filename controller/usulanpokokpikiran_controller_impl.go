@@ -83,6 +83,7 @@ func (controller *UsulanPokokPikiranControllerImpl) FindAll(writer http.Response
 	kodeOpd := params.ByName("kode_opd")
 	rekinID := params.ByName("rencana_kinerja_id")
 	isActive := request.URL.Query().Get("is_active")
+	status := request.URL.Query().Get("status")
 
 	var kodeOpdPtr *string
 	if kodeOpd != "" {
@@ -108,7 +109,13 @@ func (controller *UsulanPokokPikiranControllerImpl) FindAll(writer http.Response
 		}
 		isActivePtr = &isActiveBool
 	}
-	usulanPokokPikiranResponses, err := controller.UsulanPokokPikiranService.FindAll(request.Context(), kodeOpdPtr, isActivePtr, rekinIDPtr)
+
+	var statusPtr *string
+	if status != "" {
+		statusPtr = &status
+	}
+
+	usulanPokokPikiranResponses, err := controller.UsulanPokokPikiranService.FindAll(request.Context(), kodeOpdPtr, isActivePtr, rekinIDPtr, statusPtr)
 	if err != nil {
 		webResponse := web.WebUsulanPokokPikiranResponse{
 			Code:   http.StatusBadRequest,
@@ -183,6 +190,7 @@ func (controller *UsulanPokokPikiranControllerImpl) FindAllByRekin(writer http.R
 	kodeOpd := params.ByName("kode_opd")
 	rekinID := params.ByName("rencana_kinerja_id")
 	isActive := request.URL.Query().Get("is_active")
+	status := request.URL.Query().Get("status")
 
 	var kodeOpdPtr *string
 	if kodeOpd != "" {
@@ -209,7 +217,12 @@ func (controller *UsulanPokokPikiranControllerImpl) FindAllByRekin(writer http.R
 		isActivePtr = &isActiveBool
 	}
 
-	usulanPokokPikiranResponses, err := controller.UsulanPokokPikiranService.FindAll(request.Context(), kodeOpdPtr, isActivePtr, rekinIDPtr)
+	var statusPtr *string
+	if status != "" {
+		statusPtr = &status
+	}
+
+	usulanPokokPikiranResponses, err := controller.UsulanPokokPikiranService.FindAll(request.Context(), kodeOpdPtr, isActivePtr, rekinIDPtr, statusPtr)
 	if err != nil {
 		webResponse := web.WebUsulanPokokPikiranResponse{
 			Code:        http.StatusBadRequest,

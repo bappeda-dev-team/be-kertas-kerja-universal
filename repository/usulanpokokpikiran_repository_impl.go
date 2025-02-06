@@ -45,7 +45,7 @@ func (repository *UsulanPokokPikiranRepositoryImpl) FindById(ctx context.Context
 	return usulan, nil
 }
 
-func (repository *UsulanPokokPikiranRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, kodeOpd *string, isActive *bool, rekinId *string) ([]domain.UsulanPokokPikiran, error) {
+func (repository *UsulanPokokPikiranRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, kodeOpd *string, isActive *bool, rekinId *string, status *string) ([]domain.UsulanPokokPikiran, error) {
 	script := "SELECT id, usulan, alamat, uraian, tahun, rekin_id, kode_opd, is_active, status, created_at FROM tb_usulan_pokok_pikiran WHERE 1=1"
 	var params []interface{}
 
@@ -62,6 +62,11 @@ func (repository *UsulanPokokPikiranRepositoryImpl) FindAll(ctx context.Context,
 	if rekinId != nil {
 		script += " AND rekin_id = ?"
 		params = append(params, *rekinId)
+	}
+
+	if status != nil {
+		script += " AND status = ?"
+		params = append(params, *status)
 	}
 
 	script += " ORDER BY created_at ASC"

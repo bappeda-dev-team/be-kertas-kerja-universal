@@ -109,14 +109,14 @@ func (service *UsulanMusrebangServiceImpl) FindById(ctx context.Context, idUsula
 	return helper.ToUsulanMusrebangResponse(usulanMusrebang), nil
 }
 
-func (service *UsulanMusrebangServiceImpl) FindAll(ctx context.Context, kodeOpd *string, is_active *bool, rekinId *string) ([]usulan.UsulanMusrebangResponse, error) {
+func (service *UsulanMusrebangServiceImpl) FindAll(ctx context.Context, kodeOpd *string, is_active *bool, rekinId *string, status *string) ([]usulan.UsulanMusrebangResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return []usulan.UsulanMusrebangResponse{}, err
 	}
 	defer helper.CommitOrRollback(tx)
 
-	usulanMusrebang, err := service.usulanMusrebangRepository.FindAll(ctx, tx, kodeOpd, is_active, rekinId)
+	usulanMusrebang, err := service.usulanMusrebangRepository.FindAll(ctx, tx, kodeOpd, is_active, rekinId, status)
 	if err != nil {
 		return []usulan.UsulanMusrebangResponse{}, err
 	}

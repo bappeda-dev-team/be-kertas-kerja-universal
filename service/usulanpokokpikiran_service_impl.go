@@ -99,14 +99,14 @@ func (service *UsulanPokokPikiranServiceImpl) FindById(ctx context.Context, idUs
 	return helper.ToUsulanPokokPikiranResponse(usulanPokokPikiran), nil
 }
 
-func (service *UsulanPokokPikiranServiceImpl) FindAll(ctx context.Context, kodeOpd *string, is_active *bool, rekinId *string) ([]usulan.UsulanPokokPikiranResponse, error) {
+func (service *UsulanPokokPikiranServiceImpl) FindAll(ctx context.Context, kodeOpd *string, is_active *bool, rekinId *string, status *string) ([]usulan.UsulanPokokPikiranResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return []usulan.UsulanPokokPikiranResponse{}, err
 	}
 	defer helper.CommitOrRollback(tx)
 
-	usulanPokokPikiran, err := service.UsulanPokokPikiranRepository.FindAll(ctx, tx, kodeOpd, is_active, rekinId)
+	usulanPokokPikiran, err := service.UsulanPokokPikiranRepository.FindAll(ctx, tx, kodeOpd, is_active, rekinId, status)
 	if err != nil {
 		return []usulan.UsulanPokokPikiranResponse{}, err
 	}

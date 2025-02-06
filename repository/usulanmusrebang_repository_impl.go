@@ -115,3 +115,22 @@ func (repository *UsulanMusrebangRepositoryImpl) CreateRekin(ctx context.Context
 
 	return nil
 }
+
+func (repository *UsulanMusrebangRepositoryImpl) DeleteUsulanTerpilih(ctx context.Context, tx *sql.Tx, idUsulan string) error {
+	script := "UPDATE tb_usulan_musrebang SET rekin_id = '', status = 'belum_diambil' WHERE id = ?"
+	result, err := tx.ExecContext(ctx, script, idUsulan)
+	if err != nil {
+		return fmt.Errorf("error saat menghapus usulan terpilih: %v", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error saat memeriksa rows affected: %v", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("usulan musrebang dengan id %s tidak ditemukan", idUsulan)
+	}
+
+	return nil
+}

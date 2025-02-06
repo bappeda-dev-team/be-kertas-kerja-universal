@@ -209,3 +209,18 @@ func (service *UsulanPokokPikiranServiceImpl) CreateRekin(ctx context.Context, r
 	responses := helper.ToUsulanPokokPikiranResponses(updatedUsulans)
 	return responses, nil
 }
+
+func (service *UsulanPokokPikiranServiceImpl) DeleteUsulanTerpilih(ctx context.Context, idUsulan string) error {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("gagal memulai transaksi: %v", err)
+	}
+	defer helper.CommitOrRollback(tx)
+
+	err = service.UsulanPokokPikiranRepository.DeleteUsulanTerpilih(ctx, tx, idUsulan)
+	if err != nil {
+		return fmt.Errorf("gagal menghapus usulan terpilih: %v", err)
+	}
+
+	return nil
+}

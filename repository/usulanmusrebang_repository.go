@@ -13,4 +13,5 @@ type UsulanMusrebangRepository interface {
 	FindAll(ctx context.Context, tx *sql.Tx, kodeOpd *string, is_active *bool, rekinId *string, status *string) ([]domain.UsulanMusrebang, error)
 	Delete(ctx context.Context, tx *sql.Tx, idUsulan string) error
 	CreateRekin(ctx context.Context, tx *sql.Tx, idUsulan string, rekinId string) error
+	DeleteUsulanTerpilih(ctx context.Context, tx *sql.Tx, idUsulan string) error
 }

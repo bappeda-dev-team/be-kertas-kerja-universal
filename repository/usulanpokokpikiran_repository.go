@@ -13,4 +13,5 @@ type UsulanPokokPikiranRepository interface {
 	FindById(ctx context.Context, tx *sql.Tx, idUsulan string) (domain.UsulanPokokPikiran, error)
 	Delete(ctx context.Context, tx *sql.Tx, idUsulan string) error
 	CreateRekin(ctx context.Context, tx *sql.Tx, idUsulan string, rekinId string) error
+	DeleteUsulanTerpilih(ctx context.Context, tx *sql.Tx, idUsulan string) error
 }

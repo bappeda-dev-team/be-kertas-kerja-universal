@@ -14,4 +14,5 @@ type UsulanMusrebangController interface {
 	FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindAllRekin(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	CreateRekin(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	DeleteUsulanTerpilih(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 }

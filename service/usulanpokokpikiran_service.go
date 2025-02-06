@@ -12,4 +12,5 @@ type UsulanPokokPikiranService interface {
 	FindAll(ctx context.Context, kodeOpd *string, isActive *bool, rekinId *string, status *string) ([]usulan.UsulanPokokPikiranResponse, error)
 	Delete(ctx context.Context, idUsulan string) error
 	CreateRekin(ctx context.Context, request usulan.UsulanPokokPikiranCreateRekinRequest) ([]usulan.UsulanPokokPikiranResponse, error)
+	DeleteUsulanTerpilih(ctx context.Context, idUsulan string) error
 }

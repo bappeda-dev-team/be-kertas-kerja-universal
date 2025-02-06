@@ -266,3 +266,24 @@ func (controller *UsulanPokokPikiranControllerImpl) CreateRekin(writer http.Resp
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *UsulanPokokPikiranControllerImpl) DeleteUsulanTerpilih(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	idUsulan := params.ByName("id")
+
+	err := controller.UsulanPokokPikiranService.DeleteUsulanTerpilih(request.Context(), idUsulan)
+	if err != nil {
+		webResponse := web.WebUsulanPokokPikiranResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebUsulanPokokPikiranResponse{
+		Code:   http.StatusOK,
+		Status: "success delete usulan pokok pikiran terpilih",
+	}
+	helper.WriteToResponseBody(writer, webResponse)
+}

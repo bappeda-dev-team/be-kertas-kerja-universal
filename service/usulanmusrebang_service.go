@@ -12,4 +12,5 @@ type UsulanMusrebangService interface {
 	FindAll(ctx context.Context, kodeOpd *string, is_active *bool, rekinId *string, status *string) ([]usulan.UsulanMusrebangResponse, error)
 	Delete(ctx context.Context, idUsulan string) error
 	CreateRekin(ctx context.Context, request usulan.UsulanMusrebangCreateRekinRequest) ([]usulan.UsulanMusrebangResponse, error)
+	DeleteUsulanTerpilih(ctx context.Context, idUsulan string) error
 }

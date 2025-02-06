@@ -77,6 +77,7 @@ func NewRouter(
 	router.GET("/usulan_musrebang/findall", usulanMusrebangController.FindAll)
 	router.GET("/usulan_musrebang/opd/:kode_opd", usulanMusrebangController.FindAll)
 	router.POST("/usulan_musrebang/create_rekin/:rencana_kinerja_id", usulanMusrebangController.CreateRekin)
+	router.DELETE("/usulan_musrebang/delete_usulan_terpilih/:id", usulanMusrebangController.DeleteUsulanTerpilih)
 
 	//usulan mandatori
 	router.POST("/usulan_mandatori/create", usulanMandatoriController.Create)
@@ -100,6 +101,7 @@ func NewRouter(
 	router.GET("/usulan_pokok_pikiran/pilihan", usulanPokokPikiranController.FindAll)
 	router.GET("/usulan_pokok_pikiran/opd/:kode_opd", usulanPokokPikiranController.FindAll)
 	router.POST("/usulan_pokok_pikiran/create_rekin/:rencana_kinerja_id", usulanPokokPikiranController.CreateRekin)
+	router.DELETE("/usulan_pokok_pikiran/delete_usulan_terpilih/:id", usulanPokokPikiranController.DeleteUsulanTerpilih)
 
 	//usulan inisiatif
 	router.POST("/usulan_inisiatif/create", usulanInisiatifController.Create)

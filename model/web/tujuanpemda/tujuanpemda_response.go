@@ -2,8 +2,9 @@ package tujuanpemda
 
 type TujuanPemdaResponse struct {
 	Id               int                 `json:"id"`
-	TujuanPemdaId    int                 `json:"tujuan_pemda_id"`
-	NamaTujuanPemda  string              `json:"nama_tujuan_pemda"`
+	TujuanPemda      string              `json:"tujuan_pemda"`
+	TematikId        int                 `json:"tema_id"`
+	NamaTematik      string              `json:"nama_tema"`
 	Periode          PeriodeResponse     `json:"periode"`
 	RumusPerhitungan string              `json:"rumus_perhitungan,omitempty"`
 	SumberData       string              `json:"sumber_data,omitempty"`

@@ -69,12 +69,12 @@ func (service *TujuanPemdaServiceImpl) Create(ctx context.Context, request tujua
 	}
 
 	//validasi pohon kinerja = tematik
-	err = service.PohonKinerjaRepository.ValidatePokinLevel(ctx, tx, request.TujuanPemdaId, 0, "tujuan pemda")
+	err = service.PohonKinerjaRepository.ValidatePokinLevel(ctx, tx, request.TematikId, 0, "tujuan pemda")
 	if err != nil {
 		return tujuanpemda.TujuanPemdaResponse{}, err
 	}
 
-	TujuanPemdaId, err := service.PohonKinerjaRepository.FindById(ctx, tx, request.TujuanPemdaId)
+	TujuanPemdaId, err := service.PohonKinerjaRepository.FindById(ctx, tx, request.TematikId)
 	if err != nil {
 		return tujuanpemda.TujuanPemdaResponse{}, err
 	}
@@ -109,7 +109,8 @@ func (service *TujuanPemdaServiceImpl) Create(ctx context.Context, request tujua
 
 	tujuanPemda := domain.TujuanPemda{
 		Id:               service.generateRandomId(ctx, tx),
-		TujuanPemdaId:    request.TujuanPemdaId,
+		TujuanPemda:      request.TujuanPemda,
+		TematikId:        request.TematikId,
 		RumusPerhitungan: request.RumusPerhitungan,
 		SumberData:       request.SumberData,
 		PeriodeId:        request.PeriodeId,
@@ -165,8 +166,9 @@ func (service *TujuanPemdaServiceImpl) Create(ctx context.Context, request tujua
 
 	return tujuanpemda.TujuanPemdaResponse{
 		Id:               tujuanPemda.Id,
-		TujuanPemdaId:    TujuanPemdaId.Id,
-		NamaTujuanPemda:  TujuanPemdaId.NamaPohon,
+		TujuanPemda:      tujuanPemda.TujuanPemda,
+		TematikId:        tujuanPemda.TematikId,
+		NamaTematik:      TujuanPemdaId.NamaPohon,
 		RumusPerhitungan: tujuanPemda.RumusPerhitungan,
 		SumberData:       tujuanPemda.SumberData,
 		Periode: tujuanpemda.PeriodeResponse{
@@ -194,7 +196,7 @@ func (service *TujuanPemdaServiceImpl) Update(ctx context.Context, request tujua
 	}
 
 	//validasi pohon kinerja = tematik
-	err = service.PohonKinerjaRepository.ValidatePokinLevel(ctx, tx, request.TujuanPemdaId, 0, "tujuan pemda")
+	err = service.PohonKinerjaRepository.ValidatePokinLevel(ctx, tx, request.TematikId, 0, "tujuan pemda")
 	if err != nil {
 		return tujuanpemda.TujuanPemdaResponse{}, err
 	}
@@ -234,7 +236,7 @@ func (service *TujuanPemdaServiceImpl) Update(ctx context.Context, request tujua
 	}
 
 	// Update data tujuan pemda
-	tujuanPemda.TujuanPemdaId = request.TujuanPemdaId
+	tujuanPemda.TujuanPemda = request.TujuanPemda
 	tujuanPemda.RumusPerhitungan = request.RumusPerhitungan
 	tujuanPemda.SumberData = request.SumberData
 
@@ -318,7 +320,7 @@ func (service *TujuanPemdaServiceImpl) FindById(ctx context.Context, tujuanPemda
 		return tujuanpemda.TujuanPemdaResponse{}, err
 	}
 
-	pokinData, err := service.PohonKinerjaRepository.FindById(ctx, tx, tujuanPemda.TujuanPemdaId)
+	pokinData, err := service.PohonKinerjaRepository.FindById(ctx, tx, tujuanPemda.TematikId)
 	if err != nil {
 		return tujuanpemda.TujuanPemdaResponse{}, fmt.Errorf("gagal mengambil data pohon kinerja: %v", err)
 	}
@@ -346,8 +348,9 @@ func (service *TujuanPemdaServiceImpl) FindById(ctx context.Context, tujuanPemda
 
 	return tujuanpemda.TujuanPemdaResponse{
 		Id:               tujuanPemda.Id,
-		TujuanPemdaId:    tujuanPemda.TujuanPemdaId,
-		NamaTujuanPemda:  pokinData.NamaPohon,
+		TujuanPemda:      tujuanPemda.TujuanPemda,
+		TematikId:        tujuanPemda.TematikId,
+		NamaTematik:      pokinData.NamaPohon,
 		RumusPerhitungan: tujuanPemda.RumusPerhitungan,
 		SumberData:       tujuanPemda.SumberData,
 		Periode: tujuanpemda.PeriodeResponse{
@@ -372,7 +375,7 @@ func (service *TujuanPemdaServiceImpl) FindAll(ctx context.Context, tahun string
 
 	tujuanPemdaResponses := make([]tujuanpemda.TujuanPemdaResponse, 0, len(tujuanPemdaList))
 	for _, tujuanPemda := range tujuanPemdaList {
-		pokinData, err := service.PohonKinerjaRepository.FindById(ctx, tx, tujuanPemda.TujuanPemdaId)
+		pokinData, err := service.PohonKinerjaRepository.FindById(ctx, tx, tujuanPemda.TematikId)
 		if err != nil {
 			return []tujuanpemda.TujuanPemdaResponse{}, fmt.Errorf("gagal mengambil data pohon kinerja: %v", err)
 		}
@@ -399,8 +402,9 @@ func (service *TujuanPemdaServiceImpl) FindAll(ctx context.Context, tahun string
 
 		tujuanPemdaResponses = append(tujuanPemdaResponses, tujuanpemda.TujuanPemdaResponse{
 			Id:               tujuanPemda.Id,
-			TujuanPemdaId:    tujuanPemda.TujuanPemdaId,
-			NamaTujuanPemda:  pokinData.NamaPohon,
+			TujuanPemda:      tujuanPemda.TujuanPemda,
+			TematikId:        tujuanPemda.TematikId,
+			NamaTematik:      pokinData.NamaPohon,
 			RumusPerhitungan: tujuanPemda.RumusPerhitungan,
 			SumberData:       tujuanPemda.SumberData,
 			Periode: tujuanpemda.PeriodeResponse{
@@ -451,8 +455,9 @@ func (service *TujuanPemdaServiceImpl) toTujuanPemdaResponse(tujuanPemda domain.
 
 	return tujuanpemda.TujuanPemdaResponse{
 		Id:               tujuanPemda.Id,
-		TujuanPemdaId:    tujuanPemda.TujuanPemdaId,
-		NamaTujuanPemda:  tujuanPemda.NamaTujuanPemda,
+		TujuanPemda:      tujuanPemda.TujuanPemda,
+		TematikId:        tujuanPemda.TematikId,
+		NamaTematik:      tujuanPemda.NamaTematik,
 		RumusPerhitungan: tujuanPemda.RumusPerhitungan,
 		SumberData:       tujuanPemda.SumberData,
 		Periode: tujuanpemda.PeriodeResponse{
@@ -497,16 +502,17 @@ func (service *TujuanPemdaServiceImpl) UpdatePeriode(ctx context.Context, reques
 	}
 
 	// Ambil data pohon kinerja untuk response
-	pokinData, err := service.PohonKinerjaRepository.FindById(ctx, tx, result.TujuanPemdaId)
+	pokinData, err := service.PohonKinerjaRepository.FindById(ctx, tx, result.TematikId)
 	if err != nil {
 		return tujuanpemda.TujuanPemdaResponse{}, fmt.Errorf("gagal mengambil data pohon kinerja: %v", err)
 	}
 
 	// Buat response
 	return tujuanpemda.TujuanPemdaResponse{
-		Id:              result.Id,
-		TujuanPemdaId:   result.TujuanPemdaId,
-		NamaTujuanPemda: pokinData.NamaPohon,
+		Id:          result.Id,
+		TujuanPemda: result.TujuanPemda,
+		TematikId:   result.TematikId,
+		NamaTematik: pokinData.NamaPohon,
 		Periode: tujuanpemda.PeriodeResponse{
 			TahunAwal:  result.Periode.TahunAwal,
 			TahunAkhir: result.Periode.TahunAkhir,

@@ -14,12 +14,16 @@ import (
 
 type UsulanMusrebangServiceImpl struct {
 	usulanMusrebangRepository repository.UsulanMusrebangRepository
+	rencanaKinerjaRepository  repository.RencanaKinerjaRepository
+	opdRepository             repository.OpdRepository
 	DB                        *sql.DB
 }
 
-func NewUsulanMusrebangServiceImpl(usulanMusrebangRepository repository.UsulanMusrebangRepository, DB *sql.DB) *UsulanMusrebangServiceImpl {
+func NewUsulanMusrebangServiceImpl(usulanMusrebangRepository repository.UsulanMusrebangRepository, rencanaKinerjaRepository repository.RencanaKinerjaRepository, opdRepository repository.OpdRepository, DB *sql.DB) *UsulanMusrebangServiceImpl {
 	return &UsulanMusrebangServiceImpl{
 		usulanMusrebangRepository: usulanMusrebangRepository,
+		rencanaKinerjaRepository:  rencanaKinerjaRepository,
+		opdRepository:             opdRepository,
 		DB:                        DB,
 	}
 }
@@ -36,15 +40,14 @@ func (service *UsulanMusrebangServiceImpl) Create(ctx context.Context, request u
 
 	// Konversi request ke domain.UsulanMusrebang
 	domainUsulanMusrebang := domain.UsulanMusrebang{
-		Id:        uuId,
-		Usulan:    request.Usulan,
-		Alamat:    request.Alamat,
-		Uraian:    request.Uraian,
-		Tahun:     request.Tahun,
-		RekinId:   request.RekinId,
-		PegawaiId: request.PegawaiId,
-		KodeOpd:   request.KodeOpd,
-		Status:    request.Status,
+		Id:      uuId,
+		Usulan:  request.Usulan,
+		Alamat:  request.Alamat,
+		Uraian:  request.Uraian,
+		Tahun:   request.Tahun,
+		RekinId: request.RekinId,
+		KodeOpd: request.KodeOpd,
+		Status:  "belum_diambil",
 	}
 
 	usulanMusrebang, err := service.usulanMusrebangRepository.Create(ctx, tx, domainUsulanMusrebang)
@@ -73,7 +76,6 @@ func (service *UsulanMusrebangServiceImpl) Update(ctx context.Context, request u
 	existingUsulan.Alamat = request.Alamat
 	existingUsulan.Uraian = request.Uraian
 	existingUsulan.Tahun = request.Tahun
-	existingUsulan.PegawaiId = request.PegawaiId
 	existingUsulan.KodeOpd = request.KodeOpd
 	existingUsulan.Status = request.Status
 
@@ -98,23 +100,51 @@ func (service *UsulanMusrebangServiceImpl) FindById(ctx context.Context, idUsula
 		return usulan.UsulanMusrebangResponse{}, err
 	}
 
+	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, usulanMusrebang.KodeOpd)
+	if err != nil {
+		return usulan.UsulanMusrebangResponse{}, err
+	}
+	usulanMusrebang.NamaOpd = opd.NamaOpd
+
 	return helper.ToUsulanMusrebangResponse(usulanMusrebang), nil
 }
 
-func (service *UsulanMusrebangServiceImpl) FindAll(ctx context.Context, pegawaiId *string, is_active *bool, rekinId *string) ([]usulan.UsulanMusrebangResponse, error) {
+func (service *UsulanMusrebangServiceImpl) FindAll(ctx context.Context, kodeOpd *string, is_active *bool, rekinId *string) ([]usulan.UsulanMusrebangResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return []usulan.UsulanMusrebangResponse{}, err
 	}
 	defer helper.CommitOrRollback(tx)
 
-	usulanMusrebang, err := service.usulanMusrebangRepository.FindAll(ctx, tx, pegawaiId, is_active, rekinId)
+	usulanMusrebang, err := service.usulanMusrebangRepository.FindAll(ctx, tx, kodeOpd, is_active, rekinId)
 	if err != nil {
 		return []usulan.UsulanMusrebangResponse{}, err
 	}
 
-	usulanMusrebangResponses := helper.ToUsulanMusrebangResponses(usulanMusrebang)
+	// Buat map untuk menyimpan data OPD yang sudah diambil
+	opdCache := make(map[string]string)
 
+	// Isi nama OPD untuk setiap usulan
+	for i := range usulanMusrebang {
+		kodeOpd := usulanMusrebang[i].KodeOpd
+
+		// Cek apakah nama OPD sudah ada di cache
+		if namaOpd, exists := opdCache[kodeOpd]; exists {
+			usulanMusrebang[i].NamaOpd = namaOpd
+		} else {
+
+			opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, kodeOpd)
+			if err != nil {
+				continue
+			}
+			// Simpan ke cache
+			opdCache[kodeOpd] = opd.NamaOpd
+			usulanMusrebang[i].NamaOpd = opd.NamaOpd
+		}
+	}
+
+	// Konversi ke response setelah nama OPD diisi
+	usulanMusrebangResponses := helper.ToUsulanMusrebangResponses(usulanMusrebang)
 	return usulanMusrebangResponses, nil
 }
 
@@ -138,4 +168,61 @@ func (service *UsulanMusrebangServiceImpl) Delete(ctx context.Context, idUsulan 
 	}
 
 	return nil
+}
+
+func (service *UsulanMusrebangServiceImpl) CreateRekin(ctx context.Context, request usulan.UsulanMusrebangCreateRekinRequest) ([]usulan.UsulanMusrebangResponse, error) {
+	// Konversi single ID ke array
+	idUsulanArray := []string{request.IdUsulan}
+
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("gagal memulai transaksi: %v", err)
+	}
+	defer helper.CommitOrRollback(tx)
+
+	// Cek apakah rencana kinerja dengan ID yang diberikan ada
+	_, err = service.rencanaKinerjaRepository.FindById(ctx, tx, request.RekinId, "", "")
+	if err != nil {
+		return nil, fmt.Errorf("rencana kinerja dengan id %s tidak ditemukan: %v", request.RekinId, err)
+	}
+
+	var updatedUsulans []domain.UsulanMusrebang
+
+	// Proses setiap ID usulan
+	for _, idUsulan := range idUsulanArray {
+		// Cek apakah usulan dengan ID yang diberikan ada
+		existingUsulan, err := service.usulanMusrebangRepository.FindById(ctx, tx, idUsulan)
+		if err != nil {
+			return nil, fmt.Errorf("usulan musrebang dengan id %s tidak ditemukan: %v", idUsulan, err)
+		}
+
+		// Cek apakah usulan sudah memiliki rekin_id
+		if existingUsulan.RekinId != "" {
+			return nil, fmt.Errorf("usulan musrebang dengan id %s sudah memiliki rencana kinerja", idUsulan)
+		}
+
+		// Update rekin_id dan status
+		err = service.usulanMusrebangRepository.CreateRekin(ctx, tx, idUsulan, request.RekinId)
+		if err != nil {
+			return nil, fmt.Errorf("gagal mengupdate rekin untuk usulan %s: %v", idUsulan, err)
+		}
+
+		// Ambil data usulan yang sudah diupdate
+		updatedUsulan, err := service.usulanMusrebangRepository.FindById(ctx, tx, idUsulan)
+		if err != nil {
+			return nil, fmt.Errorf("gagal mengambil data usulan yang diupdate: %v", err)
+		}
+
+		// Ambil data OPD
+		opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, updatedUsulan.KodeOpd)
+		if err == nil { // Hanya set jika berhasil mendapatkan data OPD
+			updatedUsulan.NamaOpd = opd.NamaOpd
+		}
+
+		updatedUsulans = append(updatedUsulans, updatedUsulan)
+	}
+
+	// Konversi ke response
+	responses := helper.ToUsulanMusrebangResponses(updatedUsulans)
+	return responses, nil
 }

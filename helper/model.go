@@ -67,20 +67,6 @@ func ToRencanaKinerjaResponses(rencanaKinerjas []domain.RencanaKinerja) []rencan
 	return rencanaKinerjaResponses
 }
 func ToUsulanMusrebangResponse(usulanMusrebang domain.UsulanMusrebang) usulan.UsulanMusrebangResponse {
-	host := os.Getenv("host")
-	port := os.Getenv("port")
-	buttonActions := []web.ActionButton{
-		{
-			NameAction: "Find Id Usulan Musrebang",
-			Method:     "GET",
-			Url:        fmt.Sprintf("%s:%s/usulan_musrebang/detail/:id", host, port),
-		},
-		{
-			NameAction: "Delete Usulan Musrebang Terpilih",
-			Method:     "DELETE",
-			Url:        fmt.Sprintf("%s:%s/usulan_terpilih/delete/:id_usulan", host, port),
-		},
-	}
 	return usulan.UsulanMusrebangResponse{
 		Id:        usulanMusrebang.Id,
 		Usulan:    usulanMusrebang.Usulan,
@@ -88,12 +74,11 @@ func ToUsulanMusrebangResponse(usulanMusrebang domain.UsulanMusrebang) usulan.Us
 		Uraian:    usulanMusrebang.Uraian,
 		Tahun:     usulanMusrebang.Tahun,
 		RekinId:   usulanMusrebang.RekinId,
-		PegawaiId: usulanMusrebang.PegawaiId,
 		KodeOpd:   usulanMusrebang.KodeOpd,
+		NamaOpd:   usulanMusrebang.NamaOpd,
 		IsActive:  usulanMusrebang.IsActive,
 		Status:    usulanMusrebang.Status,
 		CreatedAt: usulanMusrebang.CreatedAt.Format("2006-01-02"),
-		Action:    buttonActions,
 	}
 }
 
@@ -255,7 +240,6 @@ func ToUsulanPokokPikiranResponse(usulanPokokPikiran domain.UsulanPokokPikiran) 
 		Uraian:    usulanPokokPikiran.Uraian,
 		Tahun:     usulanPokokPikiran.Tahun,
 		RekinId:   usulanPokokPikiran.RekinId,
-		PegawaiId: usulanPokokPikiran.PegawaiId,
 		KodeOpd:   usulanPokokPikiran.KodeOpd,
 		Status:    usulanPokokPikiran.Status,
 		IsActive:  usulanPokokPikiran.IsActive,

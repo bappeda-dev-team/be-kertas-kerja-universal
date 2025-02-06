@@ -41,6 +41,7 @@ func NewRouter(
 	reviewController controller.ReviewController,
 	periodeController controller.PeriodeController,
 	tujuanPemdaController controller.TujuanPemdaController,
+	sasaranPemdaController controller.SasaranPemdaController,
 ) *httprouter.Router {
 	router := httprouter.New()
 
@@ -68,15 +69,14 @@ func NewRouter(
 
 	//usulan musrebang
 	router.POST("/usulan_musrebang/create", usulanMusrebangController.Create)
-	router.POST("/usulan_musrebang/create/:pegawai_id", usulanMusrebangController.Create)
 	router.PUT("/usulan_musrebang/update/:id", usulanMusrebangController.Update)
 	router.PUT("/usulan_musrebang/update/:id/:pegawai_id", usulanMusrebangController.Update)
 	router.GET("/usulan_musrebang/detail/:id", usulanMusrebangController.FindById)
 	router.DELETE("/usulan_musrebang/delete/:id", usulanMusrebangController.Delete)
 	router.GET("/usulan_musrebang/pilihan", usulanMusrebangController.FindAll)
 	router.GET("/usulan_musrebang/findall", usulanMusrebangController.FindAll)
-
-	router.GET("/usulan_musrebang/pegawai/:pegawai_id", usulanMusrebangController.FindAll)
+	router.GET("/usulan_musrebang/opd/:kode_opd", usulanMusrebangController.FindAll)
+	router.POST("/usulan_musrebang/create_rekin/:rencana_kinerja_id", usulanMusrebangController.CreateRekin)
 
 	//usulan mandatori
 	router.POST("/usulan_mandatori/create", usulanMandatoriController.Create)
@@ -98,7 +98,8 @@ func NewRouter(
 	router.DELETE("/usulan_pokok_pikiran/delete/:id", usulanPokokPikiranController.Delete)
 	router.GET("/usulan_pokok_pikiran/findall", usulanPokokPikiranController.FindAll)
 	router.GET("/usulan_pokok_pikiran/pilihan", usulanPokokPikiranController.FindAll)
-	router.GET("/usulan_pokok_pikiran/pegawai/:pegawai_id", usulanPokokPikiranController.FindAll)
+	router.GET("/usulan_pokok_pikiran/opd/:kode_opd", usulanPokokPikiranController.FindAll)
+	router.POST("/usulan_pokok_pikiran/create_rekin/:rencana_kinerja_id", usulanPokokPikiranController.CreateRekin)
 
 	//usulan inisiatif
 	router.POST("/usulan_inisiatif/create", usulanInisiatifController.Create)
@@ -303,6 +304,15 @@ func NewRouter(
 	router.DELETE("/tujuan_pemda/delete/:id", tujuanPemdaController.Delete)
 	router.GET("/tujuan_pemda/detail/:id", tujuanPemdaController.FindById)
 	router.GET("/tujuan_pemda/findall/:tahun", tujuanPemdaController.FindAll)
+	router.PUT("/tujuan_pemda/update_periode/:id", tujuanPemdaController.UpdatePeriode)
+
+	//sasaran pemda
+	router.POST("/sasaran_pemda/create", sasaranPemdaController.Create)
+	router.PUT("/sasaran_pemda/update/:id", sasaranPemdaController.Update)
+	router.DELETE("/sasaran_pemda/delete/:id", sasaranPemdaController.Delete)
+	router.GET("/sasaran_pemda/detail/:id", sasaranPemdaController.FindById)
+	router.GET("/sasaran_pemda/findall/:tahun", sasaranPemdaController.FindAll)
+	router.PUT("/sasaran_pemda/update_periode/:id", sasaranPemdaController.UpdatePeriode)
 
 	return router
 }

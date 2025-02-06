@@ -15,8 +15,8 @@ func NewUsulanMusrebangRepositoryImpl() *UsulanMusrebangRepositoryImpl {
 }
 
 func (repository *UsulanMusrebangRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, usulan domain.UsulanMusrebang) (domain.UsulanMusrebang, error) {
-	script := "INSERT INTO tb_usulan_musrebang (id, usulan, alamat, uraian, tahun, rekin_id, pegawai_id, kode_opd, status) VALUES (?,?,?,?,?,?,?,?,?)"
-	_, err := tx.ExecContext(ctx, script, usulan.Id, usulan.Usulan, usulan.Alamat, usulan.Uraian, usulan.Tahun, usulan.RekinId, usulan.PegawaiId, usulan.KodeOpd, usulan.Status)
+	script := "INSERT INTO tb_usulan_musrebang (id, usulan, alamat, uraian, tahun, rekin_id, kode_opd, status) VALUES (?,?,?,?,?,?,?,?)"
+	_, err := tx.ExecContext(ctx, script, usulan.Id, usulan.Usulan, usulan.Alamat, usulan.Uraian, usulan.Tahun, usulan.RekinId, usulan.KodeOpd, usulan.Status)
 	if err != nil {
 		return domain.UsulanMusrebang{}, fmt.Errorf("error saat menyimpan usulan musrebang: %v", err)
 	}
@@ -24,8 +24,8 @@ func (repository *UsulanMusrebangRepositoryImpl) Create(ctx context.Context, tx 
 }
 
 func (repository *UsulanMusrebangRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, usulan domain.UsulanMusrebang) (domain.UsulanMusrebang, error) {
-	script := "UPDATE tb_usulan_musrebang SET usulan = ?, alamat = ?, uraian = ?, tahun = ?, pegawai_id = ?, kode_opd = ?, status = ? WHERE id = ?"
-	_, err := tx.ExecContext(ctx, script, usulan.Usulan, usulan.Alamat, usulan.Uraian, usulan.Tahun, usulan.PegawaiId, usulan.KodeOpd, usulan.Status, usulan.Id)
+	script := "UPDATE tb_usulan_musrebang SET usulan = ?, alamat = ?, uraian = ?, tahun = ?, kode_opd = ?, status = ? WHERE id = ?"
+	_, err := tx.ExecContext(ctx, script, usulan.Usulan, usulan.Alamat, usulan.Uraian, usulan.Tahun, usulan.KodeOpd, usulan.Status, usulan.Id)
 	if err != nil {
 		return domain.UsulanMusrebang{}, fmt.Errorf("error saat mengupdate usulan musrebang: %v", err)
 	}
@@ -33,24 +33,24 @@ func (repository *UsulanMusrebangRepositoryImpl) Update(ctx context.Context, tx 
 }
 
 func (repository *UsulanMusrebangRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, idUsulan string) (domain.UsulanMusrebang, error) {
-	script := "SELECT id, usulan, alamat, uraian, tahun, rekin_id, pegawai_id, kode_opd, is_active, status, created_at FROM tb_usulan_musrebang WHERE id = ?"
+	script := "SELECT id, usulan, alamat, uraian, tahun, rekin_id, kode_opd, is_active, status, created_at FROM tb_usulan_musrebang WHERE id = ?"
 	row := tx.QueryRowContext(ctx, script, idUsulan)
 
 	var usulan domain.UsulanMusrebang
-	err := row.Scan(&usulan.Id, &usulan.Usulan, &usulan.Alamat, &usulan.Uraian, &usulan.Tahun, &usulan.RekinId, &usulan.PegawaiId, &usulan.KodeOpd, &usulan.IsActive, &usulan.Status, &usulan.CreatedAt)
+	err := row.Scan(&usulan.Id, &usulan.Usulan, &usulan.Alamat, &usulan.Uraian, &usulan.Tahun, &usulan.RekinId, &usulan.KodeOpd, &usulan.IsActive, &usulan.Status, &usulan.CreatedAt)
 	if err != nil {
 		return domain.UsulanMusrebang{}, fmt.Errorf("error saat mencari usulan musrebang: %v", err)
 	}
 	return usulan, nil
 }
 
-func (repository *UsulanMusrebangRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, pegawaiId *string, is_active *bool, rekinId *string) ([]domain.UsulanMusrebang, error) {
-	script := "SELECT id, usulan, alamat, uraian, tahun, rekin_id, pegawai_id, kode_opd, is_active, status, created_at FROM tb_usulan_musrebang WHERE 1=1"
+func (repository *UsulanMusrebangRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, kodeOpd *string, is_active *bool, rekinId *string) ([]domain.UsulanMusrebang, error) {
+	script := "SELECT id, usulan, alamat, uraian, tahun, rekin_id, kode_opd, is_active, status, created_at FROM tb_usulan_musrebang WHERE 1=1"
 	var args []interface{}
 
-	if pegawaiId != nil {
-		script += " AND pegawai_id = ?"
-		args = append(args, *pegawaiId)
+	if kodeOpd != nil {
+		script += " AND kode_opd = ?"
+		args = append(args, *kodeOpd)
 	}
 
 	if is_active != nil {
@@ -74,7 +74,7 @@ func (repository *UsulanMusrebangRepositoryImpl) FindAll(ctx context.Context, tx
 	var usulanMusrebang []domain.UsulanMusrebang
 	for rows.Next() {
 		var usulan domain.UsulanMusrebang
-		err := rows.Scan(&usulan.Id, &usulan.Usulan, &usulan.Alamat, &usulan.Uraian, &usulan.Tahun, &usulan.RekinId, &usulan.PegawaiId, &usulan.KodeOpd, &usulan.IsActive, &usulan.Status, &usulan.CreatedAt)
+		err := rows.Scan(&usulan.Id, &usulan.Usulan, &usulan.Alamat, &usulan.Uraian, &usulan.Tahun, &usulan.RekinId, &usulan.KodeOpd, &usulan.IsActive, &usulan.Status, &usulan.CreatedAt)
 		if err != nil {
 			return []domain.UsulanMusrebang{}, fmt.Errorf("error saat memindai usulan musrebang: %v", err)
 		}
@@ -89,5 +89,24 @@ func (repository *UsulanMusrebangRepositoryImpl) Delete(ctx context.Context, tx 
 	if err != nil {
 		return fmt.Errorf("error saat menghapus usulan musrebang: %v", err)
 	}
+	return nil
+}
+
+func (repository *UsulanMusrebangRepositoryImpl) CreateRekin(ctx context.Context, tx *sql.Tx, idUsulan string, rekinId string) error {
+	script := "UPDATE tb_usulan_musrebang SET rekin_id = ?, status = 'usulan_diambil' WHERE id = ?"
+	result, err := tx.ExecContext(ctx, script, rekinId, idUsulan)
+	if err != nil {
+		return fmt.Errorf("error saat mengupdate rekin usulan musrebang: %v", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error saat memeriksa rows affected: %v", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("usulan musrebang dengan id %s tidak ditemukan", idUsulan)
+	}
+
 	return nil
 }

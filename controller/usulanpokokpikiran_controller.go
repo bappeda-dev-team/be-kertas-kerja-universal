@@ -13,4 +13,5 @@ type UsulanPokokPikiranController interface {
 	Delete(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindAllByRekin(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	CreateRekin(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 }

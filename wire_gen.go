@@ -45,11 +45,11 @@ func InitializeServer() *http.Server {
 	rencanaAksiControllerImpl := controller.NewRencanaAksiControllerImpl(rencanaAksiServiceImpl)
 	pelaksanaanRencanaAksiServiceImpl := service.NewPelaksanaanRencanaAksiServiceImpl(pelaksanaanRencanaAksiRepositoryImpl, rencanaAksiRepositoryImpl, db)
 	pelaksanaanRencanaAksiControllerImpl := controller.NewPelaksanaanRencanaAksiControllerImpl(pelaksanaanRencanaAksiServiceImpl)
-	usulanMusrebangServiceImpl := service.NewUsulanMusrebangServiceImpl(usulanMusrebangRepositoryImpl, db)
+	usulanMusrebangServiceImpl := service.NewUsulanMusrebangServiceImpl(usulanMusrebangRepositoryImpl, rencanaKinerjaRepositoryImpl, opdRepositoryImpl, db)
 	usulanMusrebangControllerImpl := controller.NewUsulanMusrebangControllerImpl(usulanMusrebangServiceImpl)
 	usulanMandatoriServiceImpl := service.NewUsulanMandatoriServiceImpl(usulanMandatoriRepositoryImpl, db)
 	usulanMandatoriControllerImpl := controller.NewUsulanMandatoriControllerImpl(usulanMandatoriServiceImpl)
-	usulanPokokPikiranServiceImpl := service.NewUsulanPokokPikiranServiceImpl(usulanPokokPikiranRepositoryImpl, db)
+	usulanPokokPikiranServiceImpl := service.NewUsulanPokokPikiranServiceImpl(usulanPokokPikiranRepositoryImpl, rencanaKinerjaRepositoryImpl, opdRepositoryImpl, db)
 	usulanPokokPikiranControllerImpl := controller.NewUsulanPokokPikiranControllerImpl(usulanPokokPikiranServiceImpl)
 	usulanInisiatifServiceImpl := service.NewUsulanInisiatifServiceImpl(usulanInisiatifRepositoryImpl, db)
 	usulanInisiatifControllerImpl := controller.NewUsulanInisiatifControllerImpl(usulanInisiatifServiceImpl)
@@ -116,7 +116,10 @@ func InitializeServer() *http.Server {
 	tujuanPemdaRepositoryImpl := repository.NewTujuanPemdaRepositoryImpl()
 	tujuanPemdaServiceImpl := service.NewTujuanPemdaServiceImpl(tujuanPemdaRepositoryImpl, periodeRepositoryImpl, pohonKinerjaRepositoryImpl, db)
 	tujuanPemdaControllerImpl := controller.NewTujuanPemdaControllerImpl(tujuanPemdaServiceImpl)
-	router := app.NewRouter(rencanaKinerjaControllerImpl, rencanaAksiControllerImpl, pelaksanaanRencanaAksiControllerImpl, usulanMusrebangControllerImpl, usulanMandatoriControllerImpl, usulanPokokPikiranControllerImpl, usulanInisiatifControllerImpl, usulanTerpilihControllerImpl, gambaranUmumControllerImpl, dasarHukumControllerImpl, inovasiControllerImpl, subKegiatanControllerImpl, subKegiatanTerpilihControllerImpl, pohonKinerjaOpdControllerImpl, pegawaiControllerImpl, lembagaControllerImpl, jabatanControllerImpl, pohonKinerjaAdminControllerImpl, opdControllerImpl, programControllerImpl, urusanControllerImpl, bidangUrusanControllerImpl, kegiatanControllerImpl, userControllerImpl, roleControllerImpl, tujuanOpdControllerImpl, crosscuttingOpdControllerImpl, manualIKControllerImpl, reviewControllerImpl, periodeControllerImpl, tujuanPemdaControllerImpl)
+	sasaranPemdaRepositoryImpl := repository.NewSasaranPemdaRepositoryImpl()
+	sasaranPemdaServiceImpl := service.NewSasaranPemdaServiceImpl(sasaranPemdaRepositoryImpl, periodeRepositoryImpl, pohonKinerjaRepositoryImpl, tujuanPemdaRepositoryImpl, db)
+	sasaranPemdaControllerImpl := controller.NewSasaranPemdaControllerImpl(sasaranPemdaServiceImpl)
+	router := app.NewRouter(rencanaKinerjaControllerImpl, rencanaAksiControllerImpl, pelaksanaanRencanaAksiControllerImpl, usulanMusrebangControllerImpl, usulanMandatoriControllerImpl, usulanPokokPikiranControllerImpl, usulanInisiatifControllerImpl, usulanTerpilihControllerImpl, gambaranUmumControllerImpl, dasarHukumControllerImpl, inovasiControllerImpl, subKegiatanControllerImpl, subKegiatanTerpilihControllerImpl, pohonKinerjaOpdControllerImpl, pegawaiControllerImpl, lembagaControllerImpl, jabatanControllerImpl, pohonKinerjaAdminControllerImpl, opdControllerImpl, programControllerImpl, urusanControllerImpl, bidangUrusanControllerImpl, kegiatanControllerImpl, userControllerImpl, roleControllerImpl, tujuanOpdControllerImpl, crosscuttingOpdControllerImpl, manualIKControllerImpl, reviewControllerImpl, periodeControllerImpl, tujuanPemdaControllerImpl, sasaranPemdaControllerImpl)
 	authMiddleware := middleware.NewAuthMiddleware(router)
 	server := NewServer(authMiddleware)
 	return server
@@ -203,3 +206,5 @@ var reviewSet = wire.NewSet(repository.NewReviewRepositoryImpl, wire.Bind(new(re
 var periodeSet = wire.NewSet(repository.NewPeriodeRepositoryImpl, wire.Bind(new(repository.PeriodeRepository), new(*repository.PeriodeRepositoryImpl)), service.NewPeriodeServiceImpl, wire.Bind(new(service.PeriodeService), new(*service.PeriodeServiceImpl)), controller.NewPeriodeControllerImpl, wire.Bind(new(controller.PeriodeController), new(*controller.PeriodeControllerImpl)))
 
 var tujuanPemdaSet = wire.NewSet(repository.NewTujuanPemdaRepositoryImpl, wire.Bind(new(repository.TujuanPemdaRepository), new(*repository.TujuanPemdaRepositoryImpl)), service.NewTujuanPemdaServiceImpl, wire.Bind(new(service.TujuanPemdaService), new(*service.TujuanPemdaServiceImpl)), controller.NewTujuanPemdaControllerImpl, wire.Bind(new(controller.TujuanPemdaController), new(*controller.TujuanPemdaControllerImpl)))
+
+var sasaranPemdaSet = wire.NewSet(repository.NewSasaranPemdaRepositoryImpl, wire.Bind(new(repository.SasaranPemdaRepository), new(*repository.SasaranPemdaRepositoryImpl)), service.NewSasaranPemdaServiceImpl, wire.Bind(new(service.SasaranPemdaService), new(*service.SasaranPemdaServiceImpl)), controller.NewSasaranPemdaControllerImpl, wire.Bind(new(controller.SasaranPemdaController), new(*controller.SasaranPemdaControllerImpl)))

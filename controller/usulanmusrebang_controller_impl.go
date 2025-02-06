@@ -27,24 +27,6 @@ func (controller *UsulanMusrebangControllerImpl) Create(writer http.ResponseWrit
 	usulanMusrebangCreateRequest := usulan.UsulanMusrebangCreateRequest{}
 	helper.ReadFromRequestBody(request, &usulanMusrebangCreateRequest)
 
-	// Cek apakah pegawai_id ada di params URL
-	pegawaiID := params.ByName("pegawai_id")
-	if pegawaiID == "" {
-		// Jika tidak ada di params, gunakan dari body request
-		pegawaiID = usulanMusrebangCreateRequest.PegawaiId
-	}
-
-	if pegawaiID == "" {
-		webResponse := web.WebUsulanMusrebangResponse{
-			Code:   http.StatusBadRequest,
-			Status: "BAD REQUEST",
-			Data:   "Invalid pegawai_id: not found in URL params or request body",
-		}
-		helper.WriteToResponseBody(writer, webResponse)
-		return
-	}
-	usulanMusrebangCreateRequest.PegawaiId = pegawaiID
-
 	usulanMusrebangResponse, err := controller.UsulanMusrebangService.Create(request.Context(), usulanMusrebangCreateRequest)
 	if err != nil {
 		webResponse := web.WebUsulanMusrebangResponse{
@@ -81,21 +63,6 @@ func (controller *UsulanMusrebangControllerImpl) Update(writer http.ResponseWrit
 	}
 	usulanMusrebangUpdateRequest.Id = idUsulan
 
-	// Cek apakah pegawai_id ada di params URL
-	pegawaiID := params.ByName("pegawai_id")
-	if pegawaiID != "" {
-		// Jika ada di params, periksa apakah sama dengan pegawai_id di request body
-		if usulanMusrebangUpdateRequest.PegawaiId != pegawaiID {
-			webResponse := web.WebUsulanMusrebangResponse{
-				Code:   http.StatusForbidden,
-				Status: "FORBIDDEN",
-				Data:   "Tidak dapat mengedit usulan pegawai lain",
-			}
-			helper.WriteToResponseBody(writer, webResponse)
-			return
-		}
-	}
-
 	// Lakukan update
 	usulanMusrebangResponse, err := controller.UsulanMusrebangService.Update(request.Context(), usulanMusrebangUpdateRequest)
 	if err != nil {
@@ -117,13 +84,13 @@ func (controller *UsulanMusrebangControllerImpl) Update(writer http.ResponseWrit
 }
 
 func (controller *UsulanMusrebangControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	pegawaiID := params.ByName("pegawai_id")
+	kodeOpd := params.ByName("kode_opd")
 	rekinID := params.ByName("rencana_kinerja_id")
 	isActive := request.URL.Query().Get("is_active")
 
-	var pegawaiIDPtr *string
-	if pegawaiID != "" {
-		pegawaiIDPtr = &pegawaiID
+	var kodeOpdPtr *string
+	if kodeOpd != "" {
+		kodeOpdPtr = &kodeOpd
 	}
 
 	var rekinIDPtr *string
@@ -146,7 +113,7 @@ func (controller *UsulanMusrebangControllerImpl) FindAll(writer http.ResponseWri
 		isActivePtr = &isActiveBool
 	}
 
-	usulanMusrebangResponses, err := controller.UsulanMusrebangService.FindAll(request.Context(), pegawaiIDPtr, isActivePtr, rekinIDPtr)
+	usulanMusrebangResponses, err := controller.UsulanMusrebangService.FindAll(request.Context(), kodeOpdPtr, isActivePtr, rekinIDPtr)
 	if err != nil {
 		webResponse := web.WebUsulanMusrebangResponse{
 			Code:   http.StatusBadRequest,
@@ -296,6 +263,32 @@ func (controller *UsulanMusrebangControllerImpl) FindAllRekin(writer http.Respon
 		Status:      "success find all usulan musrebang",
 		DataPilihan: usulanMusrebangResponses,
 		Action:      buttonActions,
+	}
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *UsulanMusrebangControllerImpl) CreateRekin(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	usulanMusrebangCreateRekinRequest := usulan.UsulanMusrebangCreateRekinRequest{}
+	helper.ReadFromRequestBody(request, &usulanMusrebangCreateRekinRequest)
+
+	idRekin := params.ByName("rencana_kinerja_id")
+	usulanMusrebangCreateRekinRequest.RekinId = idRekin
+
+	usulanMusrebangResponse, err := controller.UsulanMusrebangService.CreateRekin(request.Context(), usulanMusrebangCreateRekinRequest)
+	if err != nil {
+		webResponse := web.WebUsulanMusrebangResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebUsulanMusrebangResponse{
+		Code:   http.StatusOK,
+		Status: "success create usulan musrebang",
+		Data:   usulanMusrebangResponse,
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }

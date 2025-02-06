@@ -675,13 +675,85 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 			}
 		}
 
-		// usulanMusrebang, _ := service.UsulanMusrebangRepository.FindAll(ctx, tx, &pegawaiId, nil, &rencanaKinerja.Id)
-		// usulanMandatori, _ := service.UsulanMandatoriRepository.FindAll(ctx, tx, &pegawaiId, nil, &rencanaKinerja.Id)
-		// usulanPokokPikiran, _ := service.UsulanPokokPikiranRepository.FindAll(ctx, tx, &pegawaiId, nil, &rencanaKinerja.Id)
-		// usulanInisiatif, _ := service.UsulanInisiatifRepository.FindAll(ctx, tx, &pegawaiId, nil, &rencanaKinerja.Id)
+		var isActive *bool // nil karena tidak perlu filter is_active
+		var status *string
+
+		usulanMusrebang, _ := service.UsulanMusrebangRepository.FindAll(ctx, tx, &rencanaKinerja.KodeOpd, isActive, &rencanaKinerja.Id, status)
+		usulanMandatori, _ := service.UsulanMandatoriRepository.FindAll(ctx, tx, &pegawaiId, nil, &rencanaKinerja.Id)
+		usulanPokokPikiran, _ := service.UsulanPokokPikiranRepository.FindAll(ctx, tx, &rencanaKinerja.KodeOpd, isActive, &rencanaKinerja.Id, status)
+		usulanInisiatif, _ := service.UsulanInisiatifRepository.FindAll(ctx, tx, &pegawaiId, nil, &rencanaKinerja.Id)
 		dasarHukum, _ := service.DasarHukumRepository.FindAll(ctx, tx, rencanaKinerja.Id)
 		gambaranUmum, _ := service.GambaranUmumRepository.FindAll(ctx, tx, rencanaKinerja.Id)
 		inovasi, _ := service.InovasiRepository.FindAll(ctx, tx, rencanaKinerja.Id)
+
+		// Gabungkan semua usulan
+		var usulanGabungan []rencanakinerja.UsulanGabunganResponse
+
+		// Proses usulan musrebang
+		for _, um := range usulanMusrebang {
+			usulanGabungan = append(usulanGabungan, rencanakinerja.UsulanGabunganResponse{
+				Id:          um.Id,
+				JenisUsulan: "musrebang",
+				Usulan:      um.Usulan,
+				Uraian:      um.Uraian,
+				Tahun:       um.Tahun,
+				RekinId:     um.RekinId,
+				KodeOpd:     um.KodeOpd,
+				IsActive:    um.IsActive,
+				Status:      um.Status,
+				Alamat:      um.Alamat,
+			})
+		}
+
+		// Proses usulan mandatori
+		for _, um := range usulanMandatori {
+			usulanGabungan = append(usulanGabungan, rencanakinerja.UsulanGabunganResponse{
+				Id:               um.Id,
+				JenisUsulan:      "mandatori",
+				Usulan:           um.Usulan,
+				Uraian:           um.Uraian,
+				Tahun:            um.Tahun,
+				RekinId:          um.RekinId,
+				PegawaiId:        um.PegawaiId,
+				KodeOpd:          um.KodeOpd,
+				IsActive:         um.IsActive,
+				Status:           um.Status,
+				PeraturanTerkait: um.PeraturanTerkait,
+			})
+		}
+
+		// Proses usulan pokok pikiran
+		for _, up := range usulanPokokPikiran {
+			usulanGabungan = append(usulanGabungan, rencanakinerja.UsulanGabunganResponse{
+				Id:          up.Id,
+				JenisUsulan: "pokok_pikiran",
+				Usulan:      up.Usulan,
+				Uraian:      up.Uraian,
+				Tahun:       up.Tahun,
+				RekinId:     up.RekinId,
+				KodeOpd:     up.KodeOpd,
+				IsActive:    up.IsActive,
+				Status:      up.Status,
+				Alamat:      up.Alamat,
+			})
+		}
+
+		// Proses usulan inisiatif
+		for _, ui := range usulanInisiatif {
+			usulanGabungan = append(usulanGabungan, rencanakinerja.UsulanGabunganResponse{
+				Id:          ui.Id,
+				JenisUsulan: "inisiatif",
+				Usulan:      ui.Usulan,
+				Uraian:      ui.Uraian,
+				Tahun:       ui.Tahun,
+				RekinId:     ui.RekinId,
+				PegawaiId:   ui.PegawaiId,
+				KodeOpd:     ui.KodeOpd,
+				IsActive:    ui.IsActive,
+				Status:      ui.Status,
+				Manfaat:     ui.Manfaat,
+			})
+		}
 
 		// Buat response untuk setiap rencana kinerja
 		rencanaKinerjaResponse := rencanakinerja.RencanaKinerjaResponse{
@@ -705,14 +777,11 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 		responses = append(responses, rencanakinerja.DataRincianKerja{
 			RencanaKinerja: rencanaKinerjaResponse,
 			RencanaAksi:    rencanaAksiResponses,
-			// UsulanMusrebang:    helper.ToUsulanMusrebangResponses(usulanMusrebang),
-			// UsulanMandatori:    helper.ToUsulanMandatoriResponses(usulanMandatori),
-			// UsulanPokokPikiran: helper.ToUsulanPokokPikiranResponses(usulanPokokPikiran),
-			// UsulanInisiatif:    helper.ToUsulanInisiatifResponses(usulanInisiatif),
-			DasarHukum:   helper.ToDasarHukumResponses(dasarHukum),
-			SubKegiatan:  subKegiatanResponses,
-			GambaranUmum: helper.ToGambaranUmumResponses(gambaranUmum),
-			Inovasi:      helper.ToInovasiResponses(inovasi),
+			Usulan:         usulanGabungan,
+			DasarHukum:     helper.ToDasarHukumResponses(dasarHukum),
+			SubKegiatan:    subKegiatanResponses,
+			GambaranUmum:   helper.ToGambaranUmumResponses(gambaranUmum),
+			Inovasi:        helper.ToInovasiResponses(inovasi),
 		})
 	}
 

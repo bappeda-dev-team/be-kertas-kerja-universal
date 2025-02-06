@@ -11,4 +11,5 @@ type TujuanPemdaService interface {
 	Delete(ctx context.Context, id int) error
 	FindById(ctx context.Context, tujuanPemdaId int) (tujuanpemda.TujuanPemdaResponse, error)
 	FindAll(ctx context.Context, tahun string) ([]tujuanpemda.TujuanPemdaResponse, error)
+	UpdatePeriode(ctx context.Context, request tujuanpemda.TujuanPemdaUpdateRequest) (tujuanpemda.TujuanPemdaResponse, error)
 }

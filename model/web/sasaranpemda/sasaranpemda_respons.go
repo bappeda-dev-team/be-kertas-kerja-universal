@@ -1,10 +1,10 @@
-package tujuanpemda
+package sasaranpemda
 
-type TujuanPemdaResponse struct {
+type SasaranPemdaResponse struct {
 	Id               int                 `json:"id"`
-	TujuanPemdaId    int                 `json:"tujuan_pemda_id"`
-	NamaTujuanPemda  string              `json:"nama_tujuan_pemda"`
-	Periode          PeriodeResponse     `json:"periode"`
+	SasaranPemdaId   int                 `json:"sasaran_pemda_id,omitempty"`
+	NamaSasaranPemda string              `json:"nama_sasaran_pemda,omitempty"`
+	Periode          PeriodeResponse     `json:"periode,omitempty"`
 	RumusPerhitungan string              `json:"rumus_perhitungan,omitempty"`
 	SumberData       string              `json:"sumber_data,omitempty"`
 	Indikator        []IndikatorResponse `json:"indikator,omitempty"`

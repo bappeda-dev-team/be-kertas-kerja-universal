@@ -16,4 +16,5 @@ type TujuanPemdaRepository interface {
 	FindAll(ctx context.Context, tx *sql.Tx, tahun string) ([]domain.TujuanPemda, error)
 	DeleteIndikator(ctx context.Context, tx *sql.Tx, tujuanPemdaId int) error
 	IsIdExists(ctx context.Context, tx *sql.Tx, id int) bool
+	UpdatePeriode(ctx context.Context, tx *sql.Tx, tujuanPemda domain.TujuanPemda) (domain.TujuanPemda, error)
 }

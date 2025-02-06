@@ -10,66 +10,66 @@ import (
 	"strconv"
 )
 
-type TujuanPemdaRepositoryImpl struct {
+type SasaranPemdaRepositoryImpl struct {
 }
 
-func NewTujuanPemdaRepositoryImpl() *TujuanPemdaRepositoryImpl {
-	return &TujuanPemdaRepositoryImpl{}
+func NewSasaranPemdaRepositoryImpl() *SasaranPemdaRepositoryImpl {
+	return &SasaranPemdaRepositoryImpl{}
 }
 
-func (repository *TujuanPemdaRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, tujuanPemda domain.TujuanPemda) (domain.TujuanPemda, error) {
-	query := "INSERT INTO tb_tujuan_pemda(id, tujuan_pemda_id, rumus_perhitungan, sumber_data, periode_id) VALUES (?, ?, ?, ?, ?)"
-	_, err := tx.ExecContext(ctx, query, tujuanPemda.Id, tujuanPemda.TujuanPemdaId, tujuanPemda.RumusPerhitungan, tujuanPemda.SumberData, tujuanPemda.PeriodeId)
+func (repository *SasaranPemdaRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, sasaranPemda domain.SasaranPemda) (domain.SasaranPemda, error) {
+	query := "INSERT INTO tb_sasaran_pemda(id, sasaran_pemda_id, rumus_perhitungan, sumber_data, periode_id) VALUES (?, ?, ?, ?, ?)"
+	_, err := tx.ExecContext(ctx, query, sasaranPemda.Id, sasaranPemda.SasaranPemdaId, sasaranPemda.RumusPerhitungan, sasaranPemda.SumberData, sasaranPemda.PeriodeId)
 	if err != nil {
-		return tujuanPemda, err
+		return sasaranPemda, err
 	}
-	return tujuanPemda, nil
+	return sasaranPemda, nil
 }
 
-func (repository *TujuanPemdaRepositoryImpl) CreateIndikator(ctx context.Context, tx *sql.Tx, indikator domain.Indikator) (domain.Indikator, error) {
-	query := "INSERT INTO tb_indikator(id, tujuan_pemda_id, indikator) VALUES (?, ?, ?)"
-	_, err := tx.ExecContext(ctx, query, indikator.Id, indikator.TujuanPemdaId, indikator.Indikator)
+func (repository *SasaranPemdaRepositoryImpl) CreateIndikator(ctx context.Context, tx *sql.Tx, indikator domain.Indikator) (domain.Indikator, error) {
+	query := "INSERT INTO tb_indikator(id, sasaran_pemda_id, indikator) VALUES (?, ?, ?)"
+	_, err := tx.ExecContext(ctx, query, indikator.Id, indikator.SasaranPemdaId, indikator.Indikator)
 	if err != nil {
 		return indikator, err
 	}
 	return indikator, nil
 }
 
-func (repository *TujuanPemdaRepositoryImpl) CreateTarget(ctx context.Context, tx *sql.Tx, target domain.Target) error {
+func (repository *SasaranPemdaRepositoryImpl) CreateTarget(ctx context.Context, tx *sql.Tx, target domain.Target) error {
 	query := "INSERT INTO tb_target(id, indikator_id, target, satuan, tahun) VALUES (?, ?, ?, ?, ?)"
 	_, err := tx.ExecContext(ctx, query, target.Id, target.IndikatorId, target.Target, target.Satuan, target.Tahun)
 	return err
 }
 
-func (repository *TujuanPemdaRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, tujuanPemda domain.TujuanPemda) (domain.TujuanPemda, error) {
+func (repository *SasaranPemdaRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, sasaranPemda domain.SasaranPemda) (domain.SasaranPemda, error) {
 	// Update tujuan pemda
-	query := "UPDATE tb_tujuan_pemda SET tujuan_pemda_id = ?, rumus_perhitungan = ?, sumber_data = ? WHERE id = ?"
-	_, err := tx.ExecContext(ctx, query, tujuanPemda.TujuanPemdaId, tujuanPemda.RumusPerhitungan, tujuanPemda.SumberData, tujuanPemda.Id)
+	query := "UPDATE tb_sasaran_pemda SET sasaran_pemda_id = ?, rumus_perhitungan = ?, sumber_data = ? WHERE id = ?"
+	_, err := tx.ExecContext(ctx, query, sasaranPemda.SasaranPemdaId, sasaranPemda.RumusPerhitungan, sasaranPemda.SumberData, sasaranPemda.Id)
 	if err != nil {
-		return tujuanPemda, err
+		return sasaranPemda, err
 	}
 
 	// Proses indikator
-	for _, indikator := range tujuanPemda.Indikator {
+	for _, indikator := range sasaranPemda.Indikator {
 		// Update atau insert indikator
 		scriptUpdateIndikator := `
-            INSERT INTO tb_indikator (id, tujuan_pemda_id, indikator) 
+            INSERT INTO tb_indikator (id, sasaran_pemda_id, indikator) 
             VALUES (?, ?, ?)
             ON DUPLICATE KEY UPDATE indikator = VALUES(indikator)`
 
 		_, err := tx.ExecContext(ctx, scriptUpdateIndikator,
 			indikator.Id,
-			tujuanPemda.Id,
+			sasaranPemda.Id,
 			indikator.Indikator)
 		if err != nil {
-			return tujuanPemda, err
+			return sasaranPemda, err
 		}
 
 		// Hapus target lama untuk indikator ini
 		scriptDeleteTargets := "DELETE FROM tb_target WHERE indikator_id = ?"
 		_, err = tx.ExecContext(ctx, scriptDeleteTargets, indikator.Id)
 		if err != nil {
-			return tujuanPemda, err
+			return sasaranPemda, err
 		}
 
 		// Insert target baru
@@ -87,35 +87,35 @@ func (repository *TujuanPemdaRepositoryImpl) Update(ctx context.Context, tx *sql
 				target.Satuan,
 				target.Tahun)
 			if err != nil {
-				return tujuanPemda, err
+				return sasaranPemda, err
 			}
 		}
 	}
 
-	return tujuanPemda, nil
+	return sasaranPemda, nil
 }
 
-func (repository *TujuanPemdaRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, tujuanPemdaId int) error {
+func (repository *SasaranPemdaRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, sasaranPemdaId int) error {
 	// 1. Hapus target berdasarkan indikator yang terkait dengan tujuan pemda
 	queryDeleteTarget := `
         DELETE t FROM tb_target t
         INNER JOIN tb_indikator i ON t.indikator_id = i.id
-        WHERE i.tujuan_pemda_id = ?`
-	_, err := tx.ExecContext(ctx, queryDeleteTarget, tujuanPemdaId)
+        WHERE i.sasaran_pemda_id = ?`
+	_, err := tx.ExecContext(ctx, queryDeleteTarget, sasaranPemdaId)
 	if err != nil {
 		return err
 	}
 
 	// 2. Hapus indikator yang terkait dengan tujuan pemda
-	queryDeleteIndikator := "DELETE FROM tb_indikator WHERE tujuan_pemda_id = ?"
-	_, err = tx.ExecContext(ctx, queryDeleteIndikator, tujuanPemdaId)
+	queryDeleteIndikator := "DELETE FROM tb_indikator WHERE sasaran_pemda_id = ?"
+	_, err = tx.ExecContext(ctx, queryDeleteIndikator, sasaranPemdaId)
 	if err != nil {
 		return err
 	}
 
 	// 3. Hapus tujuan pemda
-	queryDeleteTujuanPemda := "DELETE FROM tb_tujuan_pemda WHERE id = ?"
-	_, err = tx.ExecContext(ctx, queryDeleteTujuanPemda, tujuanPemdaId)
+	queryDeleteSasaranPemda := "DELETE FROM tb_sasaran_pemda WHERE id = ?"
+	_, err = tx.ExecContext(ctx, queryDeleteSasaranPemda, sasaranPemdaId)
 	if err != nil {
 		return err
 	}
@@ -123,11 +123,11 @@ func (repository *TujuanPemdaRepositoryImpl) Delete(ctx context.Context, tx *sql
 	return nil
 }
 
-func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, tujuanPemdaId int) (domain.TujuanPemda, error) {
+func (repository *SasaranPemdaRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, sasaranPemdaId int) (domain.SasaranPemda, error) {
 	query := `
         SELECT DISTINCT
             tp.id,
-            tp.tujuan_pemda_id,
+            tp.sasaran_pemda_id,
             tp.rumus_perhitungan,
             tp.sumber_data,
             tp.periode_id,
@@ -140,27 +140,27 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
             t.satuan as target_satuan,
             t.tahun as target_tahun
         FROM 
-            tb_tujuan_pemda tp
+            tb_sasaran_pemda tp
             LEFT JOIN tb_periode p ON tp.periode_id = p.id
-            LEFT JOIN tb_indikator i ON tp.id = i.tujuan_pemda_id
+            LEFT JOIN tb_indikator i ON tp.id = i.sasaran_pemda_id
             LEFT JOIN tb_target t ON t.indikator_id = i.id
         WHERE tp.id = ?
         ORDER BY 
             tp.id, i.id, CAST(t.tahun AS SIGNED)`
 
-	rows, err := tx.QueryContext(ctx, query, tujuanPemdaId)
+	rows, err := tx.QueryContext(ctx, query, sasaranPemdaId)
 	if err != nil {
-		return domain.TujuanPemda{}, err
+		return domain.SasaranPemda{}, err
 	}
 	defer rows.Close()
 
-	var tujuanPemda domain.TujuanPemda
+	var sasaranPemda domain.SasaranPemda
 	var firstRow = true
 	indikatorMap := make(map[string]*domain.Indikator)
 
 	for rows.Next() {
 		var id int
-		var tujuanPemdaId int
+		var sasaranPemdaId int
 		var rumusPerhitungan, sumberData string
 		var periodeId int
 		var tahunAwal, tahunAkhir string
@@ -169,7 +169,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
 
 		err := rows.Scan(
 			&id,
-			&tujuanPemdaId,
+			&sasaranPemdaId,
 			&rumusPerhitungan,
 			&sumberData,
 			&periodeId,
@@ -183,13 +183,13 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
 			&targetTahun,
 		)
 		if err != nil {
-			return domain.TujuanPemda{}, err
+			return domain.SasaranPemda{}, err
 		}
 
 		if firstRow {
-			tujuanPemda = domain.TujuanPemda{
+			sasaranPemda = domain.SasaranPemda{
 				Id:               id,
-				TujuanPemdaId:    tujuanPemdaId,
+				SasaranPemdaId:   sasaranPemdaId,
 				PeriodeId:        periodeId,
 				RumusPerhitungan: rumusPerhitungan,
 				SumberData:       sumberData,
@@ -202,8 +202,8 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
 
 			// Update periode hanya jika ada dan valid
 			if periodeId != 0 && tahunAwal != "" && tahunAkhir != "" {
-				tujuanPemda.Periode.TahunAwal = tahunAwal
-				tujuanPemda.Periode.TahunAkhir = tahunAkhir
+				sasaranPemda.Periode.TahunAwal = tahunAwal
+				sasaranPemda.Periode.TahunAkhir = tahunAkhir
 			}
 
 			firstRow = false
@@ -214,10 +214,10 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
 
 			if !exists {
 				indikator := domain.Indikator{
-					Id:            indikatorId.String,
-					TujuanPemdaId: id,
-					Indikator:     indikatorText.String,
-					Target:        make([]domain.Target, 0),
+					Id:             indikatorId.String,
+					SasaranPemdaId: id,
+					Indikator:      indikatorText.String,
+					Target:         make([]domain.Target, 0),
 				}
 
 				// Tambahkan target kosong hanya jika periode valid
@@ -228,7 +228,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
 					for tahun := tahunAwalInt; tahun <= tahunAkhirInt; tahun++ {
 						tahunStr := strconv.Itoa(tahun)
 						indikator.Target = append(indikator.Target, domain.Target{
-							Id:          "-",
+							Id:          "",
 							IndikatorId: indikatorId.String,
 							Target:      "-",
 							Satuan:      "-",
@@ -237,9 +237,9 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
 					}
 				}
 
-				tujuanPemda.Indikator = append(tujuanPemda.Indikator, indikator)
-				indikatorMap[indikatorId.String] = &tujuanPemda.Indikator[len(tujuanPemda.Indikator)-1]
-				currentIndikator = &tujuanPemda.Indikator[len(tujuanPemda.Indikator)-1]
+				sasaranPemda.Indikator = append(sasaranPemda.Indikator, indikator)
+				indikatorMap[indikatorId.String] = &sasaranPemda.Indikator[len(sasaranPemda.Indikator)-1]
+				currentIndikator = &sasaranPemda.Indikator[len(sasaranPemda.Indikator)-1]
 			}
 
 			// Update target hanya jika periode valid
@@ -261,18 +261,18 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
 		}
 	}
 
-	if tujuanPemda.Id == 0 {
-		return tujuanPemda, errors.New("tujuan pemda not found")
+	if sasaranPemda.Id == 0 {
+		return sasaranPemda, errors.New("sasaran pemda not found")
 	}
 
-	return tujuanPemda, nil
+	return sasaranPemda, nil
 }
 
-func (repository *TujuanPemdaRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, tahun string) ([]domain.TujuanPemda, error) {
+func (repository *SasaranPemdaRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, tahun string) ([]domain.SasaranPemda, error) {
 	query := `
         SELECT DISTINCT
             tp.id,
-            tp.tujuan_pemda_id,
+            tp.sasaran_pemda_id,
             tp.rumus_perhitungan,
             tp.sumber_data,
             tp.periode_id,
@@ -285,9 +285,9 @@ func (repository *TujuanPemdaRepositoryImpl) FindAll(ctx context.Context, tx *sq
             t.satuan as target_satuan,
             t.tahun as target_tahun
         FROM 
-            tb_tujuan_pemda tp
+            tb_sasaran_pemda tp
             LEFT JOIN tb_periode p ON tp.periode_id = p.id
-            LEFT JOIN tb_indikator i ON tp.id = i.tujuan_pemda_id
+            LEFT JOIN tb_indikator i ON tp.id = i.sasaran_pemda_id
             LEFT JOIN tb_target t ON t.indikator_id = i.id
         ORDER BY 
             tp.id, i.id, CAST(t.tahun AS SIGNED)`
@@ -298,11 +298,11 @@ func (repository *TujuanPemdaRepositoryImpl) FindAll(ctx context.Context, tx *sq
 	}
 	defer rows.Close()
 
-	tujuanPemdaMap := make(map[int]*domain.TujuanPemda)
+	sasaranPemdaMap := make(map[int]*domain.SasaranPemda)
 
 	for rows.Next() {
 		var id int
-		var tujuanPemdaId int
+		var sasaranPemdaId int
 		var rumusPerhitungan, sumberData string
 		var periodeId int
 		var tahunAwal, tahunAkhir string
@@ -311,7 +311,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindAll(ctx context.Context, tx *sq
 
 		err := rows.Scan(
 			&id,
-			&tujuanPemdaId,
+			&sasaranPemdaId,
 			&rumusPerhitungan,
 			&sumberData,
 			&periodeId,
@@ -328,11 +328,11 @@ func (repository *TujuanPemdaRepositoryImpl) FindAll(ctx context.Context, tx *sq
 			return nil, err
 		}
 
-		tujuanPemda, exists := tujuanPemdaMap[id]
+		sasaranPemda, exists := sasaranPemdaMap[id]
 		if !exists {
-			tujuanPemda = &domain.TujuanPemda{
+			sasaranPemda = &domain.SasaranPemda{
 				Id:               id,
-				TujuanPemdaId:    tujuanPemdaId,
+				SasaranPemdaId:   sasaranPemdaId,
 				PeriodeId:        periodeId,
 				RumusPerhitungan: rumusPerhitungan,
 				SumberData:       sumberData,
@@ -345,20 +345,20 @@ func (repository *TujuanPemdaRepositoryImpl) FindAll(ctx context.Context, tx *sq
 
 			// Update periode hanya jika ada dan valid
 			if periodeId != 0 && tahunAwal != "" && tahunAkhir != "" {
-				tujuanPemda.Periode.TahunAwal = tahunAwal
-				tujuanPemda.Periode.TahunAkhir = tahunAkhir
+				sasaranPemda.Periode.TahunAwal = tahunAwal
+				sasaranPemda.Periode.TahunAkhir = tahunAkhir
 			}
 
-			tujuanPemdaMap[id] = tujuanPemda
+			sasaranPemdaMap[id] = sasaranPemda
 		}
 
 		if indikatorId.Valid && indikatorText.Valid {
 			var currentIndikator *domain.Indikator
 
 			// Cari indikator yang sudah ada
-			for i := range tujuanPemda.Indikator {
-				if tujuanPemda.Indikator[i].Id == indikatorId.String {
-					currentIndikator = &tujuanPemda.Indikator[i]
+			for i := range sasaranPemda.Indikator {
+				if sasaranPemda.Indikator[i].Id == indikatorId.String {
+					currentIndikator = &sasaranPemda.Indikator[i]
 					break
 				}
 			}
@@ -366,10 +366,10 @@ func (repository *TujuanPemdaRepositoryImpl) FindAll(ctx context.Context, tx *sq
 			// Buat indikator baru jika belum ada
 			if currentIndikator == nil {
 				newIndikator := domain.Indikator{
-					Id:            indikatorId.String,
-					TujuanPemdaId: id,
-					Indikator:     indikatorText.String,
-					Target:        make([]domain.Target, 0),
+					Id:             indikatorId.String,
+					SasaranPemdaId: id,
+					Indikator:      indikatorText.String,
+					Target:         make([]domain.Target, 0),
 				}
 
 				// Tambahkan target kosong untuk semua tahun dalam periode
@@ -380,7 +380,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindAll(ctx context.Context, tx *sq
 					for tahun := tahunAwalInt; tahun <= tahunAkhirInt; tahun++ {
 						tahunStr := strconv.Itoa(tahun)
 						newIndikator.Target = append(newIndikator.Target, domain.Target{
-							Id:          "-",
+							Id:          "",
 							IndikatorId: indikatorId.String,
 							Target:      "-",
 							Satuan:      "-",
@@ -389,8 +389,8 @@ func (repository *TujuanPemdaRepositoryImpl) FindAll(ctx context.Context, tx *sq
 					}
 				}
 
-				tujuanPemda.Indikator = append(tujuanPemda.Indikator, newIndikator)
-				currentIndikator = &tujuanPemda.Indikator[len(tujuanPemda.Indikator)-1]
+				sasaranPemda.Indikator = append(sasaranPemda.Indikator, newIndikator)
+				currentIndikator = &sasaranPemda.Indikator[len(sasaranPemda.Indikator)-1]
 			}
 
 			// Update target dengan data sebenarnya jika ada
@@ -412,9 +412,9 @@ func (repository *TujuanPemdaRepositoryImpl) FindAll(ctx context.Context, tx *sq
 	}
 
 	// Convert map to slice dan urutkan hasilnya
-	result := make([]domain.TujuanPemda, 0, len(tujuanPemdaMap))
-	for _, tujuanPemda := range tujuanPemdaMap {
-		result = append(result, *tujuanPemda)
+	result := make([]domain.SasaranPemda, 0, len(sasaranPemdaMap))
+	for _, sasaranPemda := range sasaranPemdaMap {
+		result = append(result, *sasaranPemda)
 	}
 
 	// Urutkan berdasarkan ID
@@ -425,14 +425,14 @@ func (repository *TujuanPemdaRepositoryImpl) FindAll(ctx context.Context, tx *sq
 	return result, nil
 }
 
-func (repository *TujuanPemdaRepositoryImpl) DeleteIndikator(ctx context.Context, tx *sql.Tx, tujuanPemdaId int) error {
-	query := "DELETE FROM tb_indikator WHERE tujuan_pemda_id = ?"
-	_, err := tx.ExecContext(ctx, query, tujuanPemdaId)
+func (repository *SasaranPemdaRepositoryImpl) DeleteIndikator(ctx context.Context, tx *sql.Tx, sasaranPemdaId int) error {
+	query := "DELETE FROM tb_indikator WHERE sasaran_pemda_id = ?"
+	_, err := tx.ExecContext(ctx, query, sasaranPemdaId)
 	return err
 }
 
-func (repository *TujuanPemdaRepositoryImpl) IsIdExists(ctx context.Context, tx *sql.Tx, id int) bool {
-	query := "SELECT COUNT(*) FROM tb_tujuan_pemda WHERE id = ?"
+func (repository *SasaranPemdaRepositoryImpl) IsIdExists(ctx context.Context, tx *sql.Tx, id int) bool {
+	query := "SELECT COUNT(*) FROM tb_sasaran_pemda WHERE id = ?"
 	var count int
 	err := tx.QueryRowContext(ctx, query, id).Scan(&count)
 	if err != nil {
@@ -441,51 +441,51 @@ func (repository *TujuanPemdaRepositoryImpl) IsIdExists(ctx context.Context, tx 
 	return count > 0
 }
 
-func (repository *TujuanPemdaRepositoryImpl) UpdatePeriode(ctx context.Context, tx *sql.Tx, tujuanPemda domain.TujuanPemda) (domain.TujuanPemda, error) {
+func (repository *SasaranPemdaRepositoryImpl) UpdatePeriode(ctx context.Context, tx *sql.Tx, sasaranPemda domain.SasaranPemda) (domain.SasaranPemda, error) {
 	// Update hanya periode_id
-	query := "UPDATE tb_tujuan_pemda SET periode_id = ? WHERE id = ?"
-	result, err := tx.ExecContext(ctx, query, tujuanPemda.PeriodeId, tujuanPemda.Id)
+	query := "UPDATE tb_sasaran_pemda SET periode_id = ? WHERE id = ?"
+	result, err := tx.ExecContext(ctx, query, sasaranPemda.PeriodeId, sasaranPemda.Id)
 	if err != nil {
-		return domain.TujuanPemda{}, err
+		return domain.SasaranPemda{}, err
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return domain.TujuanPemda{}, err
+		return domain.SasaranPemda{}, err
 	}
 
 	if rowsAffected == 0 {
-		return domain.TujuanPemda{}, fmt.Errorf("periode dengan id %d sudah digunakan", tujuanPemda.PeriodeId)
+		return domain.SasaranPemda{}, fmt.Errorf("periode dengan id %d sudah digunakan", sasaranPemda.PeriodeId)
 	}
 
 	// Ambil data terbaru setelah update
 	query = `
         SELECT 
             tp.id,
-            tp.tujuan_pemda_id,
+            tp.sasaran_pemda_id,
             tp.rumus_perhitungan,
             tp.sumber_data,
             tp.periode_id,
             COALESCE(p.tahun_awal, 'Pilih periode') as tahun_awal,
             COALESCE(p.tahun_akhir, 'Pilih periode') as tahun_akhir
         FROM 
-            tb_tujuan_pemda tp
+            tb_sasaran_pemda tp
             LEFT JOIN tb_periode p ON tp.periode_id = p.id
         WHERE tp.id = ?`
 
-	var updatedTujuanPemda domain.TujuanPemda
-	err = tx.QueryRowContext(ctx, query, tujuanPemda.Id).Scan(
-		&updatedTujuanPemda.Id,
-		&updatedTujuanPemda.TujuanPemdaId,
-		&updatedTujuanPemda.RumusPerhitungan,
-		&updatedTujuanPemda.SumberData,
-		&updatedTujuanPemda.PeriodeId,
-		&updatedTujuanPemda.Periode.TahunAwal,
-		&updatedTujuanPemda.Periode.TahunAkhir,
+	var updatedSasaranPemda domain.SasaranPemda
+	err = tx.QueryRowContext(ctx, query, sasaranPemda.Id).Scan(
+		&updatedSasaranPemda.Id,
+		&updatedSasaranPemda.SasaranPemdaId,
+		&updatedSasaranPemda.RumusPerhitungan,
+		&updatedSasaranPemda.SumberData,
+		&updatedSasaranPemda.PeriodeId,
+		&updatedSasaranPemda.Periode.TahunAwal,
+		&updatedSasaranPemda.Periode.TahunAkhir,
 	)
 	if err != nil {
-		return domain.TujuanPemda{}, fmt.Errorf("gagal mengambil data setelah update: %v", err)
+		return domain.SasaranPemda{}, fmt.Errorf("gagal mengambil data setelah update: %v", err)
 	}
 
-	return updatedTujuanPemda, nil
+	return updatedSasaranPemda, nil
 }

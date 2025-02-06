@@ -3,7 +3,7 @@ package controller
 import (
 	"ekak_kabupaten_madiun/helper"
 	"ekak_kabupaten_madiun/model/web"
-	"ekak_kabupaten_madiun/model/web/tujuanpemda"
+	"ekak_kabupaten_madiun/model/web/sasaranpemda"
 	"ekak_kabupaten_madiun/service"
 	"net/http"
 	"strconv"
@@ -11,23 +11,23 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-type TujuanPemdaControllerImpl struct {
-	TujuanPemdaService service.TujuanPemdaService
+type SasaranPemdaControllerImpl struct {
+	sasaranPemdaService service.SasaranPemdaService
 }
 
-func NewTujuanPemdaControllerImpl(tujuanPemdaService service.TujuanPemdaService) *TujuanPemdaControllerImpl {
-	return &TujuanPemdaControllerImpl{
-		TujuanPemdaService: tujuanPemdaService,
+func NewSasaranPemdaControllerImpl(sasaranPemdaService service.SasaranPemdaService) *SasaranPemdaControllerImpl {
+	return &SasaranPemdaControllerImpl{
+		sasaranPemdaService: sasaranPemdaService,
 	}
 }
 
-func (controller *TujuanPemdaControllerImpl) Create(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+func (controller *SasaranPemdaControllerImpl) Create(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	// Decode request body
-	tujuanPemdaCreateRequest := tujuanpemda.TujuanPemdaCreateRequest{}
-	helper.ReadFromRequestBody(request, &tujuanPemdaCreateRequest)
+	sasaranPemdaCreateRequest := sasaranpemda.SasaranPemdaCreateRequest{}
+	helper.ReadFromRequestBody(request, &sasaranPemdaCreateRequest)
 
 	// Panggil service create
-	tujuanPemdaResponse, err := controller.TujuanPemdaService.Create(request.Context(), tujuanPemdaCreateRequest)
+	sasaranPemdaResponse, err := controller.sasaranPemdaService.Create(request.Context(), sasaranPemdaCreateRequest)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   http.StatusInternalServerError,
@@ -40,15 +40,15 @@ func (controller *TujuanPemdaControllerImpl) Create(writer http.ResponseWriter, 
 
 	webResponse := web.WebResponse{
 		Code:   http.StatusCreated,
-		Status: "success create tujuan pemda",
-		Data:   tujuanPemdaResponse,
+		Status: "success create sasaran pemda",
+		Data:   sasaranPemdaResponse,
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }
 
-func (controller *TujuanPemdaControllerImpl) Update(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	tujuanPemdaUpdateRequest := tujuanpemda.TujuanPemdaUpdateRequest{}
-	helper.ReadFromRequestBody(request, &tujuanPemdaUpdateRequest)
+func (controller *SasaranPemdaControllerImpl) Update(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	sasaranPemdaUpdateRequest := sasaranpemda.SasaranPemdaUpdateRequest{}
+	helper.ReadFromRequestBody(request, &sasaranPemdaUpdateRequest)
 
 	id := params.ByName("id")
 	idInt, err := strconv.Atoi(id)
@@ -61,10 +61,10 @@ func (controller *TujuanPemdaControllerImpl) Update(writer http.ResponseWriter, 
 		helper.WriteToResponseBody(writer, webResponse)
 		return
 	}
-	tujuanPemdaUpdateRequest.Id = idInt
+	sasaranPemdaUpdateRequest.Id = idInt
 
 	// Panggil service update
-	tujuanPemdaResponse, err := controller.TujuanPemdaService.Update(request.Context(), tujuanPemdaUpdateRequest)
+	sasaranPemdaResponse, err := controller.sasaranPemdaService.Update(request.Context(), sasaranPemdaUpdateRequest)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   http.StatusInternalServerError,
@@ -77,15 +77,15 @@ func (controller *TujuanPemdaControllerImpl) Update(writer http.ResponseWriter, 
 
 	webResponse := web.WebResponse{
 		Code:   http.StatusOK,
-		Status: "success update tujuan pemda",
-		Data:   tujuanPemdaResponse,
+		Status: "success update sasaran pemda",
+		Data:   sasaranPemdaResponse,
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }
 
-func (controller *TujuanPemdaControllerImpl) Delete(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	tujuanPemdaId := params.ByName("id")
-	id, err := strconv.Atoi(tujuanPemdaId)
+func (controller *SasaranPemdaControllerImpl) Delete(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	sasaranPemdaId := params.ByName("id")
+	id, err := strconv.Atoi(sasaranPemdaId)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   http.StatusBadRequest,
@@ -96,7 +96,7 @@ func (controller *TujuanPemdaControllerImpl) Delete(writer http.ResponseWriter, 
 		return
 	}
 
-	err = controller.TujuanPemdaService.Delete(request.Context(), id)
+	err = controller.sasaranPemdaService.Delete(request.Context(), id)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   http.StatusInternalServerError,
@@ -109,15 +109,16 @@ func (controller *TujuanPemdaControllerImpl) Delete(writer http.ResponseWriter, 
 
 	webResponse := web.WebResponse{
 		Code:   http.StatusOK,
-		Status: "OK",
+		Status: "success delete sasaran pemda",
+		Data:   nil,
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }
 
-func (controller *TujuanPemdaControllerImpl) FindById(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	tujuanPemdaId := params.ByName("id")
+func (controller *SasaranPemdaControllerImpl) FindById(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	sasaranPemdaId := params.ByName("id")
 
-	id, err := strconv.Atoi(tujuanPemdaId)
+	id, err := strconv.Atoi(sasaranPemdaId)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   http.StatusBadRequest,
@@ -128,7 +129,7 @@ func (controller *TujuanPemdaControllerImpl) FindById(writer http.ResponseWriter
 		return
 	}
 
-	tujuanPemdaResponse, err := controller.TujuanPemdaService.FindById(request.Context(), id)
+	sasaranPemdaResponse, err := controller.sasaranPemdaService.FindById(request.Context(), id)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   http.StatusNotFound,
@@ -141,15 +142,15 @@ func (controller *TujuanPemdaControllerImpl) FindById(writer http.ResponseWriter
 
 	webResponse := web.WebResponse{
 		Code:   http.StatusOK,
-		Status: "OK",
-		Data:   tujuanPemdaResponse,
+		Status: "success get sasaran pemda by id",
+		Data:   sasaranPemdaResponse,
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }
 
-func (controller *TujuanPemdaControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+func (controller *SasaranPemdaControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	tahun := params.ByName("tahun")
-	tujuanPemdaResponses, err := controller.TujuanPemdaService.FindAll(request.Context(), tahun)
+	sasaranPemdaResponses, err := controller.sasaranPemdaService.FindAll(request.Context(), tahun)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   http.StatusInternalServerError,
@@ -162,15 +163,15 @@ func (controller *TujuanPemdaControllerImpl) FindAll(writer http.ResponseWriter,
 
 	webResponse := web.WebResponse{
 		Code:   http.StatusOK,
-		Status: "OK",
-		Data:   tujuanPemdaResponses,
+		Status: "success get sasaran pemda",
+		Data:   sasaranPemdaResponses,
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }
 
-func (controller *TujuanPemdaControllerImpl) UpdatePeriode(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	tujuanPemdaUpdateRequest := tujuanpemda.TujuanPemdaUpdateRequest{}
-	helper.ReadFromRequestBody(request, &tujuanPemdaUpdateRequest)
+func (controller *SasaranPemdaControllerImpl) UpdatePeriode(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	sasaranPemdaUpdateRequest := sasaranpemda.SasaranPemdaUpdateRequest{}
+	helper.ReadFromRequestBody(request, &sasaranPemdaUpdateRequest)
 
 	id := params.ByName("id")
 	idInt, err := strconv.Atoi(id)
@@ -183,10 +184,10 @@ func (controller *TujuanPemdaControllerImpl) UpdatePeriode(writer http.ResponseW
 		helper.WriteToResponseBody(writer, webResponse)
 		return
 	}
-	tujuanPemdaUpdateRequest.Id = idInt
+	sasaranPemdaUpdateRequest.Id = idInt
 
 	// Panggil service update
-	tujuanPemdaResponse, err := controller.TujuanPemdaService.UpdatePeriode(request.Context(), tujuanPemdaUpdateRequest)
+	sasaranPemdaResponse, err := controller.sasaranPemdaService.UpdatePeriode(request.Context(), sasaranPemdaUpdateRequest)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   http.StatusInternalServerError,
@@ -199,8 +200,8 @@ func (controller *TujuanPemdaControllerImpl) UpdatePeriode(writer http.ResponseW
 
 	webResponse := web.WebResponse{
 		Code:   http.StatusOK,
-		Status: "success update periode tujuan pemda",
-		Data:   tujuanPemdaResponse,
+		Status: "success update periode sasaran pemda",
+		Data:   sasaranPemdaResponse,
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }

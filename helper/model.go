@@ -180,20 +180,7 @@ func ToUsulanMusrebangResponses(usulanMusrebangs []domain.UsulanMusrebang) []usu
 }
 
 func ToUsulanMandatoriResponse(usulanMandatori domain.UsulanMandatori) usulan.UsulanMandatoriResponse {
-	host := os.Getenv("host")
-	port := os.Getenv("port")
-	buttonActions := []web.ActionButton{
-		{
-			NameAction: "Find Id Usulan Mandatori",
-			Method:     "GET",
-			Url:        fmt.Sprintf("%s:%s/usulan_mandatori/detail/:id", host, port),
-		},
-		{
-			NameAction: "Delete Usulan Mandatori Terpilih",
-			Method:     "DELETE",
-			Url:        fmt.Sprintf("%s:%s/usulan_terpilih/delete/:id_usulan", host, port),
-		},
-	}
+
 	return usulan.UsulanMandatoriResponse{
 		Id:               usulanMandatori.Id,
 		Usulan:           usulanMandatori.Usulan,
@@ -202,11 +189,11 @@ func ToUsulanMandatoriResponse(usulanMandatori domain.UsulanMandatori) usulan.Us
 		Tahun:            usulanMandatori.Tahun,
 		RekinId:          usulanMandatori.RekinId,
 		PegawaiId:        usulanMandatori.PegawaiId,
+		NamaPegawai:      usulanMandatori.NamaPegawai,
 		KodeOpd:          usulanMandatori.KodeOpd,
 		Status:           usulanMandatori.Status,
 		IsActive:         usulanMandatori.IsActive,
 		CreatedAt:        usulanMandatori.CreatedAt.Format("2006-01-02"),
-		Action:           buttonActions,
 	}
 }
 

@@ -43,7 +43,7 @@ func (repository *UsulanMandatoriRepositoryImpl) FindAll(ctx context.Context, tx
 		args = append(args, *rekinId)
 	}
 
-	script += " order by created_at desc"
+	script += " order by created_at asc"
 
 	rows, err := tx.QueryContext(ctx, script, args...)
 	if err != nil {

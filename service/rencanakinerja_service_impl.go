@@ -693,9 +693,9 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 		for _, um := range usulanMusrebang {
 			usulanGabungan = append(usulanGabungan, rencanakinerja.UsulanGabunganResponse{
 				Id:          um.Id,
-				JenisUsulan: "musrebang",
 				Usulan:      um.Usulan,
 				Uraian:      um.Uraian,
+				JenisUsulan: "usulan_musrebang",
 				Tahun:       um.Tahun,
 				RekinId:     um.RekinId,
 				KodeOpd:     um.KodeOpd,
@@ -705,13 +705,29 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 			})
 		}
 
+		// Proses usulan pokok pikiran
+		for _, up := range usulanPokokPikiran {
+			usulanGabungan = append(usulanGabungan, rencanakinerja.UsulanGabunganResponse{
+				Id:          up.Id,
+				Usulan:      up.Usulan,
+				Uraian:      up.Uraian,
+				JenisUsulan: "usulan_pokok_pikiran",
+				Tahun:       up.Tahun,
+				RekinId:     up.RekinId,
+				KodeOpd:     up.KodeOpd,
+				IsActive:    up.IsActive,
+				Status:      up.Status,
+				Alamat:      up.Alamat,
+			})
+		}
+
 		// Proses usulan mandatori
 		for _, um := range usulanMandatori {
 			usulanGabungan = append(usulanGabungan, rencanakinerja.UsulanGabunganResponse{
 				Id:               um.Id,
-				JenisUsulan:      "mandatori",
 				Usulan:           um.Usulan,
 				Uraian:           um.Uraian,
+				JenisUsulan:      "usulan_mandatori",
 				Tahun:            um.Tahun,
 				RekinId:          um.RekinId,
 				PegawaiId:        um.PegawaiId,
@@ -722,29 +738,13 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 			})
 		}
 
-		// Proses usulan pokok pikiran
-		for _, up := range usulanPokokPikiran {
-			usulanGabungan = append(usulanGabungan, rencanakinerja.UsulanGabunganResponse{
-				Id:          up.Id,
-				JenisUsulan: "pokok_pikiran",
-				Usulan:      up.Usulan,
-				Uraian:      up.Uraian,
-				Tahun:       up.Tahun,
-				RekinId:     up.RekinId,
-				KodeOpd:     up.KodeOpd,
-				IsActive:    up.IsActive,
-				Status:      up.Status,
-				Alamat:      up.Alamat,
-			})
-		}
-
 		// Proses usulan inisiatif
 		for _, ui := range usulanInisiatif {
 			usulanGabungan = append(usulanGabungan, rencanakinerja.UsulanGabunganResponse{
 				Id:          ui.Id,
-				JenisUsulan: "inisiatif",
 				Usulan:      ui.Usulan,
 				Uraian:      ui.Uraian,
+				JenisUsulan: "usulan_inisiatif",
 				Tahun:       ui.Tahun,
 				RekinId:     ui.RekinId,
 				PegawaiId:   ui.PegawaiId,

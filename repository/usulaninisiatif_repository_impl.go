@@ -51,7 +51,7 @@ func (repository *UsulanInisiatifRepositoryImpl) FindAll(ctx context.Context, tx
 		params = append(params, *rekinId)
 	}
 
-	script += " order by created_at desc"
+	script += " order by created_at asc"
 
 	rows, err := tx.QueryContext(ctx, script, params...)
 	if err != nil {

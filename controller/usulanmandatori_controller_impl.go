@@ -114,6 +114,7 @@ func (controller *UsulanMandatoriControllerImpl) FindAll(writer http.ResponseWri
 	pegawaiID := params.ByName("pegawai_id")
 	rekinID := params.ByName("rencana_kinerja_id")
 	isActive := request.URL.Query().Get("is_active")
+	kodeOpd := request.URL.Query().Get("kode_opd")
 
 	var pegawaiIDPtr *string
 	if pegawaiID != "" {
@@ -140,7 +141,12 @@ func (controller *UsulanMandatoriControllerImpl) FindAll(writer http.ResponseWri
 		isActivePtr = &isActiveBool
 	}
 
-	usulanMandatoriResponses, err := controller.UsulanMandatoriService.FindAll(request.Context(), pegawaiIDPtr, isActivePtr, rekinIDPtr)
+	var kodeOpdPtr *string
+	if kodeOpd != "" {
+		kodeOpdPtr = &kodeOpd
+	}
+
+	usulanMandatoriResponses, err := controller.UsulanMandatoriService.FindAll(request.Context(), kodeOpdPtr, pegawaiIDPtr, isActivePtr, rekinIDPtr)
 	if err != nil {
 		webResponse := web.WebUsulanMandatoriResponse{
 			Code:   http.StatusBadRequest,
@@ -215,6 +221,7 @@ func (controller *UsulanMandatoriControllerImpl) FindAllByRekin(writer http.Resp
 	pegawaiID := params.ByName("pegawai_id")
 	rekinID := params.ByName("rencana_kinerja_id")
 	isActive := request.URL.Query().Get("is_active")
+	kodeOpd := request.URL.Query().Get("kode_opd")
 
 	var pegawaiIDPtr *string
 	if pegawaiID != "" {
@@ -241,7 +248,12 @@ func (controller *UsulanMandatoriControllerImpl) FindAllByRekin(writer http.Resp
 		isActivePtr = &isActiveBool
 	}
 
-	usulanMandatoriResponses, err := controller.UsulanMandatoriService.FindAll(request.Context(), pegawaiIDPtr, isActivePtr, rekinIDPtr)
+	var kodeOpdPtr *string
+	if kodeOpd != "" {
+		kodeOpdPtr = &kodeOpd
+	}
+
+	usulanMandatoriResponses, err := controller.UsulanMandatoriService.FindAll(request.Context(), kodeOpdPtr, pegawaiIDPtr, isActivePtr, rekinIDPtr)
 	if err != nil {
 		webResponse := web.WebUsulanMandatoriResponse{
 			Code:        http.StatusBadRequest,

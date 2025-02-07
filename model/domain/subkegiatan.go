@@ -9,7 +9,8 @@ type SubKegiatan struct {
 	KodeOpd              string
 	NamaOpd              string
 	Tahun                string
-	PegawaiId            string
+	RekinId              string
+	Status               string
 	CreatedAt            time.Time
 	Indikator            []Indikator
 	IndikatorSubKegiatan []IndikatorSubKegiatan

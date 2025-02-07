@@ -14,12 +14,16 @@ import (
 
 type UsulanMandatoriServiceImpl struct {
 	usulanMandatoriRepository repository.UsulanMandatoriRepository
+	pegawaiRepository         repository.PegawaiRepository
+	opdRepository             repository.OpdRepository
 	DB                        *sql.DB
 }
 
-func NewUsulanMandatoriServiceImpl(usulanMandatoriRepository repository.UsulanMandatoriRepository, DB *sql.DB) *UsulanMandatoriServiceImpl {
+func NewUsulanMandatoriServiceImpl(usulanMandatoriRepository repository.UsulanMandatoriRepository, pegawaiRepository repository.PegawaiRepository, opdRepository repository.OpdRepository, DB *sql.DB) *UsulanMandatoriServiceImpl {
 	return &UsulanMandatoriServiceImpl{
 		usulanMandatoriRepository: usulanMandatoriRepository,
+		pegawaiRepository:         pegawaiRepository,
+		opdRepository:             opdRepository,
 		DB:                        DB,
 	}
 }
@@ -34,6 +38,22 @@ func (service *UsulanMandatoriServiceImpl) Create(ctx context.Context, request u
 	randomDigits := fmt.Sprintf("%05d", uuid.New().ID()%100000)
 	uuId := fmt.Sprintf("USU-MAND-%s", randomDigits)
 
+	pegawai, err := service.pegawaiRepository.FindByNip(ctx, tx, request.PegawaiId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return usulan.UsulanMandatoriResponse{}, fmt.Errorf("pegawai dengan NIP %s tidak ditemukan dalam database", request.PegawaiId)
+		}
+		return usulan.UsulanMandatoriResponse{}, fmt.Errorf("terjadi kesalahan saat mencari data pegawai: %v", err)
+	}
+
+	opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, request.KodeOpd)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return usulan.UsulanMandatoriResponse{}, fmt.Errorf("OPD dengan kode %s tidak ditemukan dalam database", request.KodeOpd)
+		}
+		return usulan.UsulanMandatoriResponse{}, fmt.Errorf("terjadi kesalahan saat mencari data OPD: %v", err)
+	}
+
 	domainUsulanMandatori := domain.UsulanMandatori{
 		Id:               uuId,
 		Usulan:           request.Usulan,
@@ -41,8 +61,8 @@ func (service *UsulanMandatoriServiceImpl) Create(ctx context.Context, request u
 		Uraian:           request.Uraian,
 		Tahun:            request.Tahun,
 		RekinId:          request.RekinId,
-		PegawaiId:        request.PegawaiId,
-		KodeOpd:          request.KodeOpd,
+		PegawaiId:        pegawai.Nip,
+		KodeOpd:          opd.KodeOpd,
 		Status:           request.Status,
 	}
 
@@ -66,11 +86,16 @@ func (service *UsulanMandatoriServiceImpl) Update(ctx context.Context, request u
 		return usulan.UsulanMandatoriResponse{}, err
 	}
 
+	pegawai, err := service.pegawaiRepository.FindByNip(ctx, tx, request.PegawaiId)
+	if err != nil {
+		return usulan.UsulanMandatoriResponse{}, err
+	}
+
 	existingUsulan.Usulan = request.Usulan
 	existingUsulan.PeraturanTerkait = request.PeraturanTerkait
 	existingUsulan.Uraian = request.Uraian
 	existingUsulan.Tahun = request.Tahun
-	existingUsulan.PegawaiId = request.PegawaiId
+	existingUsulan.PegawaiId = pegawai.Nip
 	existingUsulan.KodeOpd = request.KodeOpd
 	existingUsulan.Status = request.Status
 
@@ -97,17 +122,30 @@ func (service *UsulanMandatoriServiceImpl) FindById(ctx context.Context, idUsula
 	return helper.ToUsulanMandatoriResponse(usulanMandatori), nil
 }
 
-func (service *UsulanMandatoriServiceImpl) FindAll(ctx context.Context, pegawaiId *string, isActive *bool, rekinId *string) ([]usulan.UsulanMandatoriResponse, error) {
+func (service *UsulanMandatoriServiceImpl) FindAll(ctx context.Context, kodeOpd *string, pegawaiId *string, isActive *bool, rekinId *string) ([]usulan.UsulanMandatoriResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return []usulan.UsulanMandatoriResponse{}, err
 	}
 	defer helper.CommitOrRollback(tx)
 
-	usulanMandatoris, err := service.usulanMandatoriRepository.FindAll(ctx, tx, pegawaiId, isActive, rekinId)
+	usulanMandatoris, err := service.usulanMandatoriRepository.FindAll(ctx, tx, kodeOpd, pegawaiId, isActive, rekinId)
 	if err != nil {
 		return []usulan.UsulanMandatoriResponse{}, err
 	}
+
+	// Jika tidak ada data, langsung kembalikan slice kosong
+	if len(usulanMandatoris) == 0 {
+		return []usulan.UsulanMandatoriResponse{}, nil
+	}
+
+	// Hanya cari data pegawai jika ada usulan mandatori
+	pegawai, err := service.pegawaiRepository.FindByNip(ctx, tx, usulanMandatoris[0].PegawaiId)
+	if err != nil {
+		return []usulan.UsulanMandatoriResponse{}, err
+	}
+
+	usulanMandatoris[0].NamaPegawai = pegawai.NamaPegawai
 
 	return helper.ToUsulanMandatoriResponses(usulanMandatoris), nil
 }

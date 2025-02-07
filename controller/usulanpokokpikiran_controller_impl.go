@@ -5,9 +5,7 @@ import (
 	"ekak_kabupaten_madiun/model/web"
 	"ekak_kabupaten_madiun/model/web/usulan"
 	"ekak_kabupaten_madiun/service"
-	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
@@ -26,22 +24,6 @@ func NewUsulanPokokPikiranControllerImpl(usulanPokokPikiranService service.Usula
 func (controller *UsulanPokokPikiranControllerImpl) Create(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	usulanPokokPikiranCreateRequest := usulan.UsulanPokokPikiranCreateRequest{}
 	helper.ReadFromRequestBody(request, &usulanPokokPikiranCreateRequest)
-
-	pegawaiID := params.ByName("pegawai_id")
-	if pegawaiID == "" {
-		pegawaiID = usulanPokokPikiranCreateRequest.PegawaiId
-	}
-
-	if pegawaiID == "" {
-		webResponse := web.WebUsulanPokokPikiranResponse{
-			Code:   http.StatusBadRequest,
-			Status: "BAD REQUEST",
-			Data:   "Invalid pegawai_id: tidak ditemukan di parameter URL atau body request",
-		}
-		helper.WriteToResponseBody(writer, webResponse)
-		return
-	}
-	usulanPokokPikiranCreateRequest.PegawaiId = pegawaiID
 
 	usulanPokokPikiranResponse, err := controller.UsulanPokokPikiranService.Create(request.Context(), usulanPokokPikiranCreateRequest)
 	if err != nil {
@@ -78,19 +60,6 @@ func (controller *UsulanPokokPikiranControllerImpl) Update(writer http.ResponseW
 	}
 	usulanPokokPikiranUpdateRequest.Id = idUsulan
 
-	pegawaiID := params.ByName("pegawai_id")
-	if pegawaiID != "" {
-		if usulanPokokPikiranUpdateRequest.PegawaiId != pegawaiID {
-			webResponse := web.WebUsulanPokokPikiranResponse{
-				Code:   http.StatusForbidden,
-				Status: "FORBIDDEN",
-				Data:   "Tidak dapat mengedit usulan pegawai lain",
-			}
-			helper.WriteToResponseBody(writer, webResponse)
-			return
-		}
-	}
-
 	usulanPokokPikiranResponse, err := controller.UsulanPokokPikiranService.Update(request.Context(), usulanPokokPikiranUpdateRequest)
 	if err != nil {
 		webResponse := web.WebUsulanPokokPikiranResponse{
@@ -111,13 +80,14 @@ func (controller *UsulanPokokPikiranControllerImpl) Update(writer http.ResponseW
 }
 
 func (controller *UsulanPokokPikiranControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	pegawaiID := params.ByName("pegawai_id")
+	kodeOpd := params.ByName("kode_opd")
 	rekinID := params.ByName("rencana_kinerja_id")
 	isActive := request.URL.Query().Get("is_active")
+	status := request.URL.Query().Get("status")
 
-	var pegawaiIDPtr *string
-	if pegawaiID != "" {
-		pegawaiIDPtr = &pegawaiID
+	var kodeOpdPtr *string
+	if kodeOpd != "" {
+		kodeOpdPtr = &kodeOpd
 	}
 
 	var rekinIDPtr *string
@@ -139,7 +109,13 @@ func (controller *UsulanPokokPikiranControllerImpl) FindAll(writer http.Response
 		}
 		isActivePtr = &isActiveBool
 	}
-	usulanPokokPikiranResponses, err := controller.UsulanPokokPikiranService.FindAll(request.Context(), pegawaiIDPtr, isActivePtr, rekinIDPtr)
+
+	var statusPtr *string
+	if status != "" {
+		statusPtr = &status
+	}
+
+	usulanPokokPikiranResponses, err := controller.UsulanPokokPikiranService.FindAll(request.Context(), kodeOpdPtr, isActivePtr, rekinIDPtr, statusPtr)
 	if err != nil {
 		webResponse := web.WebUsulanPokokPikiranResponse{
 			Code:   http.StatusBadRequest,
@@ -211,13 +187,14 @@ func (controller *UsulanPokokPikiranControllerImpl) Delete(writer http.ResponseW
 }
 
 func (controller *UsulanPokokPikiranControllerImpl) FindAllByRekin(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	pegawaiID := params.ByName("pegawai_id")
+	kodeOpd := params.ByName("kode_opd")
 	rekinID := params.ByName("rencana_kinerja_id")
 	isActive := request.URL.Query().Get("is_active")
+	status := request.URL.Query().Get("status")
 
-	var pegawaiIDPtr *string
-	if pegawaiID != "" {
-		pegawaiIDPtr = &pegawaiID
+	var kodeOpdPtr *string
+	if kodeOpd != "" {
+		kodeOpdPtr = &kodeOpd
 	}
 
 	var rekinIDPtr *string
@@ -240,38 +217,12 @@ func (controller *UsulanPokokPikiranControllerImpl) FindAllByRekin(writer http.R
 		isActivePtr = &isActiveBool
 	}
 
-	host := os.Getenv("host")
-	port := os.Getenv("port")
-
-	buttonActions := []web.ActionButton{
-		{
-			NameAction: "Create Usulan Pokok Pikiran",
-			Method:     "POST",
-			Url:        fmt.Sprintf("%s:%s/usulan_pokok_pikiran/create", host, port),
-		},
-		{
-			NameAction: "Update Usulan Pokok Pikiran",
-			Method:     "PUT",
-			Url:        fmt.Sprintf("%s:%s/usulan_pokok_pikiran/update/:id", host, port),
-		},
-		{
-			NameAction: "Delete Usulan Pokok Pikiran",
-			Method:     "DELETE",
-			Url:        fmt.Sprintf("%s:%s/usulan_pokok_pikiran/delete/:id", host, port),
-		},
-		{
-			NameAction: "Pilihan Usulan Musrebang",
-			Method:     "GET",
-			Url:        fmt.Sprintf("%s:%s/usulan_pokok_pikiran/pilihan", host, port),
-		},
-		{
-			NameAction:  "Create Usulan Yang Dipilih",
-			Method:      "POST",
-			Url:         fmt.Sprintf("%s:%s/usulan_terpilih/create", host, port),
-			JenisUsulan: "pokok_pikiran",
-		},
+	var statusPtr *string
+	if status != "" {
+		statusPtr = &status
 	}
-	usulanPokokPikiranResponses, err := controller.UsulanPokokPikiranService.FindAll(request.Context(), pegawaiIDPtr, isActivePtr, rekinIDPtr)
+
+	usulanPokokPikiranResponses, err := controller.UsulanPokokPikiranService.FindAll(request.Context(), kodeOpdPtr, isActivePtr, rekinIDPtr, statusPtr)
 	if err != nil {
 		webResponse := web.WebUsulanPokokPikiranResponse{
 			Code:        http.StatusBadRequest,
@@ -286,7 +237,53 @@ func (controller *UsulanPokokPikiranControllerImpl) FindAllByRekin(writer http.R
 		Code:        http.StatusOK,
 		Status:      "berhasil mendapatkan semua usulan pokok pikiran",
 		DataPilihan: usulanPokokPikiranResponses,
-		Action:      buttonActions,
+	}
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *UsulanPokokPikiranControllerImpl) CreateRekin(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	usulanPokokPikiranCreateRekinRequest := usulan.UsulanPokokPikiranCreateRekinRequest{}
+	helper.ReadFromRequestBody(request, &usulanPokokPikiranCreateRekinRequest)
+
+	idRekin := params.ByName("rencana_kinerja_id")
+	usulanPokokPikiranCreateRekinRequest.RekinId = idRekin
+
+	usulanPokokPikiranResponse, err := controller.UsulanPokokPikiranService.CreateRekin(request.Context(), usulanPokokPikiranCreateRekinRequest)
+	if err != nil {
+		webResponse := web.WebUsulanPokokPikiranResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebUsulanPokokPikiranResponse{
+		Code:   http.StatusOK,
+		Status: "success create usulan pokok pikiran",
+		Data:   usulanPokokPikiranResponse,
+	}
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *UsulanPokokPikiranControllerImpl) DeleteUsulanTerpilih(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	idUsulan := params.ByName("id")
+
+	err := controller.UsulanPokokPikiranService.DeleteUsulanTerpilih(request.Context(), idUsulan)
+	if err != nil {
+		webResponse := web.WebUsulanPokokPikiranResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebUsulanPokokPikiranResponse{
+		Code:   http.StatusOK,
+		Status: "success delete usulan pokok pikiran terpilih",
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }

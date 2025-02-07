@@ -16,8 +16,8 @@ func NewSubKegiatanRepositoryImpl() *SubKegiatanRepositoryImpl {
 }
 
 func (repository *SubKegiatanRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, subKegiatan domain.SubKegiatan) (domain.SubKegiatan, error) {
-	scriptSubKegiatan := `INSERT INTO tb_subkegiatan (id, kode_subkegiatan, nama_subkegiatan, kode_opd, tahun, pegawai_id) 
-                         VALUES (?, ?, ?, ?, ?, ?)`
+	scriptSubKegiatan := `INSERT INTO tb_subkegiatan (id, kode_subkegiatan, nama_subkegiatan, kode_opd, tahun, status, rekin_id) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?)`
 
 	_, err := tx.ExecContext(ctx, scriptSubKegiatan,
 		subKegiatan.Id,
@@ -25,7 +25,8 @@ func (repository *SubKegiatanRepositoryImpl) Create(ctx context.Context, tx *sql
 		subKegiatan.NamaSubKegiatan,
 		subKegiatan.KodeOpd,
 		subKegiatan.Tahun,
-		subKegiatan.PegawaiId)
+		subKegiatan.Status,
+		subKegiatan.RekinId)
 	if err != nil {
 		return domain.SubKegiatan{}, err
 	}
@@ -135,17 +136,21 @@ func (repository *SubKegiatanRepositoryImpl) Update(ctx context.Context, tx *sql
 	return subKegiatan, nil
 }
 
-func (repository *SubKegiatanRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, kodeOpd string, pegawaiId string) ([]domain.SubKegiatan, error) {
-	script := `SELECT id, kode_subkegiatan, nama_subkegiatan, kode_opd, pegawai_id, tahun, created_at FROM tb_subkegiatan WHERE 1=1`
+func (repository *SubKegiatanRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, kodeOpd string, rekinId string, status string) ([]domain.SubKegiatan, error) {
+	script := `SELECT id, kode_subkegiatan, nama_subkegiatan, kode_opd, rekin_id, status, tahun, created_at FROM tb_subkegiatan WHERE 1=1`
 	var params []interface{}
 
 	if kodeOpd != "" {
 		script += ` AND kode_opd = ?`
 		params = append(params, kodeOpd)
 	}
-	if pegawaiId != "" {
-		script += ` AND pegawai_id = ?`
-		params = append(params, pegawaiId)
+	if rekinId != "" {
+		script += ` AND rekin_id = ?`
+		params = append(params, rekinId)
+	}
+	if status != "" {
+		script += ` AND status = ?`
+		params = append(params, status)
 	}
 	script += ` ORDER BY created_at ASC`
 
@@ -158,7 +163,7 @@ func (repository *SubKegiatanRepositoryImpl) FindAll(ctx context.Context, tx *sq
 	var subKegiatans []domain.SubKegiatan
 	for rows.Next() {
 		subKegiatan := domain.SubKegiatan{}
-		err := rows.Scan(&subKegiatan.Id, &subKegiatan.KodeSubKegiatan, &subKegiatan.NamaSubKegiatan, &subKegiatan.KodeOpd, &subKegiatan.PegawaiId, &subKegiatan.Tahun, &subKegiatan.CreatedAt)
+		err := rows.Scan(&subKegiatan.Id, &subKegiatan.KodeSubKegiatan, &subKegiatan.NamaSubKegiatan, &subKegiatan.KodeOpd, &subKegiatan.RekinId, &subKegiatan.Status, &subKegiatan.Tahun, &subKegiatan.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -169,7 +174,7 @@ func (repository *SubKegiatanRepositoryImpl) FindAll(ctx context.Context, tx *sq
 }
 
 func (repository *SubKegiatanRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, subKegiatanId string) (domain.SubKegiatan, error) {
-	script := `SELECT id, kode_subkegiatan, pegawai_id, nama_subkegiatan, kode_opd, tahun FROM tb_subkegiatan WHERE id = ?`
+	script := `SELECT id, kode_subkegiatan, rekin_id, nama_subkegiatan, kode_opd, status, tahun FROM tb_subkegiatan WHERE id = ?`
 
 	rows, err := tx.QueryContext(ctx, script, subKegiatanId)
 	if err != nil {
@@ -179,7 +184,7 @@ func (repository *SubKegiatanRepositoryImpl) FindById(ctx context.Context, tx *s
 
 	subKegiatan := domain.SubKegiatan{}
 	if rows.Next() {
-		err := rows.Scan(&subKegiatan.Id, &subKegiatan.KodeSubKegiatan, &subKegiatan.PegawaiId, &subKegiatan.NamaSubKegiatan, &subKegiatan.KodeOpd, &subKegiatan.Tahun)
+		err := rows.Scan(&subKegiatan.Id, &subKegiatan.KodeSubKegiatan, &subKegiatan.RekinId, &subKegiatan.NamaSubKegiatan, &subKegiatan.KodeOpd, &subKegiatan.Status, &subKegiatan.Tahun)
 		if err != nil {
 			return domain.SubKegiatan{}, err
 		}
@@ -213,7 +218,7 @@ func (repository *SubKegiatanRepositoryImpl) Delete(ctx context.Context, tx *sql
 }
 
 func (repository *SubKegiatanRepositoryImpl) FindIndikatorBySubKegiatanId(ctx context.Context, tx *sql.Tx, subKegiatanId string) ([]domain.Indikator, error) {
-	script := "SELECT id, subkegiatan_id, indikator, tahun FROM tb_indikator WHERE subkegiatan_id = ?"
+	script := "SELECT id, subkegiatan_id, indikator FROM tb_indikator WHERE subkegiatan_id = ?"
 	params := []interface{}{subKegiatanId}
 
 	rows, err := tx.QueryContext(ctx, script, params...)
@@ -225,7 +230,7 @@ func (repository *SubKegiatanRepositoryImpl) FindIndikatorBySubKegiatanId(ctx co
 	var indikators []domain.Indikator
 	for rows.Next() {
 		var indikator domain.Indikator
-		err := rows.Scan(&indikator.Id, &indikator.ProgramId, &indikator.Indikator, &indikator.Tahun)
+		err := rows.Scan(&indikator.Id, &indikator.SubKegiatanId, &indikator.Indikator)
 		if err != nil {
 			return nil, err
 		}
@@ -236,7 +241,7 @@ func (repository *SubKegiatanRepositoryImpl) FindIndikatorBySubKegiatanId(ctx co
 }
 
 func (repository *SubKegiatanRepositoryImpl) FindTargetByIndikatorId(ctx context.Context, tx *sql.Tx, indikatorId string) ([]domain.Target, error) {
-	script := "SELECT id, indikator_id, target, satuan, tahun FROM tb_target WHERE indikator_id = ?"
+	script := "SELECT id, indikator_id, target, satuan FROM tb_target WHERE indikator_id = ?"
 	params := []interface{}{indikatorId}
 
 	rows, err := tx.QueryContext(ctx, script, params...)
@@ -248,7 +253,7 @@ func (repository *SubKegiatanRepositoryImpl) FindTargetByIndikatorId(ctx context
 	var targets []domain.Target
 	for rows.Next() {
 		var target domain.Target
-		err := rows.Scan(&target.Id, &target.IndikatorId, &target.Target, &target.Satuan, &target.Tahun)
+		err := rows.Scan(&target.Id, &target.IndikatorId, &target.Target, &target.Satuan)
 		if err != nil {
 			return nil, err
 		}
@@ -276,4 +281,42 @@ func (repository *SubKegiatanRepositoryImpl) FindByKodeSubKegiatan(ctx context.C
 	}
 
 	return domain.SubKegiatan{}, fmt.Errorf("subkegiatan dengan kode %s tidak ditemukan", kodeSubKegiatan)
+}
+
+func (repository *SubKegiatanRepositoryImpl) CreateRekin(ctx context.Context, tx *sql.Tx, idSubKegiatan string, rekinId string) error {
+	script := "UPDATE tb_subkegiatan SET rekin_id = ?, status = 'subkegiatan_diambil' WHERE id = ?"
+	result, err := tx.ExecContext(ctx, script, rekinId, idSubKegiatan)
+	if err != nil {
+		return fmt.Errorf("error saat mengupdate rekin subkegiatan: %v", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error saat memeriksa rows affected: %v", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("subkegiatan dengan id %s tidak ditemukan", idSubKegiatan)
+	}
+
+	return nil
+}
+
+func (repository *SubKegiatanRepositoryImpl) DeleteSubKegiatanTerpilih(ctx context.Context, tx *sql.Tx, idSubKegiatan string) error {
+	script := "UPDATE tb_subkegiatan SET rekin_id = '', status = 'belum_diambil' WHERE id = ?"
+	result, err := tx.ExecContext(ctx, script, idSubKegiatan)
+	if err != nil {
+		return fmt.Errorf("error saat menghapus subkegiatan terpilih: %v", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error saat memeriksa rows affected: %v", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("subkegiatan dengan id %s tidak ditemukan", idSubKegiatan)
+	}
+
+	return nil
 }

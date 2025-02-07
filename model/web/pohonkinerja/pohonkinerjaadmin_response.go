@@ -31,7 +31,7 @@ type TematikResponse struct {
 	JenisPohon string              `json:"jenis_pohon"`
 	LevelPohon int                 `json:"level_pohon"`
 	Keterangan string              `json:"keterangan"`
-	Indikators []IndikatorResponse `json:"indikators"`
+	Indikators []IndikatorResponse `json:"indikator"`
 	// SubTematiks []SubtematikResponse `json:"childs,omitempty"`
 	// Strategics  []StrategicResponse  `json:"strategics,omitempty"`
 	Child []interface{} `json:"childs,omitempty"`
@@ -44,7 +44,7 @@ type SubtematikResponse struct {
 	JenisPohon string              `json:"jenis_pohon"`
 	LevelPohon int                 `json:"level_pohon"`
 	Keterangan string              `json:"keterangan"`
-	Indikators []IndikatorResponse `json:"indikators"`
+	Indikators []IndikatorResponse `json:"indikator"`
 	// SubSubTematiks []SubSubTematikResponse `json:"childs,omitempty"`
 	// Strategics     []StrategicResponse     `json:"strategics,omitempty"`
 	Child []interface{} `json:"childs,omitempty"`
@@ -57,7 +57,7 @@ type SubSubTematikResponse struct {
 	JenisPohon string              `json:"jenis_pohon"`
 	LevelPohon int                 `json:"level_pohon"`
 	Keterangan string              `json:"keterangan"`
-	Indikators []IndikatorResponse `json:"indikators"`
+	Indikators []IndikatorResponse `json:"indikator"`
 	// SuperSubTematiks []SuperSubTematikResponse `json:"childs,omitempty"`
 	// Strategics       []StrategicResponse       `json:"strategics,omitempty"`
 	Child []interface{} `json:"childs,omitempty"`
@@ -70,7 +70,7 @@ type SuperSubTematikResponse struct {
 	JenisPohon string              `json:"jenis_pohon"`
 	LevelPohon int                 `json:"level_pohon"`
 	Keterangan string              `json:"keterangan"`
-	Indikators []IndikatorResponse `json:"indikators"`
+	Indikators []IndikatorResponse `json:"indikator"`
 	Childs     []interface{}       `json:"childs,omitempty"`
 }
 
@@ -84,7 +84,7 @@ type StrategicResponse struct {
 	Status     string                       `json:"status"`
 	KodeOpd    *opdmaster.OpdResponseForAll `json:"perangkat_daerah,omitempty"`
 	Pelaksana  []PelaksanaOpdResponse       `json:"pelaksana,omitempty"`
-	Indikators []IndikatorResponse          `json:"indikators"`
+	Indikators []IndikatorResponse          `json:"indikator"`
 	Childs     []interface{}                `json:"childs,omitempty"`
 }
 
@@ -98,7 +98,7 @@ type TacticalResponse struct {
 	Status     string                       `json:"status"`
 	KodeOpd    *opdmaster.OpdResponseForAll `json:"perangkat_daerah,omitempty"`
 	Pelaksana  []PelaksanaOpdResponse       `json:"pelaksana,omitempty"`
-	Indikators []IndikatorResponse          `json:"indikators"`
+	Indikators []IndikatorResponse          `json:"indikator"`
 	Childs     []interface{}                `json:"childs,omitempty"`
 }
 
@@ -112,7 +112,7 @@ type OperationalResponse struct {
 	Status     string                       `json:"status"`
 	KodeOpd    *opdmaster.OpdResponseForAll `json:"perangkat_daerah,omitempty"`
 	Pelaksana  []PelaksanaOpdResponse       `json:"pelaksana,omitempty"`
-	Indikators []IndikatorResponse          `json:"indikators"`
+	Indikators []IndikatorResponse          `json:"indikator"`
 	Childs     []interface{}                `json:"childs,omitempty"`
 }
 
@@ -126,6 +126,6 @@ type OperationalNResponse struct {
 	Status     string                       `json:"status"`
 	KodeOpd    *opdmaster.OpdResponseForAll `json:"perangkat_daerah,omitempty"`
 	Pelaksana  []PelaksanaOpdResponse       `json:"pelaksana,omitempty"`
-	Indikators []IndikatorResponse          `json:"indikators"`
+	Indikators []IndikatorResponse          `json:"indikator"`
 	Childs     []OperationalNResponse       `json:"childs,omitempty"`
 }

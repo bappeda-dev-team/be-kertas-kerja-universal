@@ -288,6 +288,42 @@ var reviewSet = wire.NewSet(
 	wire.Bind(new(controller.ReviewController), new(*controller.ReviewControllerImpl)),
 )
 
+var periodeSet = wire.NewSet(
+	repository.NewPeriodeRepositoryImpl,
+	wire.Bind(new(repository.PeriodeRepository), new(*repository.PeriodeRepositoryImpl)),
+	service.NewPeriodeServiceImpl,
+	wire.Bind(new(service.PeriodeService), new(*service.PeriodeServiceImpl)),
+	controller.NewPeriodeControllerImpl,
+	wire.Bind(new(controller.PeriodeController), new(*controller.PeriodeControllerImpl)),
+)
+
+var tujuanPemdaSet = wire.NewSet(
+	repository.NewTujuanPemdaRepositoryImpl,
+	wire.Bind(new(repository.TujuanPemdaRepository), new(*repository.TujuanPemdaRepositoryImpl)),
+	service.NewTujuanPemdaServiceImpl,
+	wire.Bind(new(service.TujuanPemdaService), new(*service.TujuanPemdaServiceImpl)),
+	controller.NewTujuanPemdaControllerImpl,
+	wire.Bind(new(controller.TujuanPemdaController), new(*controller.TujuanPemdaControllerImpl)),
+)
+
+var sasaranPemdaSet = wire.NewSet(
+	repository.NewSasaranPemdaRepositoryImpl,
+	wire.Bind(new(repository.SasaranPemdaRepository), new(*repository.SasaranPemdaRepositoryImpl)),
+	service.NewSasaranPemdaServiceImpl,
+	wire.Bind(new(service.SasaranPemdaService), new(*service.SasaranPemdaServiceImpl)),
+	controller.NewSasaranPemdaControllerImpl,
+	wire.Bind(new(controller.SasaranPemdaController), new(*controller.SasaranPemdaControllerImpl)),
+)
+
+var permasalahanRekinSet = wire.NewSet(
+	repository.NewPermasalahanRekinRepositoryImpl,
+	wire.Bind(new(repository.PermasalahanRekinRepository), new(*repository.PermasalahanRekinRepositoryImpl)),
+	service.NewPermasalahanRekinServiceImpl,
+	wire.Bind(new(service.PermasalahanRekinService), new(*service.PermasalahanRekinServiceImpl)),
+	controller.NewPermasalahanRekinControllerImpl,
+	wire.Bind(new(controller.PermasalahanRekinController), new(*controller.PermasalahanRekinControllerImpl)),
+)
+
 func InitializeServer() *http.Server {
 
 	wire.Build(
@@ -323,6 +359,10 @@ func InitializeServer() *http.Server {
 		crosscuttingOpdSet,
 		manualIKSet,
 		reviewSet,
+		periodeSet,
+		tujuanPemdaSet,
+		sasaranPemdaSet,
+		permasalahanRekinSet,
 		app.NewRouter,
 		wire.Bind(new(http.Handler), new(*httprouter.Router)),
 		middleware.NewAuthMiddleware,

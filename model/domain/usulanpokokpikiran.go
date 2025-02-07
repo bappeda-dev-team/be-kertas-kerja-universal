@@ -9,8 +9,8 @@ type UsulanPokokPikiran struct {
 	Uraian    string
 	Tahun     string
 	RekinId   string
-	PegawaiId string
 	KodeOpd   string
+	NamaOpd   string
 	IsActive  bool
 	Status    string
 	CreatedAt time.Time

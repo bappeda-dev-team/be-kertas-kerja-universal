@@ -153,7 +153,7 @@ func (controller *UsulanInisiatifControllerImpl) FindAll(writer http.ResponseWri
 
 	webResponse := web.WebUsulanInisiatifResponse{
 		Code:   http.StatusOK,
-		Status: "success find all usulan inovasi",
+		Status: "success find all usulan inisiatif",
 		Data:   usulanInovasiResponses,
 	}
 	helper.WriteToResponseBody(writer, webResponse)

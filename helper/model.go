@@ -67,20 +67,6 @@ func ToRencanaKinerjaResponses(rencanaKinerjas []domain.RencanaKinerja) []rencan
 	return rencanaKinerjaResponses
 }
 func ToUsulanMusrebangResponse(usulanMusrebang domain.UsulanMusrebang) usulan.UsulanMusrebangResponse {
-	host := os.Getenv("host")
-	port := os.Getenv("port")
-	buttonActions := []web.ActionButton{
-		{
-			NameAction: "Find Id Usulan Musrebang",
-			Method:     "GET",
-			Url:        fmt.Sprintf("%s:%s/usulan_musrebang/detail/:id", host, port),
-		},
-		{
-			NameAction: "Delete Usulan Musrebang Terpilih",
-			Method:     "DELETE",
-			Url:        fmt.Sprintf("%s:%s/usulan_terpilih/delete/:id_usulan", host, port),
-		},
-	}
 	return usulan.UsulanMusrebangResponse{
 		Id:        usulanMusrebang.Id,
 		Usulan:    usulanMusrebang.Usulan,
@@ -88,43 +74,21 @@ func ToUsulanMusrebangResponse(usulanMusrebang domain.UsulanMusrebang) usulan.Us
 		Uraian:    usulanMusrebang.Uraian,
 		Tahun:     usulanMusrebang.Tahun,
 		RekinId:   usulanMusrebang.RekinId,
-		PegawaiId: usulanMusrebang.PegawaiId,
 		KodeOpd:   usulanMusrebang.KodeOpd,
+		NamaOpd:   usulanMusrebang.NamaOpd,
 		IsActive:  usulanMusrebang.IsActive,
 		Status:    usulanMusrebang.Status,
 		CreatedAt: usulanMusrebang.CreatedAt.Format("2006-01-02"),
-		Action:    buttonActions,
 	}
 }
 
 func ToPelaksanaanRencanaAksiResponse(pelaksanaan domain.PelaksanaanRencanaAksi) rencanaaksi.PelaksanaanRencanaAksiResponse {
-	host := os.Getenv("host")
-	port := os.Getenv("port")
-
-	buttonActions := []web.ActionButton{
-		{
-			NameAction: "Find Id Pelaksanaan Rencana Aksi",
-			Method:     "GET",
-			Url:        fmt.Sprintf("%s:%s/pelaksanaan_rencana_aksi/detail/:id", host, port),
-		},
-		{
-			NameAction: "Update Pelaksanaan Rencana Aksi",
-			Method:     "PUT",
-			Url:        fmt.Sprintf("%s:%s/pelaksanaan_rencana_aksi/update/:pelaksanaanRencanaAksiId", host, port),
-		},
-		{
-			NameAction: "Delete Pelaksanaan Rencana Aksi",
-			Method:     "DELETE",
-			Url:        fmt.Sprintf("%s:%s/pelaksanaan_rencana_aksi/delete/:id", host, port),
-		},
-	}
 
 	return rencanaaksi.PelaksanaanRencanaAksiResponse{
 		Id:            pelaksanaan.Id,
 		RencanaAksiId: pelaksanaan.RencanaAksiId,
 		Bulan:         pelaksanaan.Bulan,
 		Bobot:         pelaksanaan.Bobot,
-		Action:        buttonActions,
 	}
 }
 
@@ -141,31 +105,6 @@ func ToRencanaAksiResponses(rencanaAksis []domain.RencanaAksi, pelaksanaanMap ma
 
 // Fungsi untuk mengkonversi single rencana aksi
 func ToRencanaAksiResponse(rencanaAksi domain.RencanaAksi, pelaksanaanList []domain.PelaksanaanRencanaAksi) rencanaaksi.RencanaAksiResponse {
-	host := os.Getenv("host")
-	port := os.Getenv("port")
-
-	buttonActions := []web.ActionButton{
-		{
-			NameAction: "Find Id Rencana Aksi",
-			Method:     "GET",
-			Url:        fmt.Sprintf("%s:%s/detail-rencana_aksi/:rencanaaksiId", host, port),
-		},
-		{
-			NameAction: "Update Rencana Aksi",
-			Method:     "PUT",
-			Url:        fmt.Sprintf("%s:%s/rencana_aksi/update/rencanaaksi/:rencanaaksiId", host, port),
-		},
-		{
-			NameAction: "Delete Rencana Aksi",
-			Method:     "DELETE",
-			Url:        fmt.Sprintf("%s:%s/rencana_aksi/delete/rencanaaksi/:rencanaaksiId", host, port),
-		},
-		{
-			NameAction: "Create Pelaksanaan Rencana Aksi",
-			Method:     "POST",
-			Url:        fmt.Sprintf("%s:%s/pelaksanaan_rencana_aksi/create/:rencanaAksiId", host, port),
-		},
-	}
 
 	var pelaksanaanResponses []rencanaaksi.PelaksanaanRencanaAksiResponse
 	jumlahBobot := 0
@@ -182,7 +121,6 @@ func ToRencanaAksiResponse(rencanaAksi domain.RencanaAksi, pelaksanaanList []dom
 		NamaRencanaAksi:        rencanaAksi.NamaRencanaAksi,
 		PelaksanaanRencanaAksi: pelaksanaanResponses,
 		JumlahBobot:            jumlahBobot,
-		Action:                 buttonActions,
 	}
 }
 
@@ -195,20 +133,7 @@ func ToUsulanMusrebangResponses(usulanMusrebangs []domain.UsulanMusrebang) []usu
 }
 
 func ToUsulanMandatoriResponse(usulanMandatori domain.UsulanMandatori) usulan.UsulanMandatoriResponse {
-	host := os.Getenv("host")
-	port := os.Getenv("port")
-	buttonActions := []web.ActionButton{
-		{
-			NameAction: "Find Id Usulan Mandatori",
-			Method:     "GET",
-			Url:        fmt.Sprintf("%s:%s/usulan_mandatori/detail/:id", host, port),
-		},
-		{
-			NameAction: "Delete Usulan Mandatori Terpilih",
-			Method:     "DELETE",
-			Url:        fmt.Sprintf("%s:%s/usulan_terpilih/delete/:id_usulan", host, port),
-		},
-	}
+
 	return usulan.UsulanMandatoriResponse{
 		Id:               usulanMandatori.Id,
 		Usulan:           usulanMandatori.Usulan,
@@ -217,11 +142,11 @@ func ToUsulanMandatoriResponse(usulanMandatori domain.UsulanMandatori) usulan.Us
 		Tahun:            usulanMandatori.Tahun,
 		RekinId:          usulanMandatori.RekinId,
 		PegawaiId:        usulanMandatori.PegawaiId,
+		NamaPegawai:      usulanMandatori.NamaPegawai,
 		KodeOpd:          usulanMandatori.KodeOpd,
 		Status:           usulanMandatori.Status,
 		IsActive:         usulanMandatori.IsActive,
 		CreatedAt:        usulanMandatori.CreatedAt.Format("2006-01-02"),
-		Action:           buttonActions,
 	}
 }
 
@@ -255,7 +180,6 @@ func ToUsulanPokokPikiranResponse(usulanPokokPikiran domain.UsulanPokokPikiran) 
 		Uraian:    usulanPokokPikiran.Uraian,
 		Tahun:     usulanPokokPikiran.Tahun,
 		RekinId:   usulanPokokPikiran.RekinId,
-		PegawaiId: usulanPokokPikiran.PegawaiId,
 		KodeOpd:   usulanPokokPikiran.KodeOpd,
 		Status:    usulanPokokPikiran.Status,
 		IsActive:  usulanPokokPikiran.IsActive,
@@ -508,7 +432,8 @@ func ToSubKegiatanResponse(subKegiatan domain.SubKegiatan) subkegiatan.SubKegiat
 
 	return subkegiatan.SubKegiatanResponse{
 		Id:                   subKegiatan.Id,
-		PegawaiId:            subKegiatan.PegawaiId,
+		RekinId:              subKegiatan.RekinId,
+		Status:               subKegiatan.Status,
 		NamaSubKegiatan:      subKegiatan.NamaSubKegiatan,
 		KodeOpd:              subKegiatan.KodeOpd,
 		NamaOpd:              subKegiatan.NamaOpd,

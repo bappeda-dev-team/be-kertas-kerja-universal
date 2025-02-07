@@ -39,6 +39,10 @@ func NewRouter(
 	crosscuttingOpdController controller.CrosscuttingOpdController,
 	manualIKController controller.ManualIKController,
 	reviewController controller.ReviewController,
+	periodeController controller.PeriodeController,
+	tujuanPemdaController controller.TujuanPemdaController,
+	sasaranPemdaController controller.SasaranPemdaController,
+	permasalahanRekinController controller.PermasalahanRekinController,
 ) *httprouter.Router {
 	router := httprouter.New()
 
@@ -66,15 +70,15 @@ func NewRouter(
 
 	//usulan musrebang
 	router.POST("/usulan_musrebang/create", usulanMusrebangController.Create)
-	router.POST("/usulan_musrebang/create/:pegawai_id", usulanMusrebangController.Create)
 	router.PUT("/usulan_musrebang/update/:id", usulanMusrebangController.Update)
 	router.PUT("/usulan_musrebang/update/:id/:pegawai_id", usulanMusrebangController.Update)
 	router.GET("/usulan_musrebang/detail/:id", usulanMusrebangController.FindById)
 	router.DELETE("/usulan_musrebang/delete/:id", usulanMusrebangController.Delete)
 	router.GET("/usulan_musrebang/pilihan", usulanMusrebangController.FindAll)
 	router.GET("/usulan_musrebang/findall", usulanMusrebangController.FindAll)
-
-	router.GET("/usulan_musrebang/pegawai/:pegawai_id", usulanMusrebangController.FindAll)
+	router.GET("/usulan_musrebang/opd/:kode_opd", usulanMusrebangController.FindAll)
+	router.POST("/usulan_musrebang/create_rekin/:rencana_kinerja_id", usulanMusrebangController.CreateRekin)
+	router.DELETE("/usulan_musrebang/delete_usulan_terpilih/:id", usulanMusrebangController.DeleteUsulanTerpilih)
 
 	//usulan mandatori
 	router.POST("/usulan_mandatori/create", usulanMandatoriController.Create)
@@ -96,7 +100,9 @@ func NewRouter(
 	router.DELETE("/usulan_pokok_pikiran/delete/:id", usulanPokokPikiranController.Delete)
 	router.GET("/usulan_pokok_pikiran/findall", usulanPokokPikiranController.FindAll)
 	router.GET("/usulan_pokok_pikiran/pilihan", usulanPokokPikiranController.FindAll)
-	router.GET("/usulan_pokok_pikiran/pegawai/:pegawai_id", usulanPokokPikiranController.FindAll)
+	router.GET("/usulan_pokok_pikiran/opd/:kode_opd", usulanPokokPikiranController.FindAll)
+	router.POST("/usulan_pokok_pikiran/create_rekin/:rencana_kinerja_id", usulanPokokPikiranController.CreateRekin)
+	router.DELETE("/usulan_pokok_pikiran/delete_usulan_terpilih/:id", usulanPokokPikiranController.DeleteUsulanTerpilih)
 
 	//usulan inisiatif
 	router.POST("/usulan_inisiatif/create", usulanInisiatifController.Create)
@@ -108,10 +114,6 @@ func NewRouter(
 	router.GET("/usulan_inisiatif/findall", usulanInisiatifController.FindAll)
 	router.GET("/usulan_inisiatif/pilihan", usulanInisiatifController.FindAll)
 	router.GET("/usulan_inisiatif/pegawai/:pegawai_id", usulanInisiatifController.FindAll)
-
-	//usulan terpilih
-	router.POST("/usulan_terpilih/create", usulanTerpilihController.Create)
-	router.DELETE("/usulan_terpilih/delete/:id_usulan", usulanTerpilihController.Delete)
 
 	//gambaran umum
 	router.POST("/gambaran_umum/create/:rencana_kinerja_id", gambaranUmumController.Create)
@@ -142,6 +144,8 @@ func NewRouter(
 	router.GET("/sub_kegiatan/pilihan/:kode_opd", subKegiatanController.FindAll)
 	router.GET("/sub_kegiatan/byrekinid/:rencana_kinerja_id", subKegiatanController.FindAll)
 	router.DELETE("/sub_kegiatan/delete/:id", subKegiatanController.Delete)
+	router.POST("/sub_kegiatan/create_rekin/:rencana_kinerja_id", subKegiatanController.CreateRekin)
+	router.DELETE("/sub_kegiatan/delete_subkegiatan_terpilih/:id", subKegiatanController.DeleteSubKegiatanTerpilih)
 
 	//sub kegiatan terpilih
 	router.PUT("/subkegiatanterpilih/create/:rencana_kinerja_id", subKegiatanTerpilihController.Update)
@@ -289,6 +293,35 @@ func NewRouter(
 	router.DELETE("/review_pokin/delete/:id", reviewController.Delete)
 	router.GET("/review_pokin/findall/:pokin_id", reviewController.FindAll)
 	router.GET("/review_pokin/detail/:id", reviewController.FindById)
+
+	//periode
+	router.POST("/periode/create", periodeController.Create)
+	router.PUT("/periode/update/:id", periodeController.Update)
+	router.GET("/periode/tahun/:tahun", periodeController.FindByTahun)
+
+	//tujuan pemda
+	router.POST("/tujuan_pemda/create", tujuanPemdaController.Create)
+	router.PUT("/tujuan_pemda/update/:id", tujuanPemdaController.Update)
+	router.DELETE("/tujuan_pemda/delete/:id", tujuanPemdaController.Delete)
+	router.GET("/tujuan_pemda/detail/:id", tujuanPemdaController.FindById)
+	router.GET("/tujuan_pemda/findall/:tahun", tujuanPemdaController.FindAll)
+	router.PUT("/tujuan_pemda/update_periode/:id", tujuanPemdaController.UpdatePeriode)
+	router.GET("/tujuan_pemda/findall_with_pokin/:tahun", tujuanPemdaController.FindAllWithPokin)
+
+	//sasaran pemda
+	router.POST("/sasaran_pemda/create", sasaranPemdaController.Create)
+	router.PUT("/sasaran_pemda/update/:id", sasaranPemdaController.Update)
+	router.DELETE("/sasaran_pemda/delete/:id", sasaranPemdaController.Delete)
+	router.GET("/sasaran_pemda/detail/:id", sasaranPemdaController.FindById)
+	router.GET("/sasaran_pemda/findall/:tahun", sasaranPemdaController.FindAll)
+	router.PUT("/sasaran_pemda/update_periode/:id", sasaranPemdaController.UpdatePeriode)
+
+	//permasalahan rekin
+	router.POST("/permasalahan_rekin/create", permasalahanRekinController.Create)
+	router.PUT("/permasalahan_rekin/update/:id", permasalahanRekinController.Update)
+	router.GET("/permasalahan_rekin/findall/:rekinId", permasalahanRekinController.FindAll)
+	router.GET("/permasalahan_rekin/detail/:id", permasalahanRekinController.FindById)
+	router.DELETE("/permasalahan_rekin/delete/:id", permasalahanRekinController.Delete)
 
 	return router
 }

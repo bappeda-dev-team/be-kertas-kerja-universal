@@ -10,3 +10,8 @@ type UsulanPokokPikiranCreateRequest struct {
 	KodeOpd   string `json:"kode_opd"`
 	Status    string `json:"status"`
 }
+
+type UsulanPokokPikiranCreateRekinRequest struct {
+	IdUsulan string `json:"id_usulan" validate:"required"`
+	RekinId  string `json:"rekin_id" validate:"required"`
+}

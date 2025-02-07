@@ -4,7 +4,8 @@ import "ekak_kabupaten_madiun/model/web"
 
 type SubKegiatanResponse struct {
 	Id                   string                         `json:"id,omitempty"`
-	PegawaiId            string                         `json:"pegawai_id,omitempty"`
+	RekinId              string                         `json:"rekin_id,omitempty"`
+	Status               string                         `json:"status,omitempty"`
 	KodeSubKegiatan      string                         `json:"kode_subkegiatan,omitempty"`
 	NamaSubKegiatan      string                         `json:"nama_sub_kegiatan,omitempty"`
 	KodeOpd              string                         `json:"kode_opd,omitempty"`

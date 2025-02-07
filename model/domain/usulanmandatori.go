@@ -10,6 +10,7 @@ type UsulanMandatori struct {
 	Tahun            string
 	RekinId          string
 	PegawaiId        string
+	NamaPegawai      string
 	KodeOpd          string
 	IsActive         bool
 	Status           string

@@ -319,6 +319,7 @@ func NewRouter(
 	router.PUT("/permasalahan_rekin/update/:id", permasalahanRekinController.Update)
 	router.GET("/permasalahan_rekin/findall/:rekinId", permasalahanRekinController.FindAll)
 	router.GET("/permasalahan_rekin/detail/:id", permasalahanRekinController.FindById)
+	router.DELETE("/permasalahan_rekin/delete/:id", permasalahanRekinController.Delete)
 
 	return router
 }

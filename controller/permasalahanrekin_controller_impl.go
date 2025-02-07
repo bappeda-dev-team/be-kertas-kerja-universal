@@ -107,7 +107,8 @@ func (controller *PermasalahanRekinControllerImpl) Delete(writer http.ResponseWr
 
 	webResponse := web.WebResponse{
 		Code:   200,
-		Status: "OK",
+		Status: "success delete permasalahan rekin",
+		Data:   nil,
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }

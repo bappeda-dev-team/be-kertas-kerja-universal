@@ -217,7 +217,7 @@ func (repository *SubKegiatanRepositoryImpl) Delete(ctx context.Context, tx *sql
 }
 
 func (repository *SubKegiatanRepositoryImpl) FindIndikatorBySubKegiatanId(ctx context.Context, tx *sql.Tx, subKegiatanId string) ([]domain.Indikator, error) {
-	script := "SELECT id, subkegiatan_id, indikator, tahun FROM tb_indikator WHERE subkegiatan_id = ?"
+	script := "SELECT id, subkegiatan_id, indikator FROM tb_indikator WHERE subkegiatan_id = ?"
 	params := []interface{}{subKegiatanId}
 
 	rows, err := tx.QueryContext(ctx, script, params...)
@@ -229,7 +229,7 @@ func (repository *SubKegiatanRepositoryImpl) FindIndikatorBySubKegiatanId(ctx co
 	var indikators []domain.Indikator
 	for rows.Next() {
 		var indikator domain.Indikator
-		err := rows.Scan(&indikator.Id, &indikator.ProgramId, &indikator.Indikator, &indikator.Tahun)
+		err := rows.Scan(&indikator.Id, &indikator.SubKegiatanId, &indikator.Indikator)
 		if err != nil {
 			return nil, err
 		}
@@ -240,7 +240,7 @@ func (repository *SubKegiatanRepositoryImpl) FindIndikatorBySubKegiatanId(ctx co
 }
 
 func (repository *SubKegiatanRepositoryImpl) FindTargetByIndikatorId(ctx context.Context, tx *sql.Tx, indikatorId string) ([]domain.Target, error) {
-	script := "SELECT id, indikator_id, target, satuan, tahun FROM tb_target WHERE indikator_id = ?"
+	script := "SELECT id, indikator_id, target, satuan FROM tb_target WHERE indikator_id = ?"
 	params := []interface{}{indikatorId}
 
 	rows, err := tx.QueryContext(ctx, script, params...)
@@ -252,7 +252,7 @@ func (repository *SubKegiatanRepositoryImpl) FindTargetByIndikatorId(ctx context
 	var targets []domain.Target
 	for rows.Next() {
 		var target domain.Target
-		err := rows.Scan(&target.Id, &target.IndikatorId, &target.Target, &target.Satuan, &target.Tahun)
+		err := rows.Scan(&target.Id, &target.IndikatorId, &target.Target, &target.Satuan)
 		if err != nil {
 			return nil, err
 		}

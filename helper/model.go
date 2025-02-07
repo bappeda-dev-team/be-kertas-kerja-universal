@@ -83,33 +83,12 @@ func ToUsulanMusrebangResponse(usulanMusrebang domain.UsulanMusrebang) usulan.Us
 }
 
 func ToPelaksanaanRencanaAksiResponse(pelaksanaan domain.PelaksanaanRencanaAksi) rencanaaksi.PelaksanaanRencanaAksiResponse {
-	host := os.Getenv("host")
-	port := os.Getenv("port")
-
-	buttonActions := []web.ActionButton{
-		{
-			NameAction: "Find Id Pelaksanaan Rencana Aksi",
-			Method:     "GET",
-			Url:        fmt.Sprintf("%s:%s/pelaksanaan_rencana_aksi/detail/:id", host, port),
-		},
-		{
-			NameAction: "Update Pelaksanaan Rencana Aksi",
-			Method:     "PUT",
-			Url:        fmt.Sprintf("%s:%s/pelaksanaan_rencana_aksi/update/:pelaksanaanRencanaAksiId", host, port),
-		},
-		{
-			NameAction: "Delete Pelaksanaan Rencana Aksi",
-			Method:     "DELETE",
-			Url:        fmt.Sprintf("%s:%s/pelaksanaan_rencana_aksi/delete/:id", host, port),
-		},
-	}
 
 	return rencanaaksi.PelaksanaanRencanaAksiResponse{
 		Id:            pelaksanaan.Id,
 		RencanaAksiId: pelaksanaan.RencanaAksiId,
 		Bulan:         pelaksanaan.Bulan,
 		Bobot:         pelaksanaan.Bobot,
-		Action:        buttonActions,
 	}
 }
 
@@ -126,31 +105,6 @@ func ToRencanaAksiResponses(rencanaAksis []domain.RencanaAksi, pelaksanaanMap ma
 
 // Fungsi untuk mengkonversi single rencana aksi
 func ToRencanaAksiResponse(rencanaAksi domain.RencanaAksi, pelaksanaanList []domain.PelaksanaanRencanaAksi) rencanaaksi.RencanaAksiResponse {
-	host := os.Getenv("host")
-	port := os.Getenv("port")
-
-	buttonActions := []web.ActionButton{
-		{
-			NameAction: "Find Id Rencana Aksi",
-			Method:     "GET",
-			Url:        fmt.Sprintf("%s:%s/detail-rencana_aksi/:rencanaaksiId", host, port),
-		},
-		{
-			NameAction: "Update Rencana Aksi",
-			Method:     "PUT",
-			Url:        fmt.Sprintf("%s:%s/rencana_aksi/update/rencanaaksi/:rencanaaksiId", host, port),
-		},
-		{
-			NameAction: "Delete Rencana Aksi",
-			Method:     "DELETE",
-			Url:        fmt.Sprintf("%s:%s/rencana_aksi/delete/rencanaaksi/:rencanaaksiId", host, port),
-		},
-		{
-			NameAction: "Create Pelaksanaan Rencana Aksi",
-			Method:     "POST",
-			Url:        fmt.Sprintf("%s:%s/pelaksanaan_rencana_aksi/create/:rencanaAksiId", host, port),
-		},
-	}
 
 	var pelaksanaanResponses []rencanaaksi.PelaksanaanRencanaAksiResponse
 	jumlahBobot := 0
@@ -167,7 +121,6 @@ func ToRencanaAksiResponse(rencanaAksi domain.RencanaAksi, pelaksanaanList []dom
 		NamaRencanaAksi:        rencanaAksi.NamaRencanaAksi,
 		PelaksanaanRencanaAksi: pelaksanaanResponses,
 		JumlahBobot:            jumlahBobot,
-		Action:                 buttonActions,
 	}
 }
 

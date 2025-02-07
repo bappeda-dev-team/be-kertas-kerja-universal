@@ -24,7 +24,7 @@ func (repository *UsulanMandatoriRepositoryImpl) Create(ctx context.Context, tx 
 	return usulan, nil
 }
 
-func (repository *UsulanMandatoriRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, pegawaiId *string, isActive *bool, rekinId *string) ([]domain.UsulanMandatori, error) {
+func (repository *UsulanMandatoriRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, kodeOpd *string, pegawaiId *string, isActive *bool, rekinId *string) ([]domain.UsulanMandatori, error) {
 	script := "SELECT id, usulan, peraturan_terkait, uraian, tahun, rekin_id, pegawai_id, kode_opd, is_active, status, created_at FROM tb_usulan_mandatori WHERE 1=1"
 	var args []interface{}
 
@@ -41,6 +41,11 @@ func (repository *UsulanMandatoriRepositoryImpl) FindAll(ctx context.Context, tx
 	if rekinId != nil {
 		script += " AND rekin_id = ?"
 		args = append(args, *rekinId)
+	}
+
+	if kodeOpd != nil {
+		script += " AND kode_opd = ?"
+		args = append(args, *kodeOpd)
 	}
 
 	script += " order by created_at asc"

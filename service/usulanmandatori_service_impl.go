@@ -122,18 +122,24 @@ func (service *UsulanMandatoriServiceImpl) FindById(ctx context.Context, idUsula
 	return helper.ToUsulanMandatoriResponse(usulanMandatori), nil
 }
 
-func (service *UsulanMandatoriServiceImpl) FindAll(ctx context.Context, pegawaiId *string, isActive *bool, rekinId *string) ([]usulan.UsulanMandatoriResponse, error) {
+func (service *UsulanMandatoriServiceImpl) FindAll(ctx context.Context, kodeOpd *string, pegawaiId *string, isActive *bool, rekinId *string) ([]usulan.UsulanMandatoriResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return []usulan.UsulanMandatoriResponse{}, err
 	}
 	defer helper.CommitOrRollback(tx)
 
-	usulanMandatoris, err := service.usulanMandatoriRepository.FindAll(ctx, tx, pegawaiId, isActive, rekinId)
+	usulanMandatoris, err := service.usulanMandatoriRepository.FindAll(ctx, tx, kodeOpd, pegawaiId, isActive, rekinId)
 	if err != nil {
 		return []usulan.UsulanMandatoriResponse{}, err
 	}
 
+	// Jika tidak ada data, langsung kembalikan slice kosong
+	if len(usulanMandatoris) == 0 {
+		return []usulan.UsulanMandatoriResponse{}, nil
+	}
+
+	// Hanya cari data pegawai jika ada usulan mandatori
 	pegawai, err := service.pegawaiRepository.FindByNip(ctx, tx, usulanMandatoris[0].PegawaiId)
 	if err != nil {
 		return []usulan.UsulanMandatoriResponse{}, err

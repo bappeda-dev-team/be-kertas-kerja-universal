@@ -103,6 +103,7 @@ func (service *SubKegiatanServiceImpl) Create(ctx context.Context, request subke
 		KodeOpd:         request.KodeOpd,
 		Status:          "belum_diambil",
 		Tahun:           request.Tahun,
+		RekinId:         "",
 		Indikator:       indikators,
 	}
 

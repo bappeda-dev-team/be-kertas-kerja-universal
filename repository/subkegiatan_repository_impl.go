@@ -16,8 +16,8 @@ func NewSubKegiatanRepositoryImpl() *SubKegiatanRepositoryImpl {
 }
 
 func (repository *SubKegiatanRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, subKegiatan domain.SubKegiatan) (domain.SubKegiatan, error) {
-	scriptSubKegiatan := `INSERT INTO tb_subkegiatan (id, kode_subkegiatan, nama_subkegiatan, kode_opd, tahun, status) 
-                         VALUES (?, ?, ?, ?, ?, ?)`
+	scriptSubKegiatan := `INSERT INTO tb_subkegiatan (id, kode_subkegiatan, nama_subkegiatan, kode_opd, tahun, status, rekin_id) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?)`
 
 	_, err := tx.ExecContext(ctx, scriptSubKegiatan,
 		subKegiatan.Id,
@@ -25,7 +25,8 @@ func (repository *SubKegiatanRepositoryImpl) Create(ctx context.Context, tx *sql
 		subKegiatan.NamaSubKegiatan,
 		subKegiatan.KodeOpd,
 		subKegiatan.Tahun,
-		subKegiatan.Status)
+		subKegiatan.Status,
+		subKegiatan.RekinId)
 	if err != nil {
 		return domain.SubKegiatan{}, err
 	}

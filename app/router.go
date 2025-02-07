@@ -42,6 +42,7 @@ func NewRouter(
 	periodeController controller.PeriodeController,
 	tujuanPemdaController controller.TujuanPemdaController,
 	sasaranPemdaController controller.SasaranPemdaController,
+	permasalahanRekinController controller.PermasalahanRekinController,
 ) *httprouter.Router {
 	router := httprouter.New()
 
@@ -312,6 +313,12 @@ func NewRouter(
 	router.GET("/sasaran_pemda/detail/:id", sasaranPemdaController.FindById)
 	router.GET("/sasaran_pemda/findall/:tahun", sasaranPemdaController.FindAll)
 	router.PUT("/sasaran_pemda/update_periode/:id", sasaranPemdaController.UpdatePeriode)
+
+	//permasalahan rekin
+	router.POST("/permasalahan_rekin/create", permasalahanRekinController.Create)
+	router.PUT("/permasalahan_rekin/update/:id", permasalahanRekinController.Update)
+	router.GET("/permasalahan_rekin/findall/:rekinId", permasalahanRekinController.FindAll)
+	router.GET("/permasalahan_rekin/detail/:id", permasalahanRekinController.FindById)
 
 	return router
 }

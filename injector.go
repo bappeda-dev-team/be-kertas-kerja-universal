@@ -315,6 +315,15 @@ var sasaranPemdaSet = wire.NewSet(
 	wire.Bind(new(controller.SasaranPemdaController), new(*controller.SasaranPemdaControllerImpl)),
 )
 
+var permasalahanRekinSet = wire.NewSet(
+	repository.NewPermasalahanRekinRepositoryImpl,
+	wire.Bind(new(repository.PermasalahanRekinRepository), new(*repository.PermasalahanRekinRepositoryImpl)),
+	service.NewPermasalahanRekinServiceImpl,
+	wire.Bind(new(service.PermasalahanRekinService), new(*service.PermasalahanRekinServiceImpl)),
+	controller.NewPermasalahanRekinControllerImpl,
+	wire.Bind(new(controller.PermasalahanRekinController), new(*controller.PermasalahanRekinControllerImpl)),
+)
+
 func InitializeServer() *http.Server {
 
 	wire.Build(
@@ -353,6 +362,7 @@ func InitializeServer() *http.Server {
 		periodeSet,
 		tujuanPemdaSet,
 		sasaranPemdaSet,
+		permasalahanRekinSet,
 		app.NewRouter,
 		wire.Bind(new(http.Handler), new(*httprouter.Router)),
 		middleware.NewAuthMiddleware,

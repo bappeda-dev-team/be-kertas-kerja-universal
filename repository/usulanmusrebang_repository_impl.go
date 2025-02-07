@@ -68,7 +68,7 @@ func (repository *UsulanMusrebangRepositoryImpl) FindAll(ctx context.Context, tx
 		args = append(args, *status)
 	}
 
-	script += " order by created_at desc"
+	script += " order by created_at asc"
 
 	rows, err := tx.QueryContext(ctx, script, args...)
 	if err != nil {

@@ -73,7 +73,7 @@ func (repository *PermasalahanRekinRepositoryImpl) FindAll(ctx context.Context, 
 func (repository *PermasalahanRekinRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, id int) (domain.PermasalahanRekin, error) {
 	script := "SELECT id, rekin_id, permasalahan, penyebab_internal, penyebab_eksternal, jenis_permasalahan FROM tb_permasalahan WHERE id = ?"
 	var permasalahan domain.PermasalahanRekin
-	err := tx.QueryRowContext(ctx, script, id).Scan(&permasalahan.Id, &permasalahan.Permasalahan, &permasalahan.PenyebabInternal, &permasalahan.PenyebabEksternal, &permasalahan.JenisPermasalahan)
+	err := tx.QueryRowContext(ctx, script, id).Scan(&permasalahan.Id, &permasalahan.RekinId, &permasalahan.Permasalahan, &permasalahan.PenyebabInternal, &permasalahan.PenyebabEksternal, &permasalahan.JenisPermasalahan)
 	if err != nil {
 		return domain.PermasalahanRekin{}, err
 	}

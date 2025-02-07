@@ -12,4 +12,5 @@ type TujuanPemdaService interface {
 	FindById(ctx context.Context, tujuanPemdaId int) (tujuanpemda.TujuanPemdaResponse, error)
 	FindAll(ctx context.Context, tahun string) ([]tujuanpemda.TujuanPemdaResponse, error)
 	UpdatePeriode(ctx context.Context, request tujuanpemda.TujuanPemdaUpdateRequest) (tujuanpemda.TujuanPemdaResponse, error)
+	FindAllWithPokin(ctx context.Context, tahun string) ([]tujuanpemda.TujuanPemdaWithPokinResponse, error)
 }

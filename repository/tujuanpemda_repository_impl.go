@@ -489,3 +489,206 @@ func (repository *TujuanPemdaRepositoryImpl) UpdatePeriode(ctx context.Context, 
 
 	return updatedTujuanPemda, nil
 }
+
+func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Context, tx *sql.Tx, tahun string) ([]domain.TujuanPemdaWithPokin, error) {
+	query := `
+	WITH periode_aktif AS (
+		SELECT id, tahun_awal, tahun_akhir
+		FROM tb_periode
+		WHERE CAST(? AS SIGNED) BETWEEN CAST(tahun_awal AS SIGNED) AND CAST(tahun_akhir AS SIGNED)
+	)
+	SELECT 
+		pk.id as pokin_id,
+		pk.nama_pohon,
+		pk.jenis_pohon,
+		pk.level_pohon,
+		pk.kode_opd,
+		pk.keterangan,
+		pk.tahun as tahun_pokin,
+		tp.id as tujuan_id,
+		tp.tujuan_pemda,
+		tp.rumus_perhitungan,
+		tp.sumber_data,
+		COALESCE(pa.id, p.id) as periode_id,
+		COALESCE(pa.tahun_awal, p.tahun_awal) as tahun_awal,
+		COALESCE(pa.tahun_akhir, p.tahun_akhir) as tahun_akhir,
+		i.id as indikator_id,
+		i.indikator,
+		t.id as target_id,
+		t.target,
+		t.satuan,
+		t.tahun
+	FROM 
+		tb_pohon_kinerja pk
+	LEFT JOIN 
+		tb_tujuan_pemda tp ON pk.id = tp.tematik_id
+	LEFT JOIN 
+		tb_periode pa ON tp.periode_id = pa.id
+	LEFT JOIN
+		periode_aktif p ON CAST(pk.tahun AS SIGNED) BETWEEN CAST(p.tahun_awal AS SIGNED) AND CAST(p.tahun_akhir AS SIGNED)
+	LEFT JOIN 
+		tb_indikator i ON tp.id = i.tujuan_pemda_id
+	LEFT JOIN 
+		tb_target t ON i.id = t.indikator_id
+	WHERE 
+		pk.level_pohon = 0
+		AND (
+			(tp.id IS NOT NULL AND CAST(? AS SIGNED) BETWEEN CAST(pa.tahun_awal AS SIGNED) AND CAST(pa.tahun_akhir AS SIGNED))
+			OR (tp.id IS NULL AND CAST(pk.tahun AS SIGNED) BETWEEN CAST(p.tahun_awal AS SIGNED) AND CAST(p.tahun_akhir AS SIGNED))
+		)
+	ORDER BY 
+		pk.id, tp.id, i.id, t.tahun`
+
+	rows, err := tx.QueryContext(ctx, query, tahun, tahun)
+	if err != nil {
+		return nil, fmt.Errorf("error querying data: %v", err)
+	}
+	defer rows.Close()
+
+	pokinMap := make(map[int]*domain.TujuanPemdaWithPokin)
+	indikatorMap := make(map[string]*domain.Indikator)
+	targetMap := make(map[string]map[string]domain.Target) // map[indikatorId]map[tahun]Target
+
+	for rows.Next() {
+		var (
+			pokinId                                          int
+			namaPohon, jenisPohon, kodeOpd, keterangan       string
+			tahunPokin                                       string
+			levelPohon                                       int
+			tujuanId                                         sql.NullInt64
+			tujuanPemda, rumusPerhitungan, sumberData        sql.NullString
+			periodeId                                        sql.NullInt64
+			tahunAwal, tahunAkhir                            sql.NullString
+			indikatorId, indikatorText                       sql.NullString
+			targetId, targetValue, targetSatuan, targetTahun sql.NullString
+		)
+
+		err := rows.Scan(
+			&pokinId, &namaPohon, &jenisPohon, &levelPohon, &kodeOpd,
+			&keterangan, &tahunPokin, &tujuanId, &tujuanPemda,
+			&rumusPerhitungan, &sumberData, &periodeId, &tahunAwal,
+			&tahunAkhir, &indikatorId, &indikatorText, &targetId,
+			&targetValue, &targetSatuan, &targetTahun,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning row: %v", err)
+		}
+
+		// Inisialisasi atau ambil data pokin dari map
+		pokin, exists := pokinMap[pokinId]
+		if !exists {
+			pokin = &domain.TujuanPemdaWithPokin{
+				PokinId:     pokinId,
+				NamaPohon:   namaPohon,
+				JenisPohon:  jenisPohon,
+				LevelPohon:  levelPohon,
+				KodeOpd:     kodeOpd,
+				Keterangan:  keterangan,
+				TahunPokin:  tahunPokin,
+				TujuanPemda: nil,
+			}
+			pokinMap[pokinId] = pokin
+		}
+
+		// Jika ada data tujuan pemda
+		if tujuanId.Valid && tujuanPemda.Valid {
+			if pokin.TujuanPemda == nil {
+				pokin.TujuanPemda = &domain.TujuanPemda{
+					Id:               int(tujuanId.Int64),
+					TujuanPemda:      tujuanPemda.String,
+					TematikId:        pokinId,
+					RumusPerhitungan: rumusPerhitungan.String,
+					SumberData:       sumberData.String,
+					PeriodeId:        int(periodeId.Int64),
+					Periode: domain.Periode{
+						Id:         int(periodeId.Int64),
+						TahunAwal:  tahunAwal.String,
+						TahunAkhir: tahunAkhir.String,
+					},
+					Indikator: []domain.Indikator{},
+				}
+			}
+
+			// Proses indikator
+			if indikatorId.Valid && indikatorText.Valid {
+				if _, exists := indikatorMap[indikatorId.String]; !exists {
+					indikatorMap[indikatorId.String] = &domain.Indikator{
+						Id:            indikatorId.String,
+						TujuanPemdaId: int(tujuanId.Int64),
+						Indikator:     indikatorText.String,
+						Target:        []domain.Target{},
+					}
+					targetMap[indikatorId.String] = make(map[string]domain.Target)
+				}
+
+				// Proses target
+				if targetId.Valid && targetTahun.Valid {
+					targetMap[indikatorId.String][targetTahun.String] = domain.Target{
+						Id:          targetId.String,
+						IndikatorId: indikatorId.String,
+						Target:      targetValue.String,
+						Satuan:      targetSatuan.String,
+						Tahun:       targetTahun.String,
+					}
+				}
+			}
+		}
+	}
+
+	// Proses final untuk menambahkan target sesuai periode
+	for pokinId, pokin := range pokinMap {
+		if pokin.TujuanPemda != nil && pokin.TujuanPemda.Periode.TahunAwal != "" {
+			tahunAwal, _ := strconv.Atoi(pokin.TujuanPemda.Periode.TahunAwal)
+			tahunAkhir, _ := strconv.Atoi(pokin.TujuanPemda.Periode.TahunAkhir)
+
+			for indikatorId, indikator := range indikatorMap {
+				if indikator.TujuanPemdaId == pokin.TujuanPemda.Id {
+					var targets []domain.Target
+					for tahun := tahunAwal; tahun <= tahunAkhir; tahun++ {
+						tahunStr := strconv.Itoa(tahun)
+						if target, exists := targetMap[indikatorId][tahunStr]; exists {
+							targets = append(targets, target)
+						} else {
+							// Tambahkan target kosong jika tidak ada data
+							targets = append(targets, domain.Target{
+								Id:          "-",
+								IndikatorId: indikatorId,
+								Target:      "-",
+								Satuan:      "-",
+								Tahun:       tahunStr,
+							})
+						}
+					}
+
+					// Sort targets berdasarkan tahun
+					sort.Slice(targets, func(i, j int) bool {
+						return targets[i].Tahun < targets[j].Tahun
+					})
+
+					indikator.Target = targets
+					pokin.TujuanPemda.Indikator = append(pokin.TujuanPemda.Indikator, *indikator)
+				}
+			}
+		}
+		pokinMap[pokinId] = pokin
+	}
+
+	// Konversi map ke slice
+	result := make([]domain.TujuanPemdaWithPokin, 0, len(pokinMap))
+	for _, pokin := range pokinMap {
+		// Sort indikator jika ada
+		if pokin.TujuanPemda != nil {
+			sort.Slice(pokin.TujuanPemda.Indikator, func(i, j int) bool {
+				return pokin.TujuanPemda.Indikator[i].Id < pokin.TujuanPemda.Indikator[j].Id
+			})
+		}
+		result = append(result, *pokin)
+	}
+
+	// Sort hasil akhir berdasarkan pokin_id
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].PokinId < result[j].PokinId
+	})
+
+	return result, nil
+}

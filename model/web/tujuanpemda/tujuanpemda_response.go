@@ -28,3 +28,13 @@ type PeriodeResponse struct {
 	TahunAwal  string `json:"tahun_awal"`
 	TahunAkhir string `json:"tahun_akhir"`
 }
+
+type TujuanPemdaWithPokinResponse struct {
+	PokinId     int                  `json:"pokin_id"`
+	NamaPohon   string               `json:"nama_tematik"`
+	JenisPohon  string               `json:"jenis_pohon"`
+	LevelPohon  int                  `json:"level_pohon"`
+	Keterangan  string               `json:"keterangan"`
+	TahunPokin  string               `json:"tahun_pokin"`
+	TujuanPemda *TujuanPemdaResponse `json:"tujuan_pemda,omitempty"`
+}

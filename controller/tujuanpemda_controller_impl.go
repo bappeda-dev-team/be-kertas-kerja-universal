@@ -204,3 +204,24 @@ func (controller *TujuanPemdaControllerImpl) UpdatePeriode(writer http.ResponseW
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *TujuanPemdaControllerImpl) FindAllWithPokin(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	tahun := params.ByName("tahun")
+	tujuanPemdaResponses, err := controller.TujuanPemdaService.FindAllWithPokin(request.Context(), tahun)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusInternalServerError,
+			Status: "INTERNAL SERVER ERROR",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "OK",
+		Data:   tujuanPemdaResponses,
+	}
+	helper.WriteToResponseBody(writer, webResponse)
+}

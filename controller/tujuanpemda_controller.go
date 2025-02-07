@@ -13,4 +13,5 @@ type TujuanPemdaController interface {
 	FindById(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	UpdatePeriode(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	FindAllWithPokin(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 }

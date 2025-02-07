@@ -114,10 +114,6 @@ func NewRouter(
 	router.GET("/usulan_inisiatif/pilihan", usulanInisiatifController.FindAll)
 	router.GET("/usulan_inisiatif/pegawai/:pegawai_id", usulanInisiatifController.FindAll)
 
-	//usulan terpilih
-	router.POST("/usulan_terpilih/create", usulanTerpilihController.Create)
-	router.DELETE("/usulan_terpilih/delete/:id_usulan", usulanTerpilihController.Delete)
-
 	//gambaran umum
 	router.POST("/gambaran_umum/create/:rencana_kinerja_id", gambaranUmumController.Create)
 	router.GET("/gambaran_umum/findall/:rencana_kinerja_id", gambaranUmumController.FindAll)
@@ -307,6 +303,7 @@ func NewRouter(
 	router.GET("/tujuan_pemda/detail/:id", tujuanPemdaController.FindById)
 	router.GET("/tujuan_pemda/findall/:tahun", tujuanPemdaController.FindAll)
 	router.PUT("/tujuan_pemda/update_periode/:id", tujuanPemdaController.UpdatePeriode)
+	router.GET("/tujuan_pemda/findall_with_pokin/:tahun", tujuanPemdaController.FindAllWithPokin)
 
 	//sasaran pemda
 	router.POST("/sasaran_pemda/create", sasaranPemdaController.Create)

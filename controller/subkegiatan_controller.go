@@ -13,4 +13,6 @@ type SubKegiatanController interface {
 	FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	Delete(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindAllByRekin(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	CreateRekin(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	DeleteSubKegiatanTerpilih(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 }

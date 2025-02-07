@@ -63,7 +63,7 @@ func InitializeServer() *http.Server {
 	dasarHukumControllerImpl := controller.NewDasarHukumControllerImpl(dasarHukumServiceImpl)
 	inovasiServiceImpl := service.NewInovasiServiceImpl(inovasiRepositoryImpl, db)
 	inovasiControllerImpl := controller.NewInovasiControllerImpl(inovasiServiceImpl)
-	subKegiatanServiceImpl := service.NewSubKegiatanServiceImpl(subKegiatanRepositoryImpl, opdRepositoryImpl, db, validate)
+	subKegiatanServiceImpl := service.NewSubKegiatanServiceImpl(subKegiatanRepositoryImpl, opdRepositoryImpl, rencanaKinerjaRepositoryImpl, db, validate)
 	subKegiatanControllerImpl := controller.NewSubKegiatanControllerImpl(subKegiatanServiceImpl)
 	subKegiatanTerpilihRepositoryImpl := repository.NewSubKegiatanTerpilihRepositoryImpl()
 	subKegiatanTerpilihServiceImpl := service.NewSubKegiatanTerpilihServiceImpl(rencanaKinerjaRepositoryImpl, subKegiatanRepositoryImpl, subKegiatanTerpilihRepositoryImpl, db)

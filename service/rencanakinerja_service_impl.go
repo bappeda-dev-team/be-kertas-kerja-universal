@@ -653,50 +653,57 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 
 		// Modifikasi bagian subkegiatan
 		var subKegiatanResponses []subkegiatan.SubKegiatanResponse
-		if rencanaKinerja.KodeSubKegiatan != "" {
-			// Ambil subkegiatan terkait
-			subKegiatan, err := service.SubKegiatanRepository.FindByKodeSubKegiatan(ctx, tx, rencanaKinerja.KodeSubKegiatan)
+		subKegiatanList, err := service.SubKegiatanRepository.FindAll(ctx, tx, rencanaKinerja.KodeOpd, rencanaKinerja.Id, "")
+		if err != nil {
+			log.Printf("Warning: gagal mengambil data subkegiatan: %v", err)
+			return nil, fmt.Errorf("gagal mengambil data subkegiatan: %v", err)
+		}
+
+		for _, subKegiatan := range subKegiatanList {
+			// Ambil indikator untuk setiap subkegiatan
+			indikators, err := service.SubKegiatanRepository.FindIndikatorBySubKegiatanId(ctx, tx, subKegiatan.Id)
 			if err != nil && err != sql.ErrNoRows {
-				return nil, fmt.Errorf("gagal mengambil subkegiatan: %v", err)
+				log.Printf("Warning: gagal mengambil indikator subkegiatan: %v", err)
+				continue
 			}
 
-			if err != sql.ErrNoRows && subKegiatan.KodeSubKegiatan != "" {
-				// Ambil indikator untuk subkegiatan
-				subIndikators, err := service.SubKegiatanRepository.FindIndikatorBySubKegiatanId(ctx, tx, subKegiatan.Id)
+			var indikatorResponses []subkegiatan.IndikatorResponse
+			for _, indikator := range indikators {
+				// Ambil target untuk setiap indikator
+				targets, err := service.SubKegiatanRepository.FindTargetByIndikatorId(ctx, tx, indikator.Id)
 				if err != nil && err != sql.ErrNoRows {
-					return nil, fmt.Errorf("gagal mengambil indikator subkegiatan: %v", err)
+					log.Printf("Warning: gagal mengambil target indikator: %v", err)
+					continue
 				}
 
-				var subIndikatorResponses []subkegiatan.IndikatorResponse
-				for _, subIndikator := range subIndikators {
-					subTargets, err := service.SubKegiatanRepository.FindTargetByIndikatorId(ctx, tx, subIndikator.Id)
-					if err != nil && err != sql.ErrNoRows {
-						return nil, fmt.Errorf("gagal mengambil target subkegiatan: %v", err)
-					}
-
-					var subTargetResponses []subkegiatan.TargetResponse
-					for _, subTarget := range subTargets {
-						subTargetResponses = append(subTargetResponses, subkegiatan.TargetResponse{
-							Id:              subTarget.Id,
-							IndikatorId:     subTarget.IndikatorId,
-							TargetIndikator: subTarget.Target,
-							SatuanIndikator: subTarget.Satuan,
-						})
-					}
-
-					subIndikatorResponses = append(subIndikatorResponses, subkegiatan.IndikatorResponse{
-						Id:            subIndikator.Id,
-						NamaIndikator: subIndikator.Indikator,
-						Target:        subTargetResponses,
+				var targetResponses []subkegiatan.TargetResponse
+				for _, target := range targets {
+					targetResponses = append(targetResponses, subkegiatan.TargetResponse{
+						Id:              target.Id,
+						IndikatorId:     target.IndikatorId,
+						TargetIndikator: target.Target,
+						SatuanIndikator: target.Satuan,
 					})
 				}
 
-				subKegiatanResponses = append(subKegiatanResponses, subkegiatan.SubKegiatanResponse{
-					KodeSubKegiatan: subKegiatan.KodeSubKegiatan,
-					NamaSubKegiatan: subKegiatan.NamaSubKegiatan,
-					Indikator:       subIndikatorResponses,
+				indikatorResponses = append(indikatorResponses, subkegiatan.IndikatorResponse{
+					Id:            indikator.Id,
+					NamaIndikator: indikator.Indikator,
+					Target:        targetResponses,
 				})
 			}
+
+			// Tambahkan ke response subkegiatan
+			subKegiatanResponses = append(subKegiatanResponses, subkegiatan.SubKegiatanResponse{
+				Id:              subKegiatan.Id,
+				RekinId:         subKegiatan.RekinId,
+				Status:          subKegiatan.Status,
+				KodeSubKegiatan: subKegiatan.KodeSubKegiatan,
+				NamaSubKegiatan: subKegiatan.NamaSubKegiatan,
+				KodeOpd:         subKegiatan.KodeOpd,
+				Tahun:           subKegiatan.Tahun,
+				Indikator:       indikatorResponses,
+			})
 		}
 
 		var isActive *bool // nil karena tidak perlu filter is_active

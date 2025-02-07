@@ -432,7 +432,8 @@ func ToSubKegiatanResponse(subKegiatan domain.SubKegiatan) subkegiatan.SubKegiat
 
 	return subkegiatan.SubKegiatanResponse{
 		Id:                   subKegiatan.Id,
-		PegawaiId:            subKegiatan.PegawaiId,
+		RekinId:              subKegiatan.RekinId,
+		Status:               subKegiatan.Status,
 		NamaSubKegiatan:      subKegiatan.NamaSubKegiatan,
 		KodeOpd:              subKegiatan.KodeOpd,
 		NamaOpd:              subKegiatan.NamaOpd,

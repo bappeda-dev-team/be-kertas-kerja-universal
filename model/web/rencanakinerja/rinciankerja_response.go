@@ -4,22 +4,20 @@ import (
 	"ekak_kabupaten_madiun/model/web/dasarhukum"
 	"ekak_kabupaten_madiun/model/web/gambaranumum"
 	"ekak_kabupaten_madiun/model/web/inovasi"
+	"ekak_kabupaten_madiun/model/web/permasalahan"
 	"ekak_kabupaten_madiun/model/web/rencanaaksi"
 	"ekak_kabupaten_madiun/model/web/subkegiatan"
 )
 
 type DataRincianKerja struct {
-	RencanaKinerja RencanaKinerjaResponse            `json:"rencana_kinerja"`
-	RencanaAksi    []rencanaaksi.RencanaAksiResponse `json:"rencana_aksis"`
-	Usulan         []UsulanGabunganResponse          `json:"usulan"`
-	// UsulanMusrebang    []usulan.UsulanMusrebangResponse    `json:"usulan_musrebang"`
-	// UsulanMandatori    []usulan.UsulanMandatoriResponse    `json:"usulan_mandatori"`
-	// UsulanPokokPikiran []usulan.UsulanPokokPikiranResponse `json:"usulan_pokok_pikiran"`
-	// UsulanInisiatif    []usulan.UsulanInisiatifResponse    `json:"usulan_inisiatif"`
-	SubKegiatan  []subkegiatan.SubKegiatanResponse   `json:"subkegiatan"`
-	DasarHukum   []dasarhukum.DasarHukumResponse     `json:"dasar_hukum"`
-	GambaranUmum []gambaranumum.GambaranUmumResponse `json:"gambaran_umum"`
-	Inovasi      []inovasi.InovasiResponse           `json:"inovasi"`
+	RencanaKinerja RencanaKinerjaResponse                   `json:"rencana_kinerja"`
+	RencanaAksi    []rencanaaksi.RencanaAksiResponse        `json:"rencana_aksis"`
+	Usulan         []UsulanGabunganResponse                 `json:"usulan"`
+	SubKegiatan    []subkegiatan.SubKegiatanResponse        `json:"subkegiatan"`
+	Permasalahan   []permasalahan.PermasalahanRekinResponse `json:"permasalahan"`
+	DasarHukum     []dasarhukum.DasarHukumResponse          `json:"dasar_hukum"`
+	GambaranUmum   []gambaranumum.GambaranUmumResponse      `json:"gambaran_umum"`
+	Inovasi        []inovasi.InovasiResponse                `json:"inovasi"`
 }
 
 type UsulanGabunganResponse struct {

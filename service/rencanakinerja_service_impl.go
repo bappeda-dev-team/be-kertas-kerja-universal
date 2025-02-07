@@ -7,6 +7,7 @@ import (
 	"ekak_kabupaten_madiun/model/domain"
 	"ekak_kabupaten_madiun/model/web"
 	"ekak_kabupaten_madiun/model/web/opdmaster"
+	"ekak_kabupaten_madiun/model/web/permasalahan"
 	"ekak_kabupaten_madiun/model/web/rencanaaksi"
 	"ekak_kabupaten_madiun/model/web/rencanakinerja"
 	"ekak_kabupaten_madiun/model/web/subkegiatan"
@@ -37,9 +38,10 @@ type RencanaKinerjaServiceImpl struct {
 	pegawaiRepository                repository.PegawaiRepository
 	pohonKinerjaRepository           repository.PohonKinerjaRepository
 	manualIKRepository               repository.ManualIKRepository
+	permasalahanRekinRepository      repository.PermasalahanRekinRepository
 }
 
-func NewRencanaKinerjaServiceImpl(rencanaKinerjaRepository repository.RencanaKinerjaRepository, DB *sql.DB, validate *validator.Validate, opdRepository repository.OpdRepository, rencanaAksiRepository repository.RencanaAksiRepository, usulanMusrebangRepository repository.UsulanMusrebangRepository, usulanMandatoriRepository repository.UsulanMandatoriRepository, usulanPokokPikiranRepository repository.UsulanPokokPikiranRepository, usulanInisiatifRepository repository.UsulanInisiatifRepository, subKegiatanRepository repository.SubKegiatanRepository, dasarHukumRepository repository.DasarHukumRepository, gambaranUmumRepository repository.GambaranUmumRepository, inovasiRepository repository.InovasiRepository, pelaksanaanRencanaAksiRepository repository.PelaksanaanRencanaAksiRepository, pegawaiRepository repository.PegawaiRepository, pohonKinerjaRepository repository.PohonKinerjaRepository, manualIKRepository repository.ManualIKRepository) *RencanaKinerjaServiceImpl {
+func NewRencanaKinerjaServiceImpl(rencanaKinerjaRepository repository.RencanaKinerjaRepository, DB *sql.DB, validate *validator.Validate, opdRepository repository.OpdRepository, rencanaAksiRepository repository.RencanaAksiRepository, usulanMusrebangRepository repository.UsulanMusrebangRepository, usulanMandatoriRepository repository.UsulanMandatoriRepository, usulanPokokPikiranRepository repository.UsulanPokokPikiranRepository, usulanInisiatifRepository repository.UsulanInisiatifRepository, subKegiatanRepository repository.SubKegiatanRepository, dasarHukumRepository repository.DasarHukumRepository, gambaranUmumRepository repository.GambaranUmumRepository, inovasiRepository repository.InovasiRepository, pelaksanaanRencanaAksiRepository repository.PelaksanaanRencanaAksiRepository, pegawaiRepository repository.PegawaiRepository, pohonKinerjaRepository repository.PohonKinerjaRepository, manualIKRepository repository.ManualIKRepository, permasalahanRekinRepository repository.PermasalahanRekinRepository) *RencanaKinerjaServiceImpl {
 	return &RencanaKinerjaServiceImpl{
 		rencanaKinerjaRepository:         rencanaKinerjaRepository,
 		DB:                               DB,
@@ -58,6 +60,7 @@ func NewRencanaKinerjaServiceImpl(rencanaKinerjaRepository repository.RencanaKin
 		pegawaiRepository:                pegawaiRepository,
 		pohonKinerjaRepository:           pohonKinerjaRepository,
 		manualIKRepository:               manualIKRepository,
+		permasalahanRekinRepository:      permasalahanRekinRepository,
 	}
 }
 
@@ -791,9 +794,27 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 			NamaPegawai: pegawai.NamaPegawai,
 			IdPohon:     rencanaKinerja.IdPohon,
 			NamaPohon:   pohon.NamaPohon,
-			Indikator:   indikatorResponses,
+
+			Indikator: indikatorResponses,
 		}
 
+		permasalahanRekin, err := service.permasalahanRekinRepository.FindAll(ctx, tx, &rencanaKinerja.Id)
+		if err != nil {
+			log.Printf("Warning: gagal mengambil permasalahan rekin: %v", err)
+			permasalahanRekin = []domain.PermasalahanRekin{}
+		}
+
+		var permasalahanResponses []permasalahan.PermasalahanRekinResponse
+		for _, p := range permasalahanRekin {
+			permasalahanResponses = append(permasalahanResponses, permasalahan.PermasalahanRekinResponse{
+				Id:                p.Id,
+				RekinId:           p.RekinId,
+				Permasalahan:      p.Permasalahan,
+				PenyebabInternal:  p.PenyebabInternal,
+				PenyebabEksternal: p.PenyebabEksternal,
+				JenisPermasalahan: p.JenisPermasalahan,
+			})
+		}
 		// Tambahkan ke responses
 		responses = append(responses, rencanakinerja.DataRincianKerja{
 			RencanaKinerja: rencanaKinerjaResponse,
@@ -803,6 +824,7 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 			SubKegiatan:    subKegiatanResponses,
 			GambaranUmum:   helper.ToGambaranUmumResponses(gambaranUmum),
 			Inovasi:        helper.ToInovasiResponses(inovasi),
+			Permasalahan:   permasalahanResponses,
 		})
 	}
 

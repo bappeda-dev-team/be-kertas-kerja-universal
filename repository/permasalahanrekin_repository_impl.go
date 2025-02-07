@@ -50,7 +50,7 @@ func (repository *PermasalahanRekinRepositoryImpl) FindAll(ctx context.Context, 
 		args = append(args, *rekinId)
 	}
 
-	script += " order by created_at ascs"
+	script += " order by created_at asc"
 
 	rows, err := tx.QueryContext(ctx, script, args...)
 	if err != nil {
@@ -61,7 +61,7 @@ func (repository *PermasalahanRekinRepositoryImpl) FindAll(ctx context.Context, 
 	var permasalahanList []domain.PermasalahanRekin
 	for rows.Next() {
 		var permasalahan domain.PermasalahanRekin
-		err := rows.Scan(&permasalahan.Id, &permasalahan.RekinId, &permasalahan.Permasalahan, &permasalahan.PenyebabInternal, &permasalahan.PenyebabEksternal, &permasalahan.JenisPermasalahan)
+		err := rows.Scan(&permasalahan.Id, &permasalahan.RekinId, &permasalahan.Permasalahan, &permasalahan.PenyebabInternal, &permasalahan.PenyebabEksternal, &permasalahan.JenisPermasalahan, &permasalahan.CreatedAt)
 		if err != nil {
 			return []domain.PermasalahanRekin{}, err
 		}

@@ -641,6 +641,7 @@ func (service *SasaranPemdaServiceImpl) FindPokinWithPeriode(ctx context.Context
 		JenisPohon: pokin.JenisPohon,
 		LevelPohon: pokin.LevelPohon,
 		Tahun:      pokin.Tahun,
+		Status:     pokin.Status,
 	}
 
 	// Transform indikator dan target

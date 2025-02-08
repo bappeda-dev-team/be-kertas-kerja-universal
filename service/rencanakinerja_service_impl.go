@@ -626,25 +626,32 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 				pelaksanaanList = []domain.PelaksanaanRencanaAksi{}
 			}
 
-			// Buat map untuk menyimpan bobot per bulan
-			bobotPerBulan := make(map[int]int)
-			for i := 1; i <= 12; i++ {
-				bobotPerBulan[i] = 0 // Inisialisasi semua bulan dengan bobot 0
-			}
-
-			// Isi bobot yang ada dari database
+			// Buat map untuk menyimpan data pelaksanaan per bulan
+			pelaksanaanPerBulan := make(map[int]domain.PelaksanaanRencanaAksi)
 			for _, pelaksanaan := range pelaksanaanList {
-				bobotPerBulan[pelaksanaan.Bulan] = pelaksanaan.Bobot
+				pelaksanaanPerBulan[pelaksanaan.Bulan] = pelaksanaan
 			}
 
 			// Buat slice pelaksanaan yang terurut untuk 12 bulan
 			var pelaksanaanLengkap []domain.PelaksanaanRencanaAksi
 			for bulan := 1; bulan <= 12; bulan++ {
-				pelaksanaanLengkap = append(pelaksanaanLengkap, domain.PelaksanaanRencanaAksi{
-					RencanaAksiId: rencanaAksi.Id,
-					Bulan:         bulan,
-					Bobot:         bobotPerBulan[bulan],
-				})
+				if pelaksanaan, exists := pelaksanaanPerBulan[bulan]; exists {
+					// Jika ada data pelaksanaan untuk bulan ini, gunakan data tersebut
+					pelaksanaanLengkap = append(pelaksanaanLengkap, domain.PelaksanaanRencanaAksi{
+						Id:            pelaksanaan.Id,
+						RencanaAksiId: rencanaAksi.Id,
+						Bulan:         bulan,
+						Bobot:         pelaksanaan.Bobot,
+					})
+				} else {
+					// Jika tidak ada data, buat data kosong
+					pelaksanaanLengkap = append(pelaksanaanLengkap, domain.PelaksanaanRencanaAksi{
+						Id:            "", // ID kosong untuk bulan tanpa pelaksanaan
+						RencanaAksiId: rencanaAksi.Id,
+						Bulan:         bulan,
+						Bobot:         0,
+					})
+				}
 			}
 
 			response := helper.ToRencanaAksiResponse(rencanaAksi, pelaksanaanLengkap)

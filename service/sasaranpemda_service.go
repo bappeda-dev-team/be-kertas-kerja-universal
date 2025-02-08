@@ -13,5 +13,4 @@ type SasaranPemdaService interface {
 	FindAll(ctx context.Context, tahun string) ([]sasaranpemda.SasaranPemdaResponse, error)
 	UpdatePeriode(ctx context.Context, request sasaranpemda.SasaranPemdaUpdateRequest) (sasaranpemda.SasaranPemdaResponse, error)
 	FindAllWithPokin(ctx context.Context, tahun string) ([]sasaranpemda.SasaranPemdaWithPokinResponse, error)
-	FindPokinWithPeriode(ctx context.Context, pokinId int) (sasaranpemda.PokinWithPeriodeResponse, error)
 }

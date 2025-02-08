@@ -225,3 +225,35 @@ func (controller *TujuanPemdaControllerImpl) FindAllWithPokin(writer http.Respon
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *TujuanPemdaControllerImpl) FindPokinWithPeriode(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	pokinId := params.ByName("pokin_id")
+	id, err := strconv.Atoi(pokinId)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   "Invalid ID format",
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	pokinWithPeriodeResponse, err := controller.TujuanPemdaService.FindPokinWithPeriode(request.Context(), id)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusInternalServerError,
+			Status: "INTERNAL SERVER ERROR",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "OK",
+		Data:   pokinWithPeriodeResponse,
+	}
+	helper.WriteToResponseBody(writer, webResponse)
+}

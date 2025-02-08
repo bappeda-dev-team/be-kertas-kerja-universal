@@ -608,3 +608,74 @@ func (service *TujuanPemdaServiceImpl) FindAllWithPokin(ctx context.Context, tah
 
 	return responses, nil
 }
+
+func (service *TujuanPemdaServiceImpl) FindPokinWithPeriode(ctx context.Context, pokinId int) (tujuanpemda.PokinWithPeriodeResponse, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return tujuanpemda.PokinWithPeriodeResponse{}, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	// Validasi pokin ID
+	err = service.PohonKinerjaRepository.ValidatePokinId(ctx, tx, pokinId)
+	if err != nil {
+		return tujuanpemda.PokinWithPeriodeResponse{}, err
+	}
+
+	// Ambil data pokin dengan periode
+	pokin, err := service.PohonKinerjaRepository.FindPokinWithPeriode(ctx, tx, pokinId)
+	if err != nil {
+		return tujuanpemda.PokinWithPeriodeResponse{}, err
+	}
+
+	// Transform ke response
+	response := tujuanpemda.PokinWithPeriodeResponse{
+		Id:         pokin.Id,
+		NamaPohon:  pokin.NamaPohon,
+		JenisPohon: pokin.JenisPohon,
+		LevelPohon: pokin.LevelPohon,
+		Tahun:      pokin.Tahun,
+		Status:     pokin.Status,
+	}
+
+	// Transform indikator dan target
+	for _, indikator := range pokin.Indikator {
+		indikatorResponse := tujuanpemda.PokinIndikatorResponse{
+			Id:        indikator.Id,
+			Indikator: indikator.Indikator,
+		}
+
+		// Transform target untuk setiap tahun dalam periode
+		for _, target := range indikator.Target {
+			targetResponse := tujuanpemda.PokinTargetResponse{
+				Id:     target.Id,
+				Target: target.Target,
+				Satuan: target.Satuan,
+				Tahun:  target.Tahun,
+			}
+			indikatorResponse.Target = append(indikatorResponse.Target, targetResponse)
+		}
+
+		response.Indikator = append(response.Indikator, indikatorResponse)
+	}
+
+	// Cari periode yang sesuai dengan tahun pokin
+	periode, err := service.PeriodeRepository.FindByTahun(ctx, tx, pokin.Tahun)
+	if err == nil {
+		// Jika periode ditemukan
+		response.Periode = tujuanpemda.PokinPeriodeResponse{
+			Id:         periode.Id,
+			TahunAwal:  periode.TahunAwal,
+			TahunAkhir: periode.TahunAkhir,
+		}
+	} else {
+		// Jika periode tidak ditemukan, set nilai default
+		response.Periode = tujuanpemda.PokinPeriodeResponse{
+			Id:         0,
+			TahunAwal:  "",
+			TahunAkhir: "",
+		}
+	}
+
+	return response, nil
+}

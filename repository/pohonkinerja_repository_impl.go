@@ -7,6 +7,7 @@ import (
 	"ekak_kabupaten_madiun/model/domain"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -2170,4 +2171,144 @@ func (repository *PohonKinerjaRepositoryImpl) ValidatePokinLevel(ctx context.Con
 	}
 
 	return nil
+}
+
+func (repository *PohonKinerjaRepositoryImpl) FindPokinWithPeriode(ctx context.Context, tx *sql.Tx, pokinId int) (domain.PohonKinerja, error) {
+	query := `
+        SELECT 
+            pk.id,
+            pk.nama_pohon,
+            pk.parent,
+            pk.jenis_pohon,
+            pk.level_pohon,
+            pk.kode_opd,
+            pk.keterangan,
+            pk.tahun,
+            pk.status,
+            COALESCE(p.id, 0) as periode_id,
+            COALESCE(p.tahun_awal, '') as tahun_awal,
+            COALESCE(p.tahun_akhir, '') as tahun_akhir,
+            i.id as indikator_id,
+            i.indikator as indikator_text,
+            t.id as target_id,
+            t.target as target_value,
+            t.satuan as target_satuan
+        FROM 
+            tb_pohon_kinerja pk
+        LEFT JOIN 
+            tb_periode p ON CAST(pk.tahun AS SIGNED) BETWEEN CAST(p.tahun_awal AS SIGNED) AND CAST(p.tahun_akhir AS SIGNED)
+        LEFT JOIN 
+            tb_indikator i ON pk.id = i.pokin_id
+        LEFT JOIN 
+            tb_target t ON i.id = t.indikator_id
+        WHERE 
+            pk.id = ?
+        ORDER BY 
+            i.id`
+
+	rows, err := tx.QueryContext(ctx, query, pokinId)
+	if err != nil {
+		return domain.PohonKinerja{}, fmt.Errorf("error querying data: %v", err)
+	}
+	defer rows.Close()
+
+	var pokin domain.PohonKinerja
+	indikatorMap := make(map[string]*domain.Indikator)
+	firstRow := true
+
+	for rows.Next() {
+		var (
+			periodeId                           int
+			tahunAwal, tahunAkhir               string
+			indikatorId, indikatorText          sql.NullString
+			targetId, targetValue, targetSatuan sql.NullString
+		)
+
+		err := rows.Scan(
+			&pokin.Id,
+			&pokin.NamaPohon,
+			&pokin.Parent,
+			&pokin.JenisPohon,
+			&pokin.LevelPohon,
+			&pokin.KodeOpd,
+			&pokin.Keterangan,
+			&pokin.Tahun,
+			&pokin.Status,
+			&periodeId,
+			&tahunAwal,
+			&tahunAkhir,
+			&indikatorId,
+			&indikatorText,
+			&targetId,
+			&targetValue,
+			&targetSatuan,
+		)
+		if err != nil {
+			return domain.PohonKinerja{}, fmt.Errorf("error scanning row: %v", err)
+		}
+
+		if firstRow {
+			firstRow = false
+		}
+
+		// Proses indikator jika ada
+		if indikatorId.Valid && indikatorText.Valid {
+			indikator, exists := indikatorMap[indikatorId.String]
+			if !exists {
+				indikator = &domain.Indikator{
+					Id:        indikatorId.String,
+					PokinId:   fmt.Sprint(pokin.Id),
+					Indikator: indikatorText.String,
+					Target:    []domain.Target{},
+				}
+				indikatorMap[indikatorId.String] = indikator
+			}
+
+			// Inisialisasi target untuk semua tahun dalam periode
+			if periodeId != 0 && tahunAwal != "" && tahunAkhir != "" {
+				tahunAwalInt, _ := strconv.Atoi(tahunAwal)
+				tahunAkhirInt, _ := strconv.Atoi(tahunAkhir)
+
+				for tahun := tahunAwalInt; tahun <= tahunAkhirInt; tahun++ {
+					tahunStr := strconv.Itoa(tahun)
+					target := domain.Target{
+						Id:          "",
+						IndikatorId: indikatorId.String,
+						Target:      "",
+						Satuan:      "",
+						Tahun:       tahunStr,
+					}
+
+					// Jika ada target dan tahun sesuai dengan tahun pokin
+					if targetId.Valid && targetValue.Valid && targetSatuan.Valid && tahunStr == pokin.Tahun {
+						target.Id = targetId.String
+						target.Target = targetValue.String
+						target.Satuan = targetSatuan.String
+					}
+
+					indikator.Target = append(indikator.Target, target)
+				}
+			}
+		}
+	}
+
+	// Konversi map indikator ke slice
+	for _, indikator := range indikatorMap {
+		// Sort target berdasarkan tahun
+		sort.Slice(indikator.Target, func(i, j int) bool {
+			return indikator.Target[i].Tahun < indikator.Target[j].Tahun
+		})
+		pokin.Indikator = append(pokin.Indikator, *indikator)
+	}
+
+	// Sort indikator berdasarkan ID
+	sort.Slice(pokin.Indikator, func(i, j int) bool {
+		return pokin.Indikator[i].Id < pokin.Indikator[j].Id
+	})
+
+	if pokin.Id == 0 {
+		return pokin, fmt.Errorf("pohon kinerja tidak ditemukan")
+	}
+
+	return pokin, nil
 }

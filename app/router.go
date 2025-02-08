@@ -315,6 +315,8 @@ func NewRouter(
 	router.GET("/sasaran_pemda/detail/:id", sasaranPemdaController.FindById)
 	router.GET("/sasaran_pemda/findall/:tahun", sasaranPemdaController.FindAll)
 	router.PUT("/sasaran_pemda/update_periode/:id", sasaranPemdaController.UpdatePeriode)
+	router.GET("/sasaran_pemda/findall_with_pokin/:tahun", sasaranPemdaController.FindAllWithPokin)
+	router.GET("/pohon_kinerja/pokin_with_periode/:pokin_id", sasaranPemdaController.FindPokinWithPeriode)
 
 	//permasalahan rekin
 	router.POST("/permasalahan_rekin/create", permasalahanRekinController.Create)

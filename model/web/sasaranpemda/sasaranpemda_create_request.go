@@ -1,7 +1,8 @@
 package sasaranpemda
 
 type SasaranPemdaCreateRequest struct {
-	SasaranPemdaId   int                      `json:"sasaran_pemda_id"`
+	SubtemaId        int                      `json:"subtema_id"`
+	SasaranPemda     string                   `json:"sasaran_pemda"`
 	PeriodeId        int                      `json:"periode_id"`
 	RumusPerhitungan string                   `json:"rumus_perhitungan"`
 	SumberData       string                   `json:"sumber_data"`

@@ -66,7 +66,7 @@ func NewRouter(
 	router.POST("/pelaksanaan_rencana_aksi/create/:rencanaAksiId", pelaksanaanRencanaAksiController.Create)
 	router.PUT("/pelaksanaan_rencana_aksi/update/:pelaksanaanRencanaAksiId", pelaksanaanRencanaAksiController.Update)
 	router.GET("/pelaksanaan_rencana_aksi/detail/:id", pelaksanaanRencanaAksiController.FindById)
-	router.DELETE("/pelaksanaan_rencanxa_aksi/delete/:id", pelaksanaanRencanaAksiController.Delete)
+	router.DELETE("/pelaksanaan_rencana_aksi/delete/:id", pelaksanaanRencanaAksiController.Delete)
 
 	//usulan musrebang
 	router.POST("/usulan_musrebang/create", usulanMusrebangController.Create)

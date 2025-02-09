@@ -7,11 +7,9 @@ type TujuanPemda struct {
 	TujuanPemda string
 	// TujuanPemdaId    int
 	// NamaTujuanPemda  string
-	PeriodeId        int
-	Periode          Periode
-	RumusPerhitungan string
-	SumberData       string
-	Indikator        []Indikator
+	PeriodeId int
+	Periode   Periode
+	Indikator []Indikator
 }
 
 type TujuanPemdaWithPokin struct {

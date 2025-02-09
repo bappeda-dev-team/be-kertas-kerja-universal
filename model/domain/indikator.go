@@ -1,5 +1,7 @@
 package domain
 
+import "database/sql"
+
 type Indikator struct {
 	Id               string
 	PokinId          string
@@ -15,4 +17,6 @@ type Indikator struct {
 	CloneFrom        string
 	Target           []Target
 	RencanaKinerja   RencanaKinerja
+	RumusPerhitungan sql.NullString
+	SumberData       sql.NullString
 }

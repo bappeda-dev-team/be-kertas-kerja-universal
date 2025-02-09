@@ -1,20 +1,20 @@
 package tujuanpemda
 
 type TujuanPemdaResponse struct {
-	Id               int                 `json:"id"`
-	TujuanPemda      string              `json:"tujuan_pemda"`
-	TematikId        int                 `json:"tema_id"`
-	NamaTematik      string              `json:"nama_tema"`
-	Periode          PeriodeResponse     `json:"periode"`
-	RumusPerhitungan string              `json:"rumus_perhitungan,omitempty"`
-	SumberData       string              `json:"sumber_data,omitempty"`
-	Indikator        []IndikatorResponse `json:"indikator,omitempty"`
+	Id          int                 `json:"id"`
+	TujuanPemda string              `json:"tujuan_pemda"`
+	TematikId   int                 `json:"tema_id"`
+	NamaTematik string              `json:"nama_tema"`
+	Periode     PeriodeResponse     `json:"periode"`
+	Indikator   []IndikatorResponse `json:"indikator,omitempty"`
 }
 
 type IndikatorResponse struct {
-	Id        string           `json:"id"`
-	Indikator string           `json:"indikator"`
-	Target    []TargetResponse `json:"target"`
+	Id               string           `json:"id"`
+	Indikator        string           `json:"indikator"`
+	RumusPerhitungan string           `json:"rumus_perhitungan"`
+	SumberData       string           `json:"sumber_data"`
+	Target           []TargetResponse `json:"target"`
 }
 
 type TargetResponse struct {
@@ -61,9 +61,11 @@ type PokinPeriodeResponse struct {
 }
 
 type PokinIndikatorResponse struct {
-	Id        string                `json:"id"`
-	Indikator string                `json:"indikator"`
-	Target    []PokinTargetResponse `json:"target"`
+	Id               string                `json:"id"`
+	Indikator        string                `json:"indikator"`
+	RumusPerhitungan string                `json:"rumus_perhitungan"`
+	SumberData       string                `json:"sumber_data"`
+	Target           []PokinTargetResponse `json:"target"`
 }
 
 type PokinTargetResponse struct {

@@ -48,15 +48,22 @@ func (repository *TujuanPemdaRepositoryImpl) Update(ctx context.Context, tx *sql
 		return tujuanPemda, err
 	}
 
-	// Proses indikator
-	for _, indikator := range tujuanPemda.Indikator {
-		// Update atau insert indikator
-		scriptUpdateIndikator := `
-            INSERT INTO tb_indikator (id, tujuan_pemda_id, indikator, rumus_perhitungan, sumber_data) 
-            VALUES (?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE indikator = VALUES(indikator), rumus_perhitungan = VALUES(rumus_perhitungan), sumber_data = VALUES(sumber_data)`
+	// Hapus semua indikator lama beserta targetnya
+	scriptDeleteOldIndicators := "DELETE FROM tb_indikator WHERE tujuan_pemda_id = ?"
+	_, err = tx.ExecContext(ctx, scriptDeleteOldIndicators, tujuanPemda.Id)
+	if err != nil {
+		return tujuanPemda, err
+	}
 
-		_, err := tx.ExecContext(ctx, scriptUpdateIndikator,
+	// Insert indikator baru
+	for _, indikator := range tujuanPemda.Indikator {
+		scriptInsertIndikator := `
+            INSERT INTO tb_indikator 
+                (id, tujuan_pemda_id, indikator, rumus_perhitungan, sumber_data) 
+            VALUES 
+                (?, ?, ?, ?, ?)`
+
+		_, err := tx.ExecContext(ctx, scriptInsertIndikator,
 			indikator.Id,
 			tujuanPemda.Id,
 			indikator.Indikator,
@@ -66,9 +73,9 @@ func (repository *TujuanPemdaRepositoryImpl) Update(ctx context.Context, tx *sql
 			return tujuanPemda, err
 		}
 
-		// Hapus target lama untuk indikator ini
-		scriptDeleteTargets := "DELETE FROM tb_target WHERE indikator_id = ?"
-		_, err = tx.ExecContext(ctx, scriptDeleteTargets, indikator.Id)
+		// Hapus semua target lama untuk indikator ini
+		scriptDeleteOldTargets := "DELETE FROM tb_target WHERE indikator_id = ?"
+		_, err = tx.ExecContext(ctx, scriptDeleteOldTargets, indikator.Id)
 		if err != nil {
 			return tujuanPemda, err
 		}

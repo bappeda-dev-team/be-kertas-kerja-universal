@@ -617,9 +617,12 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 			rencanaAksiList = []domain.RencanaAksi{}
 		}
 
+		// Modifikasi bagian yang memproses rencana aksi
 		var rencanaAksiResponses []rencanaaksi.RencanaAksiResponse
+		bobotPerBulan := make([]int, 12) // Array untuk menyimpan total per bulan
+
 		for _, rencanaAksi := range rencanaAksiList {
-			// Ambil pelaksanaan rencana aksi untuk setiap rencana aksi
+			// Ambil data pelaksanaan untuk setiap rencana aksi
 			pelaksanaanList, err := service.PelaksanaanRencanaAksiRepository.FindByRencanaAksiId(ctx, tx, rencanaAksi.Id)
 			if err != nil {
 				log.Printf("Warning: gagal mengambil pelaksanaan rencana aksi: %v", err)
@@ -634,19 +637,21 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 
 			// Buat slice pelaksanaan yang terurut untuk 12 bulan
 			var pelaksanaanLengkap []domain.PelaksanaanRencanaAksi
+			totalBobotRencanaAksi := 0
+
 			for bulan := 1; bulan <= 12; bulan++ {
 				if pelaksanaan, exists := pelaksanaanPerBulan[bulan]; exists {
-					// Jika ada data pelaksanaan untuk bulan ini, gunakan data tersebut
 					pelaksanaanLengkap = append(pelaksanaanLengkap, domain.PelaksanaanRencanaAksi{
 						Id:            pelaksanaan.Id,
 						RencanaAksiId: rencanaAksi.Id,
 						Bulan:         bulan,
 						Bobot:         pelaksanaan.Bobot,
 					})
+					totalBobotRencanaAksi += pelaksanaan.Bobot
+					bobotPerBulan[bulan-1] += pelaksanaan.Bobot // Menambahkan ke total per bulan
 				} else {
-					// Jika tidak ada data, buat data kosong
 					pelaksanaanLengkap = append(pelaksanaanLengkap, domain.PelaksanaanRencanaAksi{
-						Id:            "", // ID kosong untuk bulan tanpa pelaksanaan
+						Id:            "",
 						RencanaAksiId: rencanaAksi.Id,
 						Bulan:         bulan,
 						Bobot:         0,
@@ -655,7 +660,33 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 			}
 
 			response := helper.ToRencanaAksiResponse(rencanaAksi, pelaksanaanLengkap)
+			response.TotalBobotRencanaAksi = totalBobotRencanaAksi
 			rencanaAksiResponses = append(rencanaAksiResponses, response)
+		}
+
+		// Konversi array bobotPerBulan ke slice BobotBulanan
+		var totalPerBulanResponse []rencanaaksi.BobotBulanan
+		totalKeseluruhan := 0
+		bulanTerakhir := 0
+
+		for bulan := 1; bulan <= 12; bulan++ {
+			bobot := bobotPerBulan[bulan-1]
+			totalPerBulanResponse = append(totalPerBulanResponse, rencanaaksi.BobotBulanan{
+				Bulan:      bulan,
+				TotalBobot: bobot,
+			})
+			totalKeseluruhan += bobot
+
+			if bobot > 0 {
+				bulanTerakhir = bulan
+			}
+		}
+
+		rencanaAksiTable := rencanaaksi.RencanaAksiTableResponse{
+			RencanaAksi:      rencanaAksiResponses,
+			TotalPerBulan:    totalPerBulanResponse,
+			TotalKeseluruhan: totalKeseluruhan,
+			WaktuDibutuhkan:  bulanTerakhir,
 		}
 
 		// Modifikasi bagian subkegiatan
@@ -832,7 +863,7 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 		// Tambahkan ke responses
 		responses = append(responses, rencanakinerja.DataRincianKerja{
 			RencanaKinerja: rencanaKinerjaResponse,
-			RencanaAksi:    rencanaAksiResponses,
+			RencanaAksi:    rencanaAksiTable,
 			Usulan:         usulanGabungan,
 			DasarHukum:     helper.ToDasarHukumResponses(dasarHukum),
 			SubKegiatan:    subKegiatanResponses,

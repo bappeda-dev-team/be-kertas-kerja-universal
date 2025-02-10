@@ -11,7 +11,7 @@ import (
 
 type DataRincianKerja struct {
 	RencanaKinerja RencanaKinerjaResponse                   `json:"rencana_kinerja"`
-	RencanaAksi    []rencanaaksi.RencanaAksiResponse        `json:"rencana_aksis"`
+	RencanaAksi    rencanaaksi.RencanaAksiTableResponse     `json:"rencana_aksis"`
 	Usulan         []UsulanGabunganResponse                 `json:"usulan"`
 	SubKegiatan    []subkegiatan.SubKegiatanResponse        `json:"subkegiatan"`
 	Permasalahan   []permasalahan.PermasalahanRekinResponse `json:"permasalahan"`

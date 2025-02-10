@@ -18,6 +18,7 @@ type SasaranPemdaWithPokin struct {
 	TematikId           int
 	NamaTematik         string
 	NamaSubtematik      string
+	IdsasaranPemda      int
 	SasaranPemda        string
 	Keterangan          string
 	IndikatorSubtematik []Indikator

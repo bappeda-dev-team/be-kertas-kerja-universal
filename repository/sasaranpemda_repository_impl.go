@@ -505,6 +505,7 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
             END, 
             ''
         ) as nama_tematik,
+		COALESCE(sp.id, 0) as id_sasaran_pemda,
         COALESCE(sp.sasaran_pemda, '') as sasaran_pemda,
         COALESCE(i_sp.indikator, i_pk.indikator) as indikator,
         COALESCE(t_sp.target, t_pk.target) as target,
@@ -555,6 +556,7 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 			keterangan     sql.NullString
 			tematikId      int
 			namaTematik    string
+			idSasaranPemda int
 			sasaranPemda   string
 			indikator      sql.NullString
 			target         sql.NullString
@@ -569,6 +571,7 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 			&keterangan,
 			&tematikId,
 			&namaTematik,
+			&idSasaranPemda,
 			&sasaranPemda,
 			&indikator,
 			&target,
@@ -588,6 +591,7 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 				Keterangan:          keterangan.String,
 				TematikId:           tematikId,
 				NamaTematik:         namaTematik,
+				IdsasaranPemda:      idSasaranPemda,
 				SasaranPemda:        sasaranPemda,
 				IndikatorSubtematik: []domain.Indikator{},
 			}

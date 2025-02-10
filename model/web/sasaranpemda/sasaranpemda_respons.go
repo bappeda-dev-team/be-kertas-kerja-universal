@@ -37,6 +37,7 @@ type SasaranPemdaWithPokinResponse struct {
 	NamaSubtematik      string                        `json:"nama_subtematik"`
 	JenisPohon          string                        `json:"jenis_pohon"`
 	LevelPohon          int                           `json:"level_pohon"`
+	IdsasaranPemda      int                           `json:"id_sasaran"`
 	SasaranPemda        string                        `json:"sasaranpemda"`
 	Keterangan          string                        `json:"keterangan"`
 	IndikatorSubtematik []IndikatorSubtematikResponse `json:"indikator"`

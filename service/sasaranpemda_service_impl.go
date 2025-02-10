@@ -371,6 +371,7 @@ func (service *SasaranPemdaServiceImpl) FindAllWithPokin(ctx context.Context, ta
 		}
 
 		responses = append(responses, sasaranpemda.SasaranPemdaWithPokinResponse{
+			IdsasaranPemda:      item.IdsasaranPemda,
 			TematikId:           item.TematikId,
 			NamaTematik:         item.NamaTematik,
 			SubtematikId:        item.SubtematikId,

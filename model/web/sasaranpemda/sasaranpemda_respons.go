@@ -1,15 +1,12 @@
 package sasaranpemda
 
 type SasaranPemdaResponse struct {
-	Id               int                 `json:"id"`
-	SubtemaId        int                 `json:"subtema_id,omitempty"`
-	TujuanPemdaId    int                 `json:"tujuan_pemda_id,omitempty"`
-	NamaSubtema      string              `json:"nama_subtema,omitempty"`
-	SasaranPemda     string              `json:"sasaran_pemda"`
-	Periode          PeriodeResponse     `json:"periode,omitempty"`
-	RumusPerhitungan string              `json:"rumus_perhitungan,omitempty"`
-	SumberData       string              `json:"sumber_data,omitempty"`
-	Indikator        []IndikatorResponse `json:"indikator,omitempty"`
+	Id            int    `json:"id"`
+	SubtemaId     int    `json:"subtema_id,omitempty"`
+	NamaSubtema   string `json:"nama_subtema,omitempty"`
+	TujuanPemdaId int    `json:"tujuan_pemda_id,omitempty"`
+	TujuanPemda   string `json:"tujuan_pemda,omitempty"`
+	SasaranPemda  string `json:"sasaran_pemda"`
 }
 
 type IndikatorResponse struct {

@@ -345,12 +345,6 @@ func (service *SasaranPemdaServiceImpl) FindAllWithPokin(ctx context.Context, ta
 	}
 	defer helper.CommitOrRollback(tx)
 
-	// Validasi tahun
-	// _, err = service.PeriodeRepository.FindByTahun(ctx, tx, tahun)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("tahun %s tidak berada dalam periode manapun", tahun)
-	// }
-
 	// Ambil data dari repository
 	items, err := service.SasaranPemdaRepository.FindAllWithPokin(ctx, tx, tahun)
 	if err != nil {

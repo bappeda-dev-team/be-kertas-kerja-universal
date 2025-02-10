@@ -306,104 +306,93 @@ func (repository *SasaranPemdaRepositoryImpl) UpdatePeriode(ctx context.Context,
 
 func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Context, tx *sql.Tx, tahun string) ([]domain.SasaranPemdaWithPokin, error) {
 	query := `
- WITH RECURSIVE parent_hierarchy AS (
-        -- Level 1-3 nodes
+    WITH tematik_tanpa_turunan AS (
         SELECT 
-            id,
-            nama_pohon,
-            jenis_pohon,
-            level_pohon,
-            keterangan,
-            parent,
-            id as original_id,
-            CASE 
-                WHEN level_pohon = 1 THEN parent
-                ELSE NULL 
-            END as tematik_id
-        FROM 
-            tb_pohon_kinerja
-        WHERE 
-            level_pohon BETWEEN 1 AND 3
-            AND tahun = ?
-
-        UNION ALL
-
-        -- Recursive untuk mencari parent sampai level 0
+            t.id as subtematik_id,
+            t.nama_pohon as nama_subtematik,
+            t.jenis_pohon,
+            t.level_pohon,
+            t.keterangan,
+            t.id as tematik_id,
+            t.nama_pohon as nama_tematik,
+            0 as id_sasaran_pemda,
+            '' as sasaran_pemda,
+            NULL as indikator,
+            NULL as target,
+            NULL as satuan,
+            NULL as indikator_created_at
+        FROM tb_pohon_kinerja t
+        LEFT JOIN tb_pohon_kinerja child ON child.parent = t.id AND child.tahun = ?
+        WHERE t.level_pohon = 0 
+        AND t.tahun = ?
+        AND child.id IS NULL
+    )
+    SELECT * FROM (
         SELECT 
-            pk.id,
-            pk.nama_pohon,
+            pk.id as subtematik_id,
+            pk.nama_pohon as nama_subtematik,
             pk.jenis_pohon,
             pk.level_pohon,
             pk.keterangan,
-            pk.parent,
-            ph.original_id,
-            CASE 
-                WHEN pk.level_pohon = 0 THEN pk.id
-                WHEN pk.level_pohon = 1 THEN pk.parent
-                ELSE NULL
-            END as tematik_id
+            COALESCE(
+                CASE 
+                    WHEN pk.level_pohon = 1 THEN parent.id
+                    WHEN pk.level_pohon = 2 THEN grandparent.id
+                    WHEN pk.level_pohon = 3 THEN great_grandparent.id
+                END, 
+                0
+            ) as tematik_id,
+            COALESCE(
+                CASE 
+                    WHEN pk.level_pohon = 1 THEN parent.nama_pohon
+                    WHEN pk.level_pohon = 2 THEN grandparent.nama_pohon
+                    WHEN pk.level_pohon = 3 THEN great_grandparent.nama_pohon
+                END, 
+                ''
+            ) as nama_tematik,
+            COALESCE(sp.id, 0) as id_sasaran_pemda,
+            COALESCE(sp.sasaran_pemda, '') as sasaran_pemda,
+            COALESCE(i_sp.indikator, i_pk.indikator) as indikator,
+            COALESCE(t_sp.target, t_pk.target) as target,
+            COALESCE(t_sp.satuan, t_pk.satuan) as satuan,
+            COALESCE(i_sp.created_at, i_pk.created_at) as indikator_created_at
         FROM 
             tb_pohon_kinerja pk
-        INNER JOIN 
-            parent_hierarchy ph ON pk.id = ph.parent
+        LEFT JOIN 
+            tb_pohon_kinerja parent ON pk.parent = parent.id AND parent.tahun = ?
+        LEFT JOIN 
+            tb_pohon_kinerja grandparent ON parent.parent = grandparent.id AND grandparent.tahun = ?
+        LEFT JOIN 
+            tb_pohon_kinerja great_grandparent ON grandparent.parent = great_grandparent.id AND great_grandparent.tahun = ?
+        LEFT JOIN 
+            tb_sasaran_pemda sp ON pk.id = sp.subtema_id
+        LEFT JOIN 
+            tb_indikator i_sp ON sp.id = i_sp.sasaran_pemda_id
+        LEFT JOIN 
+            tb_target t_sp ON i_sp.id = t_sp.indikator_id
+        LEFT JOIN 
+            tb_indikator i_pk ON pk.id = i_pk.pokin_id AND i_sp.id IS NULL
+        LEFT JOIN 
+            tb_target t_pk ON i_pk.id = t_pk.indikator_id AND t_sp.id IS NULL
         WHERE 
-            pk.tahun = ?
-    )
-    SELECT 
-        pk.id as subtematik_id,
-        pk.nama_pohon as nama_subtematik,
-        pk.jenis_pohon,
-        pk.level_pohon,
-        pk.keterangan,
-        COALESCE(
-            CASE 
-                WHEN pk.level_pohon = 1 THEN parent.id
-                WHEN pk.level_pohon = 2 THEN grandparent.id
-                WHEN pk.level_pohon = 3 THEN great_grandparent.id
-            END, 
-            0
-        ) as tematik_id,
-        COALESCE(
-            CASE 
-                WHEN pk.level_pohon = 1 THEN parent.nama_pohon
-                WHEN pk.level_pohon = 2 THEN grandparent.nama_pohon
-                WHEN pk.level_pohon = 3 THEN great_grandparent.nama_pohon
-            END, 
-            ''
-        ) as nama_tematik,
-		COALESCE(sp.id, 0) as id_sasaran_pemda,
-        COALESCE(sp.sasaran_pemda, '') as sasaran_pemda,
-        COALESCE(i_sp.indikator, i_pk.indikator) as indikator,
-        COALESCE(t_sp.target, t_pk.target) as target,
-        COALESCE(t_sp.satuan, t_pk.satuan) as satuan
-    FROM 
-        tb_pohon_kinerja pk
-    -- Parent untuk level 1
-    LEFT JOIN 
-        tb_pohon_kinerja parent ON pk.parent = parent.id AND parent.tahun = ?
-    -- Parent untuk level 2
-    LEFT JOIN 
-        tb_pohon_kinerja grandparent ON parent.parent = grandparent.id AND grandparent.tahun = ?
-    -- Parent untuk level 3
-    LEFT JOIN 
-        tb_pohon_kinerja great_grandparent ON grandparent.parent = great_grandparent.id AND great_grandparent.tahun = ?
-    LEFT JOIN 
-        tb_sasaran_pemda sp ON pk.id = sp.subtema_id
-    LEFT JOIN 
-        tb_indikator i_sp ON sp.id = i_sp.sasaran_pemda_id
-    LEFT JOIN 
-        tb_target t_sp ON i_sp.id = t_sp.indikator_id
-    LEFT JOIN 
-        tb_indikator i_pk ON pk.id = i_pk.pokin_id AND i_sp.id IS NULL
-    LEFT JOIN 
-        tb_target t_pk ON i_pk.id = t_pk.indikator_id AND t_sp.id IS NULL
-    WHERE 
-        pk.level_pohon BETWEEN 1 AND 3
-        AND pk.tahun = ?
+            pk.level_pohon BETWEEN 1 AND 3
+            AND pk.tahun = ?
+
+        UNION ALL
+
+        SELECT * FROM tematik_tanpa_turunan
+    ) combined
     ORDER BY 
-        pk.nama_pohon ASC,
-        pk.id, 
-        COALESCE(i_sp.id, i_pk.id)`
+        nama_tematik ASC,
+        CASE 
+            WHEN level_pohon = 0 THEN 2  -- Tematik tanpa turunan
+            WHEN level_pohon = 1 THEN 0  -- Subtematik prioritas pertama
+            WHEN level_pohon = 2 THEN 1  -- Sub-subtematik prioritas kedua
+            WHEN level_pohon = 3 THEN 1  -- Sub-sub-subtematik prioritas ketiga
+        END ASC,
+        level_pohon ASC,
+        nama_subtematik ASC,
+        indikator_created_at ASC`
 
 	rows, err := tx.QueryContext(ctx, query, tahun, tahun, tahun, tahun, tahun, tahun)
 	if err != nil {
@@ -415,18 +404,19 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 
 	for rows.Next() {
 		var (
-			subtematikId   int
-			namaSubtematik string
-			jenisPohon     string
-			levelPohon     int
-			keterangan     sql.NullString
-			tematikId      int
-			namaTematik    string
-			idSasaranPemda int
-			sasaranPemda   string
-			indikator      sql.NullString
-			target         sql.NullString
-			satuan         sql.NullString
+			subtematikId       int
+			namaSubtematik     string
+			jenisPohon         string
+			levelPohon         int
+			keterangan         sql.NullString
+			tematikId          int
+			namaTematik        string
+			idSasaranPemda     int
+			sasaranPemda       string
+			indikator          sql.NullString
+			target             sql.NullString
+			satuan             sql.NullString
+			indikatorCreatedAt sql.NullTime
 		)
 
 		err := rows.Scan(
@@ -442,6 +432,7 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 			&indikator,
 			&target,
 			&satuan,
+			&indikatorCreatedAt,
 		)
 		if err != nil {
 			return nil, err

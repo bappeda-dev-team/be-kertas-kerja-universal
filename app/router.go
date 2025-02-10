@@ -43,6 +43,7 @@ func NewRouter(
 	tujuanPemdaController controller.TujuanPemdaController,
 	sasaranPemdaController controller.SasaranPemdaController,
 	permasalahanRekinController controller.PermasalahanRekinController,
+	ikuController controller.IkuController,
 ) *httprouter.Router {
 	router := httprouter.New()
 
@@ -323,6 +324,9 @@ func NewRouter(
 	router.GET("/permasalahan_rekin/findall/:rekinId", permasalahanRekinController.FindAll)
 	router.GET("/permasalahan_rekin/detail/:id", permasalahanRekinController.FindById)
 	router.DELETE("/permasalahan_rekin/delete/:id", permasalahanRekinController.Delete)
+
+	//iku
+	router.GET("/indikator_utama/findall/:tahun", ikuController.FindAll)
 
 	return router
 }

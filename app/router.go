@@ -314,9 +314,8 @@ func NewRouter(
 	router.PUT("/sasaran_pemda/update/:id", sasaranPemdaController.Update)
 	router.DELETE("/sasaran_pemda/delete/:id", sasaranPemdaController.Delete)
 	router.GET("/sasaran_pemda/detail/:id", sasaranPemdaController.FindById)
-	router.GET("/sasaran_pemda/findall/:tahun", sasaranPemdaController.FindAll)
-	router.PUT("/sasaran_pemda/update_periode/:id", sasaranPemdaController.UpdatePeriode)
-	router.GET("/sasaran_pemda/findall_with_pokin/:tahun", sasaranPemdaController.FindAllWithPokin)
+	// router.GET("/sasaran_pemda/findall/:tahun", sasaranPemdaController.FindAll)
+	router.GET("/sasaran_pemda/findall/:tahun", sasaranPemdaController.FindAllWithPokin)
 
 	//permasalahan rekin
 	router.POST("/permasalahan_rekin/create", permasalahanRekinController.Create)

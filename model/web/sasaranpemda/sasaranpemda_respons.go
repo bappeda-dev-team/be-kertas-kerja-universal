@@ -3,6 +3,7 @@ package sasaranpemda
 type SasaranPemdaResponse struct {
 	Id               int                 `json:"id"`
 	SubtemaId        int                 `json:"subtema_id,omitempty"`
+	TujuanPemdaId    int                 `json:"tujuan_pemda_id,omitempty"`
 	NamaSubtema      string              `json:"nama_subtema,omitempty"`
 	SasaranPemda     string              `json:"sasaran_pemda,omitempty"`
 	Periode          PeriodeResponse     `json:"periode,omitempty"`
@@ -18,10 +19,10 @@ type IndikatorResponse struct {
 }
 
 type TargetResponse struct {
-	Id     string `json:"id"`
-	Target string `json:"target"`
-	Satuan string `json:"satuan"`
-	Tahun  string `json:"tahun"`
+	Id     string `json:"id,omitempty"`
+	Target string `json:"target,omitempty"`
+	Satuan string `json:"satuan,omitempty"`
+	Tahun  string `json:"tahun,omitempty"`
 }
 
 type PeriodeResponse struct {
@@ -30,11 +31,18 @@ type PeriodeResponse struct {
 }
 
 type SasaranPemdaWithPokinResponse struct {
-	PokinId      int                   `json:"pokin_id"`
-	NamaPohon    string                `json:"nama_tematik"`
-	JenisPohon   string                `json:"jenis_pohon"`
-	LevelPohon   int                   `json:"level_pohon"`
-	Keterangan   string                `json:"keterangan"`
-	TahunPokin   string                `json:"tahun_pokin"`
-	SasaranPemda *SasaranPemdaResponse `json:"sasaran_pemda,omitempty"`
+	TematikId           int                           `json:"tematik_id"`
+	NamaTematik         string                        `json:"nama_tematik"`
+	SubtematikId        int                           `json:"subtematik_id"`
+	NamaSubtematik      string                        `json:"nama_subtematik"`
+	JenisPohon          string                        `json:"jenis_pohon"`
+	LevelPohon          int                           `json:"level_pohon"`
+	SasaranPemda        string                        `json:"sasaranpemda,omitempty"`
+	Keterangan          string                        `json:"keterangan"`
+	IndikatorSubtematik []IndikatorSubtematikResponse `json:"indikator"`
+}
+
+type IndikatorSubtematikResponse struct {
+	Indikator string           `json:"indikator"`
+	Target    []TargetResponse `json:"target"`
 }

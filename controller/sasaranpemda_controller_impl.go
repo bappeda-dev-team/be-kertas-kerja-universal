@@ -169,43 +169,6 @@ func (controller *SasaranPemdaControllerImpl) FindAll(writer http.ResponseWriter
 	helper.WriteToResponseBody(writer, webResponse)
 }
 
-func (controller *SasaranPemdaControllerImpl) UpdatePeriode(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	sasaranPemdaUpdateRequest := sasaranpemda.SasaranPemdaUpdateRequest{}
-	helper.ReadFromRequestBody(request, &sasaranPemdaUpdateRequest)
-
-	id := params.ByName("id")
-	idInt, err := strconv.Atoi(id)
-	if err != nil {
-		webResponse := web.WebResponse{
-			Code:   http.StatusBadRequest,
-			Status: "BAD REQUEST",
-			Data:   "Invalid ID format",
-		}
-		helper.WriteToResponseBody(writer, webResponse)
-		return
-	}
-	sasaranPemdaUpdateRequest.Id = idInt
-
-	// Panggil service update
-	sasaranPemdaResponse, err := controller.sasaranPemdaService.UpdatePeriode(request.Context(), sasaranPemdaUpdateRequest)
-	if err != nil {
-		webResponse := web.WebResponse{
-			Code:   http.StatusInternalServerError,
-			Status: "INTERNAL SERVER ERROR",
-			Data:   err.Error(),
-		}
-		helper.WriteToResponseBody(writer, webResponse)
-		return
-	}
-
-	webResponse := web.WebResponse{
-		Code:   http.StatusOK,
-		Status: "success update periode sasaran pemda",
-		Data:   sasaranPemdaResponse,
-	}
-	helper.WriteToResponseBody(writer, webResponse)
-}
-
 func (controller *SasaranPemdaControllerImpl) FindAllWithPokin(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	tahun := params.ByName("tahun")
 	sasaranPemdaResponses, err := controller.sasaranPemdaService.FindAllWithPokin(request.Context(), tahun)

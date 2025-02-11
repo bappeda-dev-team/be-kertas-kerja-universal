@@ -27,9 +27,13 @@ type PeriodeResponse struct {
 	TahunAkhir string `json:"tahun_akhir"`
 }
 
+type TematikSasaranPemdaResponse struct {
+	TematikId    int                             `json:"tematik_id"`
+	NamaTematik  string                          `json:"nama_tematik"`
+	SasaranPemda []SasaranPemdaWithPokinResponse `json:"sasaran_pemda"`
+}
+
 type SasaranPemdaWithPokinResponse struct {
-	TematikId           int                           `json:"tematik_id"`
-	NamaTematik         string                        `json:"nama_tematik"`
 	SubtematikId        int                           `json:"subtematik_id"`
 	NamaSubtematik      string                        `json:"nama_subtematik"`
 	JenisPohon          string                        `json:"jenis_pohon"`

@@ -221,7 +221,7 @@ func (service *SasaranPemdaServiceImpl) FindAll(ctx context.Context, tahun strin
 
 // Fungsi helper untuk konversi target
 
-func (service *SasaranPemdaServiceImpl) FindAllWithPokin(ctx context.Context, tahun string) ([]sasaranpemda.SasaranPemdaWithPokinResponse, error) {
+func (service *SasaranPemdaServiceImpl) FindAllWithPokin(ctx context.Context, tahun string) ([]sasaranpemda.TematikSasaranPemdaResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return nil, err
@@ -234,9 +234,10 @@ func (service *SasaranPemdaServiceImpl) FindAllWithPokin(ctx context.Context, ta
 		return nil, err
 	}
 
-	// Transform ke response
-	var responses []sasaranpemda.SasaranPemdaWithPokinResponse
+	tematikMap := make(map[int]*sasaranpemda.TematikSasaranPemdaResponse)
+
 	for _, item := range items {
+		// Proses indikator
 		var indikatorResponses []sasaranpemda.IndikatorSubtematikResponse
 		for _, indikator := range item.IndikatorSubtematik {
 			var targetResponses []sasaranpemda.TargetResponse
@@ -253,19 +254,39 @@ func (service *SasaranPemdaServiceImpl) FindAllWithPokin(ctx context.Context, ta
 			})
 		}
 
-		responses = append(responses, sasaranpemda.SasaranPemdaWithPokinResponse{
-			IdsasaranPemda:      item.IdsasaranPemda,
-			TematikId:           item.TematikId,
-			NamaTematik:         item.NamaTematik,
+		// Buat sasaran pemda response
+		sasaranPemdaResponse := sasaranpemda.SasaranPemdaWithPokinResponse{
 			SubtematikId:        item.SubtematikId,
 			NamaSubtematik:      item.NamaSubtematik,
 			JenisPohon:          item.JenisPohon,
 			LevelPohon:          item.LevelPohon,
+			IdsasaranPemda:      item.IdsasaranPemda,
 			SasaranPemda:        item.SasaranPemda,
 			Keterangan:          item.Keterangan,
 			IndikatorSubtematik: indikatorResponses,
-		})
+		}
+
+		// Buat atau dapatkan tematik response
+		tematik, exists := tematikMap[item.TematikId]
+		if !exists {
+			tematik = &sasaranpemda.TematikSasaranPemdaResponse{
+				TematikId:    item.TematikId,
+				NamaTematik:  item.NamaTematik,
+				SasaranPemda: []sasaranpemda.SasaranPemdaWithPokinResponse{},
+			}
+			tematikMap[item.TematikId] = tematik
+		}
+
+		// Tambahkan sasaran pemda ke tematik
+		tematik.SasaranPemda = append(tematik.SasaranPemda, sasaranPemdaResponse)
+	}
+
+	// Konversi map ke slice
+	var responses []sasaranpemda.TematikSasaranPemdaResponse
+	for _, tematik := range tematikMap {
+		responses = append(responses, *tematik)
 	}
 
 	return responses, nil
+
 }

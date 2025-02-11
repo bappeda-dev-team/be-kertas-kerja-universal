@@ -590,21 +590,12 @@ func (service *TujuanPemdaServiceImpl) FindAllWithPokin(ctx context.Context, tah
 				}
 
 				// Pastikan nilai default string kosong untuk rumusPerhitungan dan sumberData
-				rumusPerhitungan := ""
-				sumberData := ""
-
-				if indikator.RumusPerhitungan.Valid {
-					rumusPerhitungan = indikator.RumusPerhitungan.String
-				}
-				if indikator.SumberData.Valid {
-					sumberData = indikator.SumberData.String
-				}
 
 				indikatorResponses = append(indikatorResponses, tujuanpemda.IndikatorResponse{
 					Id:               indikator.Id,
 					Indikator:        indikator.Indikator,
-					RumusPerhitungan: rumusPerhitungan,
-					SumberData:       sumberData,
+					RumusPerhitungan: indikator.RumusPerhitungan.String,
+					SumberData:       indikator.SumberData.String,
 					Target:           targetResponses,
 				})
 			}

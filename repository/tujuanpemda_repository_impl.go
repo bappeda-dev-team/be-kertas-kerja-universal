@@ -643,22 +643,22 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
 			if indikatorId.Valid && indikatorText.Valid {
 				if _, exists := indikatorMap[indikatorId.String]; !exists {
 					// Konversi NullString ke string biasa
-					rumusPerhitungan := ""
-					if rumusPerhitungan != "" {
-						_ = rumusPerhitungan
+					rumusPerhitunganStr := ""
+					if rumusPerhitungan.Valid {
+						rumusPerhitunganStr = rumusPerhitungan.String
 					}
 
-					sumberData := ""
-					if sumberData != "" {
-						_ = sumberData
+					sumberDataStr := ""
+					if sumberData.Valid {
+						sumberDataStr = sumberData.String
 					}
 
 					indikatorMap[indikatorId.String] = &domain.Indikator{
 						Id:               indikatorId.String,
 						TujuanPemdaId:    int(tujuanId.Int64),
 						Indikator:        indikatorText.String,
-						RumusPerhitungan: sql.NullString{String: rumusPerhitungan, Valid: rumusPerhitungan != ""},
-						SumberData:       sql.NullString{String: sumberData, Valid: sumberData != ""},
+						RumusPerhitungan: sql.NullString{String: rumusPerhitunganStr, Valid: rumusPerhitunganStr != ""},
+						SumberData:       sql.NullString{String: sumberDataStr, Valid: sumberDataStr != ""},
 						Target:           []domain.Target{},
 					}
 					targetMap[indikatorId.String] = make(map[string]domain.Target)

@@ -305,6 +305,21 @@ func (repository *SasaranPemdaRepositoryImpl) UpdatePeriode(ctx context.Context,
 }
 
 func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Context, tx *sql.Tx, tahun string) ([]domain.SasaranPemdaWithPokin, error) {
+	checkQuery := `
+	SELECT COUNT(*) 
+	FROM tb_pohon_kinerja 
+	WHERE level_pohon = 0 AND tahun = ?
+`
+	var count int
+	err := tx.QueryRowContext(ctx, checkQuery, tahun).Scan(&count)
+	if err != nil {
+		return nil, err
+	}
+
+	// Jika tidak ada tematik level 0, return array kosong
+	if count == 0 {
+		return []domain.SasaranPemdaWithPokin{}, nil
+	}
 	query := `
     WITH tematik_tanpa_turunan AS (
         SELECT 

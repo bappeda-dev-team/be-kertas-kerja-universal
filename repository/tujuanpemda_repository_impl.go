@@ -378,10 +378,12 @@ func (repository *TujuanPemdaRepositoryImpl) FindAll(ctx context.Context, tx *sq
 			// Buat indikator baru jika belum ada
 			if currentIndikator == nil {
 				newIndikator := domain.Indikator{
-					Id:            indikatorId.String,
-					TujuanPemdaId: id,
-					Indikator:     indikatorText.String,
-					Target:        []domain.Target{},
+					Id:               indikatorId.String,
+					TujuanPemdaId:    id,
+					Indikator:        indikatorText.String,
+					RumusPerhitungan: sql.NullString{String: rumusPerhitungan, Valid: rumusPerhitungan != ""},
+					SumberData:       sql.NullString{String: sumberData, Valid: sumberData != ""},
+					Target:           []domain.Target{},
 				}
 
 				// Generate target untuk setiap tahun dalam periode

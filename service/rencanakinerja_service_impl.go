@@ -14,6 +14,7 @@ import (
 	"ekak_kabupaten_madiun/repository"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -619,7 +620,8 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 
 		// Modifikasi bagian yang memproses rencana aksi
 		var rencanaAksiResponses []rencanaaksi.RencanaAksiResponse
-		bobotPerBulan := make([]int, 12) // Array untuk menyimpan total per bulan
+		bobotPerBulan := make([]int, 12)    // Array untuk menyimpan total per bulan
+		bulanTerpakai := make(map[int]bool) // Map untuk melacak bulan yang digunakan
 
 		for _, rencanaAksi := range rencanaAksiList {
 			// Ambil data pelaksanaan untuk setiap rencana aksi
@@ -633,6 +635,9 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 			pelaksanaanPerBulan := make(map[int]domain.PelaksanaanRencanaAksi)
 			for _, pelaksanaan := range pelaksanaanList {
 				pelaksanaanPerBulan[pelaksanaan.Bulan] = pelaksanaan
+				if pelaksanaan.Bobot > 0 {
+					bulanTerpakai[pelaksanaan.Bulan] = true // Menandai bulan yang digunakan
+				}
 			}
 
 			// Buat slice pelaksanaan yang terurut untuk 12 bulan
@@ -667,7 +672,15 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 		// Konversi array bobotPerBulan ke slice BobotBulanan
 		var totalPerBulanResponse []rencanaaksi.BobotBulanan
 		totalKeseluruhan := 0
-		bulanTerakhir := 0
+
+		// Hitung jumlah bulan unik yang digunakan
+		bulanUnik := []int{}
+		for bulan := range bulanTerpakai {
+			bulanUnik = append(bulanUnik, bulan)
+		}
+
+		// Urutkan bulan-bulan yang digunakan
+		sort.Ints(bulanUnik)
 
 		for bulan := 1; bulan <= 12; bulan++ {
 			bobot := bobotPerBulan[bulan-1]
@@ -676,17 +689,13 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 				TotalBobot: bobot,
 			})
 			totalKeseluruhan += bobot
-
-			if bobot > 0 {
-				bulanTerakhir = bulan
-			}
 		}
 
 		rencanaAksiTable := rencanaaksi.RencanaAksiTableResponse{
 			RencanaAksi:      rencanaAksiResponses,
 			TotalPerBulan:    totalPerBulanResponse,
 			TotalKeseluruhan: totalKeseluruhan,
-			WaktuDibutuhkan:  bulanTerakhir,
+			WaktuDibutuhkan:  len(bulanUnik), // Jumlah bulan unik yang digunakan
 		}
 
 		// Modifikasi bagian subkegiatan

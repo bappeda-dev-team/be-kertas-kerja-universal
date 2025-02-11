@@ -320,7 +320,7 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
             NULL as indikator,
             NULL as target,
             NULL as satuan,
-            NULL as indikator_created_at
+            t.created_at as created_at
         FROM tb_pohon_kinerja t
         LEFT JOIN tb_pohon_kinerja child ON child.parent = t.id AND child.tahun = ?
         WHERE t.level_pohon = 0 
@@ -355,7 +355,7 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
             COALESCE(i_sp.indikator, i_pk.indikator) as indikator,
             COALESCE(t_sp.target, t_pk.target) as target,
             COALESCE(t_sp.satuan, t_pk.satuan) as satuan,
-            COALESCE(i_sp.created_at, i_pk.created_at) as indikator_created_at
+            pk.created_at as created_at
         FROM 
             tb_pohon_kinerja pk
         LEFT JOIN 
@@ -391,8 +391,8 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
             WHEN level_pohon = 3 THEN 1  -- Sub-sub-subtematik prioritas ketiga
         END ASC,
         level_pohon ASC,
-        nama_subtematik ASC,
-        indikator_created_at ASC`
+        created_at ASC,
+        nama_subtematik ASC`
 
 	rows, err := tx.QueryContext(ctx, query, tahun, tahun, tahun, tahun, tahun, tahun)
 	if err != nil {
@@ -404,19 +404,19 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 
 	for rows.Next() {
 		var (
-			subtematikId       int
-			namaSubtematik     string
-			jenisPohon         string
-			levelPohon         int
-			keterangan         sql.NullString
-			tematikId          int
-			namaTematik        string
-			idSasaranPemda     int
-			sasaranPemda       string
-			indikator          sql.NullString
-			target             sql.NullString
-			satuan             sql.NullString
-			indikatorCreatedAt sql.NullTime
+			subtematikId   int
+			namaSubtematik string
+			jenisPohon     string
+			levelPohon     int
+			keterangan     sql.NullString
+			tematikId      int
+			namaTematik    string
+			idSasaranPemda int
+			sasaranPemda   string
+			indikator      sql.NullString
+			target         sql.NullString
+			satuan         sql.NullString
+			createdAt      sql.NullTime
 		)
 
 		err := rows.Scan(
@@ -432,7 +432,7 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 			&indikator,
 			&target,
 			&satuan,
-			&indikatorCreatedAt,
+			&createdAt,
 		)
 		if err != nil {
 			return nil, err
@@ -491,10 +491,18 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 
 	result := make([]domain.SasaranPemdaWithPokin, 0, len(subtematikMap))
 	for _, item := range subtematikMap {
-		result = append(result, *item)
+		if item.LevelPohon == 0 {
+			result = append(result, domain.SasaranPemdaWithPokin{
+				TematikId:   item.TematikId,
+				NamaTematik: item.NamaTematik,
+			})
+		} else {
+			result = append(result, *item)
+		}
 	}
 
 	return result, nil
+
 }
 
 func (repository *SasaranPemdaRepositoryImpl) IsSubtemaIdExists(ctx context.Context, tx *sql.Tx, subtemaId int) bool {

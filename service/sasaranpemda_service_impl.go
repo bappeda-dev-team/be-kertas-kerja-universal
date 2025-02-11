@@ -9,6 +9,7 @@ import (
 	"ekak_kabupaten_madiun/repository"
 	"fmt"
 	"math/rand"
+	"sort"
 	"time"
 )
 
@@ -234,39 +235,20 @@ func (service *SasaranPemdaServiceImpl) FindAllWithPokin(ctx context.Context, ta
 		return nil, err
 	}
 
+	// Gunakan map untuk mengelompokkan
 	tematikMap := make(map[int]*sasaranpemda.TematikSasaranPemdaResponse)
 
+	// Proses setiap item dan kelompokkan indikator berdasarkan subtematik_id
+	subtematikIndikatorMap := make(map[int][]domain.Indikator)
 	for _, item := range items {
-		// Proses indikator
-		var indikatorResponses []sasaranpemda.IndikatorSubtematikResponse
-		for _, indikator := range item.IndikatorSubtematik {
-			var targetResponses []sasaranpemda.TargetResponse
-			for _, target := range indikator.Target {
-				targetResponses = append(targetResponses, sasaranpemda.TargetResponse{
-					Target: target.Target,
-					Satuan: target.Satuan,
-				})
+		// Kumpulkan indikator per subtematik
+		if len(item.IndikatorSubtematik) > 0 {
+			existingIndikators := subtematikIndikatorMap[item.SubtematikId]
+			if existingIndikators == nil {
+				subtematikIndikatorMap[item.SubtematikId] = item.IndikatorSubtematik
 			}
-
-			indikatorResponses = append(indikatorResponses, sasaranpemda.IndikatorSubtematikResponse{
-				Indikator: indikator.Indikator,
-				Target:    targetResponses,
-			})
 		}
 
-		// Buat sasaran pemda response
-		sasaranPemdaResponse := sasaranpemda.SasaranPemdaWithPokinResponse{
-			SubtematikId:        item.SubtematikId,
-			NamaSubtematik:      item.NamaSubtematik,
-			JenisPohon:          item.JenisPohon,
-			LevelPohon:          item.LevelPohon,
-			IdsasaranPemda:      item.IdsasaranPemda,
-			SasaranPemda:        item.SasaranPemda,
-			Keterangan:          item.Keterangan,
-			IndikatorSubtematik: indikatorResponses,
-		}
-
-		// Buat atau dapatkan tematik response
 		tematik, exists := tematikMap[item.TematikId]
 		if !exists {
 			tematik = &sasaranpemda.TematikSasaranPemdaResponse{
@@ -277,16 +259,82 @@ func (service *SasaranPemdaServiceImpl) FindAllWithPokin(ctx context.Context, ta
 			tematikMap[item.TematikId] = tematik
 		}
 
-		// Tambahkan sasaran pemda ke tematik
-		tematik.SasaranPemda = append(tematik.SasaranPemda, sasaranPemdaResponse)
+		// Cek apakah subtematik sudah ada di sasaran_pemda
+		var subtematikExists bool
+		for _, sp := range tematik.SasaranPemda {
+			if sp.SubtematikId == item.SubtematikId {
+				subtematikExists = true
+				break
+			}
+		}
+
+		if !subtematikExists && item.LevelPohon != 0 {
+			indikators := subtematikIndikatorMap[item.SubtematikId]
+			sasaranPemda := sasaranpemda.SasaranPemdaWithPokinResponse{
+				SubtematikId:        item.SubtematikId,
+				NamaSubtematik:      item.NamaSubtematik,
+				JenisPohon:          item.JenisPohon,
+				LevelPohon:          item.LevelPohon,
+				IdsasaranPemda:      item.IdsasaranPemda,
+				SasaranPemda:        item.SasaranPemda,
+				Keterangan:          item.Keterangan,
+				IndikatorSubtematik: convertToIndikatorResponses(indikators),
+			}
+			tematik.SasaranPemda = append(tematik.SasaranPemda, sasaranPemda)
+		}
 	}
 
-	// Konversi map ke slice
+	// Convert map to slice dan urutkan
 	var responses []sasaranpemda.TematikSasaranPemdaResponse
 	for _, tematik := range tematikMap {
+		// Sort sasaran_pemda berdasarkan level_pohon dan subtematik_id
+		sort.Slice(tematik.SasaranPemda, func(i, j int) bool {
+			if tematik.SasaranPemda[i].LevelPohon != tematik.SasaranPemda[j].LevelPohon {
+				return tematik.SasaranPemda[i].LevelPohon < tematik.SasaranPemda[j].LevelPohon
+			}
+			return tematik.SasaranPemda[i].SubtematikId < tematik.SasaranPemda[j].SubtematikId
+		})
 		responses = append(responses, *tematik)
 	}
 
-	return responses, nil
+	// Sort berdasarkan nama_tematik
+	sort.Slice(responses, func(i, j int) bool {
+		return responses[i].NamaTematik < responses[j].NamaTematik
+	})
 
+	return responses, nil
+}
+
+func convertToIndikatorResponses(indikators []domain.Indikator) []sasaranpemda.IndikatorSubtematikResponse {
+	if len(indikators) == 0 {
+		return nil
+	}
+
+	// Sort indikator berdasarkan indikator string untuk konsistensi
+	sort.Slice(indikators, func(i, j int) bool {
+		return indikators[i].Indikator < indikators[j].Indikator
+	})
+
+	responses := make([]sasaranpemda.IndikatorSubtematikResponse, len(indikators))
+	for i, indikator := range indikators {
+		// Sort target berdasarkan target string
+		sort.Slice(indikator.Target, func(i, j int) bool {
+			return indikator.Target[i].Target < indikator.Target[j].Target
+		})
+
+		targetResponses := make([]sasaranpemda.TargetResponse, len(indikator.Target))
+		for j, target := range indikator.Target {
+			targetResponses[j] = sasaranpemda.TargetResponse{
+				Target: target.Target,
+				Satuan: target.Satuan,
+			}
+		}
+
+		responses[i] = sasaranpemda.IndikatorSubtematikResponse{
+			Indikator: indikator.Indikator,
+			Target:    targetResponses,
+		}
+	}
+
+	return responses
 }

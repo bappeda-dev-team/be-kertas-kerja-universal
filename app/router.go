@@ -299,6 +299,9 @@ func NewRouter(
 	router.POST("/periode/create", periodeController.Create)
 	router.PUT("/periode/update/:id", periodeController.Update)
 	router.GET("/periode/tahun/:tahun", periodeController.FindByTahun)
+	router.GET("/periode/findall", periodeController.FindAll)
+	router.GET("/periode/detail/:id", periodeController.FindById)
+	router.DELETE("/periode/delete/:id", periodeController.Delete)
 
 	//tujuan pemda
 	router.POST("/tujuan_pemda/create", tujuanPemdaController.Create)

@@ -153,3 +153,50 @@ func (repository *PeriodeRepositoryImpl) FindOverlappingPeriodesExcludeCurrent(c
 	}
 	return periodes, nil
 }
+
+func (repository *PeriodeRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]domain.Periode, error) {
+	query := "SELECT id, tahun_awal, tahun_akhir FROM tb_periode"
+	rows, err := tx.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var periodes []domain.Periode
+	for rows.Next() {
+		periode := domain.Periode{}
+		err := rows.Scan(&periode.Id, &periode.TahunAwal, &periode.TahunAkhir)
+		if err != nil {
+			return nil, err
+		}
+		periodes = append(periodes, periode)
+	}
+	return periodes, nil
+}
+
+func (repository *PeriodeRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, periodeId int) error {
+	queryDeleteTahun := "DELETE FROM tb_tahun_periode WHERE id_periode = ?"
+	_, err := tx.ExecContext(ctx, queryDeleteTahun, periodeId)
+	if err != nil {
+		return err
+	}
+
+	// Hapus periode
+	queryDeletePeriode := "DELETE FROM tb_periode WHERE id = ?"
+	result, err := tx.ExecContext(ctx, queryDeletePeriode, periodeId)
+	if err != nil {
+		return err
+	}
+
+	// Periksa apakah data berhasil dihapus
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return errors.New("periode tidak ditemukan")
+	}
+
+	return nil
+
+}

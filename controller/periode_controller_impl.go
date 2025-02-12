@@ -86,3 +86,67 @@ func (controller *PeriodeControllerImpl) FindByTahun(writer http.ResponseWriter,
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *PeriodeControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	periodeResponse, err := controller.PeriodeService.FindAll(request.Context())
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   400,
+			Status: "failed find data periode",
+			Data:   nil,
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   200,
+		Status: "success find data periode",
+		Data:   periodeResponse,
+	}
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *PeriodeControllerImpl) FindById(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	id := params.ByName("id")
+	idInt, _ := strconv.Atoi(id)
+	periodeResponse, err := controller.PeriodeService.FindById(request.Context(), idInt)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   400,
+			Status: "failed find data periode",
+			Data:   nil,
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   200,
+		Status: "success find data periode",
+		Data:   periodeResponse,
+	}
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *PeriodeControllerImpl) Delete(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	id := params.ByName("id")
+	idInt, _ := strconv.Atoi(id)
+	err := controller.PeriodeService.Delete(request.Context(), idInt)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   400,
+			Status: "failed delete data periode",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   200,
+		Status: "success delete data periode",
+		Data:   nil,
+	}
+	helper.WriteToResponseBody(writer, webResponse)
+}

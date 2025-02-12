@@ -16,4 +16,6 @@ type PeriodeRepository interface {
 	DeleteTahunPeriode(ctx context.Context, tx *sql.Tx, periodeId int) error
 	FindByTahun(ctx context.Context, tx *sql.Tx, tahun string) (domain.Periode, error)
 	FindOverlappingPeriodesExcludeCurrent(ctx context.Context, tx *sql.Tx, currentId int, tahunAwal, tahunAkhir string) ([]domain.Periode, error)
+	FindAll(ctx context.Context, tx *sql.Tx) ([]domain.Periode, error)
+	Delete(ctx context.Context, tx *sql.Tx, periodeId int) error
 }

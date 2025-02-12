@@ -6,6 +6,7 @@ type SasaranPemda struct {
 	SubtemaId     int
 	NamaSubtema   string
 	SasaranPemda  string
+	JenisPohon    string
 	PeriodeId     int
 	Periode       Periode
 	Indikator     []Indikator

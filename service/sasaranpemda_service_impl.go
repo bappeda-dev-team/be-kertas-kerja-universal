@@ -187,6 +187,7 @@ func (service *SasaranPemdaServiceImpl) FindById(ctx context.Context, sasaranPem
 		SubtemaId:     sasaranPemda.SubtemaId,
 		NamaSubtema:   pokinData.NamaPohon,
 		SasaranPemda:  sasaranPemda.SasaranPemda,
+		JenisPohon:    tujuanPemda.JenisPohon,
 	}, nil
 }
 

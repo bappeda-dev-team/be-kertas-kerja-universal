@@ -7,6 +7,7 @@ type SasaranPemdaResponse struct {
 	TujuanPemdaId int    `json:"tujuan_pemda_id,omitempty"`
 	TujuanPemda   string `json:"tujuan_pemda,omitempty"`
 	SasaranPemda  string `json:"sasaran_pemda"`
+	JenisPohon    string `json:"jenis_pohon"`
 }
 
 type IndikatorResponse struct {

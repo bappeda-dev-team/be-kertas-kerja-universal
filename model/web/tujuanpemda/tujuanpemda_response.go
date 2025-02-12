@@ -1,20 +1,20 @@
 package tujuanpemda
 
 type TujuanPemdaResponse struct {
-	Id               int                 `json:"id"`
-	TujuanPemda      string              `json:"tujuan_pemda"`
-	TematikId        int                 `json:"tema_id"`
-	NamaTematik      string              `json:"nama_tema"`
-	Periode          PeriodeResponse     `json:"periode"`
-	RumusPerhitungan string              `json:"rumus_perhitungan,omitempty"`
-	SumberData       string              `json:"sumber_data,omitempty"`
-	Indikator        []IndikatorResponse `json:"indikator,omitempty"`
+	Id          int                 `json:"id"`
+	TujuanPemda string              `json:"tujuan_pemda"`
+	TematikId   int                 `json:"tema_id"`
+	NamaTematik string              `json:"nama_tema"`
+	Periode     PeriodeResponse     `json:"periode"`
+	Indikator   []IndikatorResponse `json:"indikator,omitempty"`
 }
 
 type IndikatorResponse struct {
-	Id        string           `json:"id"`
-	Indikator string           `json:"indikator"`
-	Target    []TargetResponse `json:"target"`
+	Id               string           `json:"id"`
+	Indikator        string           `json:"indikator"`
+	RumusPerhitungan string           `json:"rumus_perhitungan"`
+	SumberData       string           `json:"sumber_data"`
+	Target           []TargetResponse `json:"target"`
 }
 
 type TargetResponse struct {
@@ -37,4 +37,40 @@ type TujuanPemdaWithPokinResponse struct {
 	Keterangan  string               `json:"keterangan"`
 	TahunPokin  string               `json:"tahun_pokin"`
 	TujuanPemda *TujuanPemdaResponse `json:"tujuan_pemda,omitempty"`
+}
+
+// pokin with periode
+type PokinWithPeriodeResponse struct {
+	Id         int                      `json:"id"`
+	NamaPohon  string                   `json:"nama_pohon"`
+	Parent     int                      `json:"parent,omitempty"`
+	JenisPohon string                   `json:"jenis_pohon,omitempty"`
+	LevelPohon int                      `json:"level_pohon,omitempty"`
+	KodeOpd    string                   `json:"kode_opd,omitempty"`
+	Keterangan string                   `json:"keterangan,omitempty"`
+	Tahun      string                   `json:"tahun,omitempty"`
+	Status     string                   `json:"status,omitempty"`
+	Periode    PokinPeriodeResponse     `json:"periode"`
+	Indikator  []PokinIndikatorResponse `json:"indikator"`
+}
+
+type PokinPeriodeResponse struct {
+	Id         int    `json:"id"`
+	TahunAwal  string `json:"tahun_awal"`
+	TahunAkhir string `json:"tahun_akhir"`
+}
+
+type PokinIndikatorResponse struct {
+	Id               string                `json:"id"`
+	Indikator        string                `json:"indikator"`
+	RumusPerhitungan string                `json:"rumus_perhitungan"`
+	SumberData       string                `json:"sumber_data"`
+	Target           []PokinTargetResponse `json:"target"`
+}
+
+type PokinTargetResponse struct {
+	Id     string `json:"id"`
+	Target string `json:"target"`
+	Satuan string `json:"satuan"`
+	Tahun  string `json:"tahun"`
 }

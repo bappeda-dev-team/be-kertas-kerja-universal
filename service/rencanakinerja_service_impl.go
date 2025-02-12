@@ -14,6 +14,7 @@ import (
 	"ekak_kabupaten_madiun/repository"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -617,38 +618,84 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 			rencanaAksiList = []domain.RencanaAksi{}
 		}
 
+		// Modifikasi bagian yang memproses rencana aksi
 		var rencanaAksiResponses []rencanaaksi.RencanaAksiResponse
+		bobotPerBulan := make([]int, 12)    // Array untuk menyimpan total per bulan
+		bulanTerpakai := make(map[int]bool) // Map untuk melacak bulan yang digunakan
+
 		for _, rencanaAksi := range rencanaAksiList {
-			// Ambil pelaksanaan rencana aksi untuk setiap rencana aksi
+			// Ambil data pelaksanaan untuk setiap rencana aksi
 			pelaksanaanList, err := service.PelaksanaanRencanaAksiRepository.FindByRencanaAksiId(ctx, tx, rencanaAksi.Id)
 			if err != nil {
 				log.Printf("Warning: gagal mengambil pelaksanaan rencana aksi: %v", err)
 				pelaksanaanList = []domain.PelaksanaanRencanaAksi{}
 			}
 
-			// Buat map untuk menyimpan bobot per bulan
-			bobotPerBulan := make(map[int]int)
-			for i := 1; i <= 12; i++ {
-				bobotPerBulan[i] = 0 // Inisialisasi semua bulan dengan bobot 0
-			}
-
-			// Isi bobot yang ada dari database
+			// Buat map untuk menyimpan data pelaksanaan per bulan
+			pelaksanaanPerBulan := make(map[int]domain.PelaksanaanRencanaAksi)
 			for _, pelaksanaan := range pelaksanaanList {
-				bobotPerBulan[pelaksanaan.Bulan] = pelaksanaan.Bobot
+				pelaksanaanPerBulan[pelaksanaan.Bulan] = pelaksanaan
+				if pelaksanaan.Bobot > 0 {
+					bulanTerpakai[pelaksanaan.Bulan] = true // Menandai bulan yang digunakan
+				}
 			}
 
 			// Buat slice pelaksanaan yang terurut untuk 12 bulan
 			var pelaksanaanLengkap []domain.PelaksanaanRencanaAksi
+			totalBobotRencanaAksi := 0
+
 			for bulan := 1; bulan <= 12; bulan++ {
-				pelaksanaanLengkap = append(pelaksanaanLengkap, domain.PelaksanaanRencanaAksi{
-					RencanaAksiId: rencanaAksi.Id,
-					Bulan:         bulan,
-					Bobot:         bobotPerBulan[bulan],
-				})
+				if pelaksanaan, exists := pelaksanaanPerBulan[bulan]; exists {
+					pelaksanaanLengkap = append(pelaksanaanLengkap, domain.PelaksanaanRencanaAksi{
+						Id:            pelaksanaan.Id,
+						RencanaAksiId: rencanaAksi.Id,
+						Bulan:         bulan,
+						Bobot:         pelaksanaan.Bobot,
+					})
+					totalBobotRencanaAksi += pelaksanaan.Bobot
+					bobotPerBulan[bulan-1] += pelaksanaan.Bobot // Menambahkan ke total per bulan
+				} else {
+					pelaksanaanLengkap = append(pelaksanaanLengkap, domain.PelaksanaanRencanaAksi{
+						Id:            "",
+						RencanaAksiId: rencanaAksi.Id,
+						Bulan:         bulan,
+						Bobot:         0,
+					})
+				}
 			}
 
 			response := helper.ToRencanaAksiResponse(rencanaAksi, pelaksanaanLengkap)
+			response.TotalBobotRencanaAksi = totalBobotRencanaAksi
 			rencanaAksiResponses = append(rencanaAksiResponses, response)
+		}
+
+		// Konversi array bobotPerBulan ke slice BobotBulanan
+		var totalPerBulanResponse []rencanaaksi.BobotBulanan
+		totalKeseluruhan := 0
+
+		// Hitung jumlah bulan unik yang digunakan
+		bulanUnik := []int{}
+		for bulan := range bulanTerpakai {
+			bulanUnik = append(bulanUnik, bulan)
+		}
+
+		// Urutkan bulan-bulan yang digunakan
+		sort.Ints(bulanUnik)
+
+		for bulan := 1; bulan <= 12; bulan++ {
+			bobot := bobotPerBulan[bulan-1]
+			totalPerBulanResponse = append(totalPerBulanResponse, rencanaaksi.BobotBulanan{
+				Bulan:      bulan,
+				TotalBobot: bobot,
+			})
+			totalKeseluruhan += bobot
+		}
+
+		rencanaAksiTable := rencanaaksi.RencanaAksiTableResponse{
+			RencanaAksi:      rencanaAksiResponses,
+			TotalPerBulan:    totalPerBulanResponse,
+			TotalKeseluruhan: totalKeseluruhan,
+			WaktuDibutuhkan:  len(bulanUnik), // Jumlah bulan unik yang digunakan
 		}
 
 		// Modifikasi bagian subkegiatan
@@ -825,7 +872,7 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 		// Tambahkan ke responses
 		responses = append(responses, rencanakinerja.DataRincianKerja{
 			RencanaKinerja: rencanaKinerjaResponse,
-			RencanaAksi:    rencanaAksiResponses,
+			RencanaAksi:    rencanaAksiTable,
 			Usulan:         usulanGabungan,
 			DasarHukum:     helper.ToDasarHukumResponses(dasarHukum),
 			SubKegiatan:    subKegiatanResponses,

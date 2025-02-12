@@ -99,6 +99,10 @@ func (service *PeriodeServiceImpl) Create(ctx context.Context, request periodeta
 		return periodetahun.PeriodeResponse{}, fmt.Errorf("invalid tahun akhir format: %v", err)
 	}
 
+	if tahunAkhir < tahunAwal {
+		return periodetahun.PeriodeResponse{}, fmt.Errorf("tahun akhir (%d) harus lebih besar dari tahun awal (%d)", tahunAkhir, tahunAwal)
+	}
+
 	var tahunList []string
 	for tahun := tahunAwal; tahun <= tahunAkhir; tahun++ {
 		tahunStr := strconv.Itoa(tahun)
@@ -169,6 +173,10 @@ func (service *PeriodeServiceImpl) Update(ctx context.Context, request periodeta
 		return periodetahun.PeriodeResponse{}, fmt.Errorf("invalid tahun akhir format: %v", err)
 	}
 
+	if tahunAkhir < tahunAwal {
+		return periodetahun.PeriodeResponse{}, fmt.Errorf("tahun akhir (%d) harus lebih besar dari tahun awal (%d)", tahunAkhir, tahunAwal)
+	}
+
 	var tahunList []string
 	for tahun := tahunAwal; tahun <= tahunAkhir; tahun++ {
 		tahunStr := strconv.Itoa(tahun)
@@ -224,4 +232,60 @@ func (service *PeriodeServiceImpl) FindByTahun(ctx context.Context, tahun string
 		TahunAkhir: periode.TahunAkhir,
 		TahunList:  tahunList,
 	}, nil
+}
+
+func (service *PeriodeServiceImpl) FindAll(ctx context.Context) ([]periodetahun.PeriodeResponse, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	periodes, err := service.PeriodeRepository.FindAll(ctx, tx)
+	if err != nil {
+		return nil, err
+	}
+
+	var periodesResponse []periodetahun.PeriodeResponse
+	for _, periode := range periodes {
+		periodesResponse = append(periodesResponse, periodetahun.PeriodeResponse{
+			Id:         periode.Id,
+			TahunAwal:  periode.TahunAwal,
+			TahunAkhir: periode.TahunAkhir,
+		})
+	}
+
+	return periodesResponse, nil
+}
+
+func (service *PeriodeServiceImpl) FindById(ctx context.Context, id int) (periodetahun.PeriodeResponse, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return periodetahun.PeriodeResponse{}, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	periode, err := service.PeriodeRepository.FindById(ctx, tx, id)
+	if err != nil {
+		return periodetahun.PeriodeResponse{}, err
+	}
+
+	return periodetahun.PeriodeResponse{
+		Id:         periode.Id,
+		TahunAwal:  periode.TahunAwal,
+		TahunAkhir: periode.TahunAkhir,
+	}, nil
+}
+
+func (service *PeriodeServiceImpl) Delete(ctx context.Context, id int) error {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	err = service.PeriodeRepository.Delete(ctx, tx, id)
+	if err != nil {
+		return err
+	}
+	return nil
 }

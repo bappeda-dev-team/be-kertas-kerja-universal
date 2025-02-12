@@ -13,7 +13,7 @@ type RencanaKinerjaResponse struct {
 	Tahun                string                      `json:"tahun,omitempty"`
 	StatusRencanaKinerja string                      `json:"status_rencana_kinerja,omitempty"`
 	Catatan              string                      `json:"catatan,omitempty"`
-	KodeOpd              opdmaster.OpdResponseForAll `json:"operasioanl_daerah,omitempty"`
+	KodeOpd              opdmaster.OpdResponseForAll `json:"operasional_daerah,omitempty"`
 	PegawaiId            string                      `json:"pegawai_id,omitempty"`
 	NamaPegawai          string                      `json:"nama_pegawai,omitempty"`
 	Indikator            []IndikatorResponse         `json:"indikator,omitempty"`

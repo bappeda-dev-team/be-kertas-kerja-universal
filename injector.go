@@ -324,6 +324,15 @@ var permasalahanRekinSet = wire.NewSet(
 	wire.Bind(new(controller.PermasalahanRekinController), new(*controller.PermasalahanRekinControllerImpl)),
 )
 
+var ikuSet = wire.NewSet(
+	repository.NewIkuRepositoryImpl,
+	wire.Bind(new(repository.IkuRepository), new(*repository.IkuRepositoryImpl)),
+	service.NewIkuServiceImpl,
+	wire.Bind(new(service.IkuService), new(*service.IkuServiceImpl)),
+	controller.NewIkuControllerImpl,
+	wire.Bind(new(controller.IkuController), new(*controller.IkuControllerImpl)),
+)
+
 func InitializeServer() *http.Server {
 
 	wire.Build(
@@ -363,6 +372,7 @@ func InitializeServer() *http.Server {
 		tujuanPemdaSet,
 		sasaranPemdaSet,
 		permasalahanRekinSet,
+		ikuSet,
 		app.NewRouter,
 		wire.Bind(new(http.Handler), new(*httprouter.Router)),
 		middleware.NewAuthMiddleware,

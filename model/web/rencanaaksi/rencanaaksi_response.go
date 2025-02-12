@@ -10,5 +10,18 @@ type RencanaAksiResponse struct {
 	NamaRencanaAksi        string                           `json:"nama_rencana_aksi"`
 	PelaksanaanRencanaAksi []PelaksanaanRencanaAksiResponse `json:"pelaksanaan"`
 	JumlahBobot            int                              `json:"jumlah_bobot,omitempty"`
+	TotalBobotRencanaAksi  int                              `json:"total_bobot_rencana_aksi,omitempty"`
 	Action                 []web.ActionButton               `json:"action,omitempty"`
+}
+
+type BobotBulanan struct {
+	Bulan      int `json:"bulan"`
+	TotalBobot int `json:"total_bobot"`
+}
+
+type RencanaAksiTableResponse struct {
+	RencanaAksi      []RencanaAksiResponse `json:"rencana_aksi"`
+	TotalPerBulan    []BobotBulanan        `json:"total_per_bulan"`
+	TotalKeseluruhan int                   `json:"total_keseluruhan"`
+	WaktuDibutuhkan  int                   `json:"waktu_dibutuhkan"`
 }

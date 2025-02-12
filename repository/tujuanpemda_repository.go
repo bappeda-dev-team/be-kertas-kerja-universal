@@ -18,4 +18,5 @@ type TujuanPemdaRepository interface {
 	IsIdExists(ctx context.Context, tx *sql.Tx, id int) bool
 	UpdatePeriode(ctx context.Context, tx *sql.Tx, tujuanPemda domain.TujuanPemda) (domain.TujuanPemda, error)
 	FindAllWithPokin(ctx context.Context, tx *sql.Tx, tahun string) ([]domain.TujuanPemdaWithPokin, error)
+	IsPokinIdExists(ctx context.Context, tx *sql.Tx, pokinId int) (bool, error)
 }

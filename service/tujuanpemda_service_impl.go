@@ -368,6 +368,7 @@ func (service *TujuanPemdaServiceImpl) FindById(ctx context.Context, tujuanPemda
 		TujuanPemda: tujuanPemda.TujuanPemda,
 		TematikId:   tujuanPemda.TematikId,
 		NamaTematik: pokinData.NamaPohon,
+		JenisPohon:  tujuanPemda.JenisPohon,
 		Periode: tujuanpemda.PeriodeResponse{
 			TahunAwal:  tujuanPemda.Periode.TahunAwal,
 			TahunAkhir: tujuanPemda.Periode.TahunAkhir,

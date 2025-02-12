@@ -3,12 +3,12 @@ package tujuanpemda
 type TujuanPemdaResponse struct {
 	Id          int                 `json:"id"`
 	TujuanPemda string              `json:"tujuan_pemda"`
-	TematikId   int                 `json:"tema_id"`
-	NamaTematik string              `json:"nama_tema"`
+	TematikId   int                 `json:"tematik_id"`
+	NamaTematik string              `json:"nama_tematik"`
+	JenisPohon  string              `json:"jenis_pohon"` // Tambahkan field ini
 	Periode     PeriodeResponse     `json:"periode"`
-	Indikator   []IndikatorResponse `json:"indikator,omitempty"`
+	Indikator   []IndikatorResponse `json:"indikator"`
 }
-
 type IndikatorResponse struct {
 	Id               string           `json:"id"`
 	Indikator        string           `json:"indikator"`

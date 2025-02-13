@@ -5,6 +5,7 @@ type TujuanPemda struct {
 	TematikId   int
 	NamaTematik string
 	TujuanPemda string
+	JenisPohon  string
 	// TujuanPemdaId    int
 	// NamaTujuanPemda  string
 	PeriodeId int

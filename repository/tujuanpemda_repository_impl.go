@@ -140,6 +140,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
             tp.periode_id,
             COALESCE(p.tahun_awal, '') as tahun_awal,
             COALESCE(p.tahun_akhir, '') as tahun_akhir,
+            pk.jenis_pohon, 
             i.id as indikator_id,
             i.indikator as indikator_text,
             i.rumus_perhitungan,
@@ -151,6 +152,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
         FROM 
             tb_tujuan_pemda tp
             LEFT JOIN tb_periode p ON tp.periode_id = p.id
+            LEFT JOIN tb_pohon_kinerja pk ON tp.tematik_id = pk.id 
             LEFT JOIN tb_indikator i ON tp.id = i.tujuan_pemda_id
             LEFT JOIN tb_target t ON t.indikator_id = i.id
         WHERE tp.id = ?
@@ -169,11 +171,11 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
 
 	for rows.Next() {
 		var (
-			id, tematikId, periodeId                         int
-			tujuanPemdaText, tahunAwal, tahunAkhir           string
-			indikatorId, indikatorText                       sql.NullString
-			rumusPerhitunganNull, sumberDataNull             sql.NullString // Ubah ke sql.NullString
-			targetId, targetValue, targetSatuan, targetTahun sql.NullString
+			id, tematikId, periodeId                           int
+			tujuanPemdaText, tahunAwal, tahunAkhir, jenisPohon string // Tambahkan jenisPohon
+			indikatorId, indikatorText                         sql.NullString
+			rumusPerhitunganNull, sumberDataNull               sql.NullString
+			targetId, targetValue, targetSatuan, targetTahun   sql.NullString
 		)
 
 		err := rows.Scan(
@@ -183,10 +185,11 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
 			&periodeId,
 			&tahunAwal,
 			&tahunAkhir,
+			&jenisPohon,
 			&indikatorId,
 			&indikatorText,
-			&rumusPerhitunganNull, // Scan ke NullString
-			&sumberDataNull,       // Scan ke NullString
+			&rumusPerhitunganNull,
+			&sumberDataNull,
 			&targetId,
 			&targetValue,
 			&targetSatuan,
@@ -202,6 +205,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
 				TujuanPemda: tujuanPemdaText,
 				TematikId:   tematikId,
 				PeriodeId:   periodeId,
+				JenisPohon:  jenisPohon, // Tambahkan field JenisPohon
 				Periode: domain.Periode{
 					TahunAwal:  tahunAwal,
 					TahunAkhir: tahunAkhir,

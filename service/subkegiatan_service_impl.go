@@ -103,7 +103,6 @@ func (service *SubKegiatanServiceImpl) Create(ctx context.Context, request subke
 		KodeOpd:         request.KodeOpd,
 		Status:          "belum_diambil",
 		Tahun:           request.Tahun,
-		RekinId:         "",
 		Indikator:       indikators,
 	}
 
@@ -259,7 +258,7 @@ func (service *SubKegiatanServiceImpl) FindById(ctx context.Context, subKegiatan
 	return helper.ToSubKegiatanResponse(subKegiatan), nil
 }
 
-func (service *SubKegiatanServiceImpl) FindAll(ctx context.Context, kodeOpd, rekinId, status string) ([]subkegiatan.SubKegiatanResponse, error) {
+func (service *SubKegiatanServiceImpl) FindAll(ctx context.Context, kodeOpd, status string) ([]subkegiatan.SubKegiatanResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		log.Println("Gagal memulai transaksi:", err)
@@ -268,7 +267,7 @@ func (service *SubKegiatanServiceImpl) FindAll(ctx context.Context, kodeOpd, rek
 	defer helper.CommitOrRollback(tx)
 
 	// Ambil data SubKegiatan
-	subKegiatans, err := service.subKegiatanRepository.FindAll(ctx, tx, kodeOpd, rekinId, status)
+	subKegiatans, err := service.subKegiatanRepository.FindAll(ctx, tx, kodeOpd, status)
 	if err != nil {
 		log.Println("Gagal mencari data sub kegiatan:", err)
 		return []subkegiatan.SubKegiatanResponse{}, err
@@ -343,78 +342,6 @@ func (service *SubKegiatanServiceImpl) Delete(ctx context.Context, subKegiatanId
 	err = service.subKegiatanRepository.Delete(ctx, tx, subKegiatanId)
 	if err != nil {
 		return fmt.Errorf("gagal menghapus sub kegiatan: %v", err)
-	}
-
-	return nil
-}
-
-func (service *SubKegiatanServiceImpl) CreateRekin(ctx context.Context, request subkegiatan.SubKegiatanCreateRekinRequest) ([]subkegiatan.SubKegiatanResponse, error) {
-	// Konversi single ID ke array
-	idSubKegiatanArray := []string{request.IdSubKegiatan}
-
-	tx, err := service.DB.Begin()
-	if err != nil {
-		return nil, fmt.Errorf("gagal memulai transaksi: %v", err)
-	}
-	defer helper.CommitOrRollback(tx)
-
-	// Cek apakah rencana kinerja dengan ID yang diberikan ada
-	_, err = service.rencanaKinerjaRepoitory.FindById(ctx, tx, request.RekinId, "", "")
-	if err != nil {
-		return nil, fmt.Errorf("rencana kinerja dengan id %s tidak ditemukan: %v", request.RekinId, err)
-	}
-
-	var updatedSubKegiatans []domain.SubKegiatan
-
-	// Proses setiap ID usulan
-	for _, idSubKegiatan := range idSubKegiatanArray {
-		// Cek apakah usulan dengan ID yang diberikan ada
-		existingSubKegiatan, err := service.subKegiatanRepository.FindById(ctx, tx, idSubKegiatan)
-		if err != nil {
-			return nil, fmt.Errorf("subkegiatan dengan id %s tidak ditemukan: %v", idSubKegiatan, err)
-		}
-
-		// Cek apakah usulan sudah memiliki rekin_id
-		if existingSubKegiatan.RekinId != "" {
-			return nil, fmt.Errorf("subkegiatan dengan id %s sudah memiliki rencana kinerja", idSubKegiatan)
-		}
-
-		// Update rekin_id dan status
-		err = service.subKegiatanRepository.CreateRekin(ctx, tx, idSubKegiatan, request.RekinId)
-		if err != nil {
-			return nil, fmt.Errorf("gagal mengupdate rekin untuk subkegiatan %s: %v", idSubKegiatan, err)
-		}
-
-		// Ambil data usulan yang sudah diupdate
-		updatedSubKegiatan, err := service.subKegiatanRepository.FindById(ctx, tx, idSubKegiatan)
-		if err != nil {
-			return nil, fmt.Errorf("gagal mengambil data subkegiatan yang diupdate: %v", err)
-		}
-
-		// Ambil data OPD
-		opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, updatedSubKegiatan.KodeOpd)
-		if err == nil { // Hanya set jika berhasil mendapatkan data OPD
-			updatedSubKegiatan.NamaOpd = opd.NamaOpd
-		}
-
-		updatedSubKegiatans = append(updatedSubKegiatans, updatedSubKegiatan)
-	}
-
-	// Konversi ke response
-	responses := helper.ToSubKegiatanResponses(updatedSubKegiatans)
-	return responses, nil
-}
-
-func (service *SubKegiatanServiceImpl) DeleteSubKegiatanTerpilih(ctx context.Context, idSubKegiatan string) error {
-	tx, err := service.DB.Begin()
-	if err != nil {
-		return fmt.Errorf("gagal memulai transaksi: %v", err)
-	}
-	defer helper.CommitOrRollback(tx)
-
-	err = service.subKegiatanRepository.DeleteSubKegiatanTerpilih(ctx, tx, idSubKegiatan)
-	if err != nil {
-		return fmt.Errorf("gagal menghapus subkegiatan terpilih: %v", err)
 	}
 
 	return nil

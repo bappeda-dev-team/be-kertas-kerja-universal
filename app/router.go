@@ -145,10 +145,10 @@ func NewRouter(
 	router.GET("/sub_kegiatan/pilihan/:kode_opd", subKegiatanController.FindAll)
 	router.GET("/sub_kegiatan/byrekinid/:rencana_kinerja_id", subKegiatanController.FindAll)
 	router.DELETE("/sub_kegiatan/delete/:id", subKegiatanController.Delete)
-	router.POST("/sub_kegiatan/create_rekin/:rencana_kinerja_id", subKegiatanController.CreateRekin)
-	router.DELETE("/sub_kegiatan/delete_subkegiatan_terpilih/:id", subKegiatanController.DeleteSubKegiatanTerpilih)
 
 	//sub kegiatan terpilih
+	router.POST("/sub_kegiatan/create_rekin/:rencana_kinerja_id", subKegiatanTerpilihController.CreateRekin)
+	router.DELETE("/sub_kegiatan/delete_subkegiatan_terpilih/:id", subKegiatanTerpilihController.DeleteSubKegiatanTerpilih)
 	router.PUT("/subkegiatanterpilih/create/:rencana_kinerja_id", subKegiatanTerpilihController.Update)
 	router.DELETE("/subkegiatanterpilih/delete/:rencana_kinerja_id/:kode_subkegiatan", subKegiatanTerpilihController.Delete)
 	router.GET("/subkegiatanterpilih/findbykodesubkegiatan/:kode_subkegiatan", subKegiatanTerpilihController.FindByKodeSubKegiatan)

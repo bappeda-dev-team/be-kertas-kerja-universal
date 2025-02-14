@@ -10,7 +10,10 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
+	"strconv"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type SasaranPemdaServiceImpl struct {
@@ -42,6 +45,18 @@ func (service *SasaranPemdaServiceImpl) generateRandomId(ctx context.Context, tx
 	}
 }
 
+func generateIndikatorIdSasaran() string {
+	currentYear := time.Now().Format("2006")
+	uuid := uuid.New().String()[:5] // Mengambil 5 karakter pertama dari UUID
+	return fmt.Sprintf("IND-SAS-PMD-%s-%s", currentYear, uuid)
+}
+
+func generateTargetIdSasaran() string {
+	currentYear := time.Now().Format("2006")
+	uuid := uuid.New().String()[:5]
+	return fmt.Sprintf("TRG-SAS-PMD-%s-%s", currentYear, uuid)
+}
+
 func (service *SasaranPemdaServiceImpl) Create(ctx context.Context, request sasaranpemda.SasaranPemdaCreateRequest) (sasaranpemda.SasaranPemdaResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
@@ -49,7 +64,7 @@ func (service *SasaranPemdaServiceImpl) Create(ctx context.Context, request sasa
 	}
 	defer helper.CommitOrRollback(tx)
 
-	//validasi pohon kinerja
+	// Validasi pohon kinerja
 	pokinData, err := service.PohonKinerjaRepository.FindById(ctx, tx, request.SubtemaId)
 	if err != nil {
 		return sasaranpemda.SasaranPemdaResponse{}, fmt.Errorf("pohon kinerja tidak ditemukan: %v", err)
@@ -59,6 +74,7 @@ func (service *SasaranPemdaServiceImpl) Create(ctx context.Context, request sasa
 	if pokinData.LevelPohon < 1 || pokinData.LevelPohon > 3 {
 		return sasaranpemda.SasaranPemdaResponse{}, fmt.Errorf("level pohon kinerja harus berada di antara 1-3, level saat ini: %d", pokinData.LevelPohon)
 	}
+
 	// Validasi subtema id belum digunakan
 	if service.SasaranPemdaRepository.IsSubtemaIdExists(ctx, tx, request.SubtemaId) {
 		return sasaranpemda.SasaranPemdaResponse{}, fmt.Errorf("pohon kinerja dengan id %d sudah digunakan untuk sasaran pemda lain", request.SubtemaId)
@@ -70,24 +86,126 @@ func (service *SasaranPemdaServiceImpl) Create(ctx context.Context, request sasa
 		return sasaranpemda.SasaranPemdaResponse{}, fmt.Errorf("tujuan pemda dengan id %d tidak ditemukan", request.TujuanPemdaId)
 	}
 
+	// Validasi periode
+	periode, err := service.PeriodeRepository.FindById(ctx, tx, request.PeriodeId)
+	if err != nil {
+		return sasaranpemda.SasaranPemdaResponse{}, fmt.Errorf("periode tidak ditemukan: %v", err)
+	}
+
+	// Validasi tahun target untuk setiap indikator
+	tahunAwal, _ := strconv.Atoi(periode.TahunAwal)
+	tahunAkhir, _ := strconv.Atoi(periode.TahunAkhir)
+
+	// Persiapkan slice indikator untuk domain
+	var indikators []domain.Indikator
+
+	for _, indikatorReq := range request.Indikator {
+		tahunMap := make(map[string]bool)
+		var targets []domain.Target
+
+		for _, targetReq := range indikatorReq.Target {
+			targetTahun, _ := strconv.Atoi(targetReq.Tahun)
+
+			// Validasi rentang tahun
+			if targetTahun < tahunAwal || targetTahun > tahunAkhir {
+				return sasaranpemda.SasaranPemdaResponse{}, fmt.Errorf(
+					"tahun target %d harus berada dalam rentang periode %d-%d",
+					targetTahun, tahunAwal, tahunAkhir,
+				)
+			}
+
+			// Validasi duplikasi tahun
+			if tahunMap[targetReq.Tahun] {
+				return sasaranpemda.SasaranPemdaResponse{}, fmt.Errorf(
+					"duplikasi tahun %s pada indikator %s",
+					targetReq.Tahun, indikatorReq.Indikator,
+				)
+			}
+			tahunMap[targetReq.Tahun] = true
+
+			// Tambahkan target
+			target := domain.Target{
+				Id:     generateTargetIdSasaran(),
+				Target: targetReq.Target,
+				Satuan: targetReq.Satuan,
+				Tahun:  targetReq.Tahun,
+			}
+			targets = append(targets, target)
+		}
+
+		indikator := domain.Indikator{
+			Id:        generateIndikatorIdSasaran(),
+			Indikator: indikatorReq.Indikator,
+			RumusPerhitungan: sql.NullString{
+				String: indikatorReq.RumusPerhitungan,
+				Valid:  true,
+			},
+			SumberData: sql.NullString{
+				String: indikatorReq.SumberData,
+				Valid:  true,
+			},
+			Target: targets,
+		}
+		indikators = append(indikators, indikator)
+	}
+
 	sasaranPemda := domain.SasaranPemda{
 		Id:            service.generateRandomId(ctx, tx),
 		SubtemaId:     request.SubtemaId,
 		TujuanPemdaId: request.TujuanPemdaId,
 		SasaranPemda:  request.SasaranPemda,
+		PeriodeId:     request.PeriodeId,
+		Indikator:     indikators,
 	}
 
-	sasaranPemda, err = service.SasaranPemdaRepository.Create(ctx, tx, sasaranPemda)
+	result, err := service.SasaranPemdaRepository.Create(ctx, tx, sasaranPemda)
 	if err != nil {
 		return sasaranpemda.SasaranPemdaResponse{}, fmt.Errorf("gagal membuat sasaran pemda: %v", err)
 	}
 
+	// Konversi ke response secara manual
+	var indikatorResponses []sasaranpemda.IndikatorResponse
+	for _, indikator := range result.Indikator {
+		var targetResponses []sasaranpemda.TargetResponse
+		// Sort target berdasarkan tahun
+		sort.Slice(indikator.Target, func(i, j int) bool {
+			return indikator.Target[i].Tahun < indikator.Target[j].Tahun
+		})
+
+		for _, target := range indikator.Target {
+			targetResponses = append(targetResponses, sasaranpemda.TargetResponse{
+				Id:     target.Id,
+				Target: target.Target,
+				Satuan: target.Satuan,
+				Tahun:  target.Tahun,
+			})
+		}
+
+		indikatorResponses = append(indikatorResponses, sasaranpemda.IndikatorResponse{
+			Id:               indikator.Id,
+			Indikator:        indikator.Indikator,
+			RumusPerhitungan: indikator.RumusPerhitungan.String,
+			SumberData:       indikator.SumberData.String,
+			Target:           targetResponses,
+		})
+	}
+
+	// Sort indikator berdasarkan ID
+	sort.Slice(indikatorResponses, func(i, j int) bool {
+		return indikatorResponses[i].Id < indikatorResponses[j].Id
+	})
+
 	return sasaranpemda.SasaranPemdaResponse{
-		Id:            sasaranPemda.Id,
-		TujuanPemdaId: sasaranPemda.TujuanPemdaId,
-		SubtemaId:     sasaranPemda.SubtemaId,
+		Id:            result.Id,
+		TujuanPemdaId: result.TujuanPemdaId,
+		SubtemaId:     result.SubtemaId,
 		NamaSubtema:   pokinData.NamaPohon,
-		SasaranPemda:  sasaranPemda.SasaranPemda,
+		SasaranPemda:  result.SasaranPemda,
+		Periode: sasaranpemda.PeriodeResponse{
+			TahunAwal:  periode.TahunAwal,
+			TahunAkhir: periode.TahunAkhir,
+		},
+		Indikator: indikatorResponses,
 	}, nil
 }
 func (service *SasaranPemdaServiceImpl) Update(ctx context.Context, request sasaranpemda.SasaranPemdaUpdateRequest) (sasaranpemda.SasaranPemdaResponse, error) {
@@ -125,15 +243,101 @@ func (service *SasaranPemdaServiceImpl) Update(ctx context.Context, request sasa
 		return sasaranpemda.SasaranPemdaResponse{}, fmt.Errorf("level pohon kinerja harus berada di antara 1-3, level saat ini: %d", pokinData.LevelPohon)
 	}
 
+	periode, err := service.PeriodeRepository.FindById(ctx, tx, sasaranPemda.PeriodeId)
+	if err != nil {
+		return sasaranpemda.SasaranPemdaResponse{}, fmt.Errorf("periode tidak ditemukan: %v", err)
+	}
+
+	// Validasi tahun target untuk setiap indikator
+	tahunAwal, _ := strconv.Atoi(periode.TahunAwal)
+	tahunAkhir, _ := strconv.Atoi(periode.TahunAkhir)
+
+	for _, indikatorReq := range request.Indikator {
+		tahunMap := make(map[string]bool)
+		for _, targetReq := range indikatorReq.Target {
+			targetTahun, _ := strconv.Atoi(targetReq.Tahun)
+
+			// Validasi rentang tahun
+			if targetTahun < tahunAwal || targetTahun > tahunAkhir {
+				return sasaranpemda.SasaranPemdaResponse{}, fmt.Errorf(
+					"tahun target %d harus berada dalam rentang periode %d-%d",
+					targetTahun, tahunAwal, tahunAkhir,
+				)
+			}
+
+			// Validasi duplikasi tahun
+			if tahunMap[targetReq.Tahun] {
+				return sasaranpemda.SasaranPemdaResponse{}, fmt.Errorf(
+					"duplikasi tahun %s pada indikator %s",
+					targetReq.Tahun, indikatorReq.Indikator,
+				)
+			}
+			tahunMap[targetReq.Tahun] = true
+		}
+	}
+
 	// Update data sasaran pemda
 	sasaranPemda.TujuanPemdaId = request.TujuanPemdaId
-	sasaranPemda.SubtemaId = request.SubtemaId
 	sasaranPemda.SasaranPemda = request.SasaranPemda
+
+	// Proses indikator
+	var indikators []domain.Indikator
+	for _, indikatorReq := range request.Indikator {
+		var targets []domain.Target
+
+		// Proses target untuk setiap indikator
+		for _, targetReq := range indikatorReq.Target {
+			targetId := targetReq.Id
+			if targetId == "" || targetId == "-" {
+				// Generate ID baru jika ID kosong atau "-"
+				targetId = generateTargetIdSasaran()
+			}
+
+			target := domain.Target{
+				Id:          targetId,
+				IndikatorId: indikatorReq.Id,
+				Target:      targetReq.Target,
+				Satuan:      targetReq.Satuan,
+				Tahun:       targetReq.Tahun,
+			}
+			targets = append(targets, target)
+		}
+
+		// Buat atau gunakan ID indikator yang ada
+		indikatorId := indikatorReq.Id
+		if indikatorId == "" {
+			indikatorId = generateIndikatorIdSasaran()
+		}
+
+		indikator := domain.Indikator{
+			Id:            indikatorId,
+			TujuanPemdaId: sasaranPemda.TujuanPemdaId,
+			Indikator:     indikatorReq.Indikator,
+			RumusPerhitungan: sql.NullString{
+				String: indikatorReq.RumusPerhitungan,
+				Valid:  true,
+			},
+			SumberData: sql.NullString{
+				String: indikatorReq.SumberData,
+				Valid:  true,
+			},
+			Target: targets,
+		}
+		indikators = append(indikators, indikator)
+	}
+
+	sasaranPemda.Indikator = indikators
 
 	// Simpan semua perubahan
 	result, err := service.SasaranPemdaRepository.Update(ctx, tx, sasaranPemda)
 	if err != nil {
 		return sasaranpemda.SasaranPemdaResponse{}, err
+	}
+
+	// Ambil data periode untuk response
+	periode, err = service.PeriodeRepository.FindById(ctx, tx, sasaranPemda.PeriodeId)
+	if err != nil {
+		return sasaranpemda.SasaranPemdaResponse{}, fmt.Errorf("gagal mengambil data periode: %v", err)
 	}
 
 	return sasaranpemda.SasaranPemdaResponse{
@@ -142,6 +346,11 @@ func (service *SasaranPemdaServiceImpl) Update(ctx context.Context, request sasa
 		SubtemaId:     result.SubtemaId,
 		NamaSubtema:   pokinData.NamaPohon,
 		SasaranPemda:  result.SasaranPemda,
+		Periode: sasaranpemda.PeriodeResponse{
+			TahunAwal:  periode.TahunAwal,
+			TahunAkhir: periode.TahunAkhir,
+		},
+		Indikator: convertToIndikatorUpdateResponses(indikators),
 	}, nil
 }
 
@@ -180,14 +389,41 @@ func (service *SasaranPemdaServiceImpl) FindById(ctx context.Context, sasaranPem
 		return sasaranpemda.SasaranPemdaResponse{}, fmt.Errorf("gagal mengambil data tujuan pemda: %v", err)
 	}
 
+	// Konversi indikator ke response
+	var indikatorResponses []sasaranpemda.IndikatorResponse
+	for _, indikator := range sasaranPemda.Indikator {
+		var targetResponses []sasaranpemda.TargetResponse
+		for _, target := range indikator.Target {
+			targetResponses = append(targetResponses, sasaranpemda.TargetResponse{
+				Id:     target.Id,
+				Target: target.Target,
+				Satuan: target.Satuan,
+				Tahun:  target.Tahun,
+			})
+		}
+
+		indikatorResponses = append(indikatorResponses, sasaranpemda.IndikatorResponse{
+			Id:               indikator.Id,
+			Indikator:        indikator.Indikator,
+			RumusPerhitungan: indikator.RumusPerhitungan.String,
+			SumberData:       indikator.SumberData.String,
+			Target:           targetResponses,
+		})
+	}
+
 	return sasaranpemda.SasaranPemdaResponse{
 		Id:            sasaranPemda.Id,
 		TujuanPemdaId: sasaranPemda.TujuanPemdaId,
-		TujuanPemda:   tujuanPemda.TujuanPemda, // Tambahkan ini di struct response
+		TujuanPemda:   tujuanPemda.TujuanPemda,
 		SubtemaId:     sasaranPemda.SubtemaId,
 		NamaSubtema:   pokinData.NamaPohon,
 		SasaranPemda:  sasaranPemda.SasaranPemda,
-		JenisPohon:    tujuanPemda.JenisPohon,
+		JenisPohon:    sasaranPemda.JenisPohon,
+		Periode: sasaranpemda.PeriodeResponse{
+			TahunAwal:  sasaranPemda.Periode.TahunAwal,
+			TahunAkhir: sasaranPemda.Periode.TahunAkhir,
+		},
+		Indikator: indikatorResponses,
 	}, nil
 }
 
@@ -221,8 +457,6 @@ func (service *SasaranPemdaServiceImpl) FindAll(ctx context.Context, tahun strin
 	return sasaranPemdaResponses, nil
 }
 
-// Fungsi helper untuk konversi target
-
 func (service *SasaranPemdaServiceImpl) FindAllWithPokin(ctx context.Context, tahun string) ([]sasaranpemda.TematikSasaranPemdaResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
@@ -230,7 +464,6 @@ func (service *SasaranPemdaServiceImpl) FindAllWithPokin(ctx context.Context, ta
 	}
 	defer helper.CommitOrRollback(tx)
 
-	// Ambil data dari repository
 	items, err := service.SasaranPemdaRepository.FindAllWithPokin(ctx, tx, tahun)
 	if err != nil {
 		return nil, err
@@ -240,16 +473,7 @@ func (service *SasaranPemdaServiceImpl) FindAllWithPokin(ctx context.Context, ta
 	tematikMap := make(map[int]*sasaranpemda.TematikSasaranPemdaResponse)
 
 	// Proses setiap item dan kelompokkan indikator berdasarkan subtematik_id
-	subtematikIndikatorMap := make(map[int][]domain.Indikator)
 	for _, item := range items {
-		// Kumpulkan indikator per subtematik
-		if len(item.IndikatorSubtematik) > 0 {
-			existingIndikators := subtematikIndikatorMap[item.SubtematikId]
-			if existingIndikators == nil {
-				subtematikIndikatorMap[item.SubtematikId] = item.IndikatorSubtematik
-			}
-		}
-
 		tematik, exists := tematikMap[item.TematikId]
 		if !exists {
 			tematik = &sasaranpemda.TematikSasaranPemdaResponse{
@@ -269,8 +493,7 @@ func (service *SasaranPemdaServiceImpl) FindAllWithPokin(ctx context.Context, ta
 			}
 		}
 
-		if !subtematikExists && item.LevelPohon != 0 {
-			indikators := subtematikIndikatorMap[item.SubtematikId]
+		if !subtematikExists && item.LevelPohon >= 1 && item.LevelPohon <= 3 {
 			sasaranPemda := sasaranpemda.SasaranPemdaWithPokinResponse{
 				SubtematikId:        item.SubtematikId,
 				NamaSubtematik:      item.NamaSubtematik,
@@ -279,7 +502,7 @@ func (service *SasaranPemdaServiceImpl) FindAllWithPokin(ctx context.Context, ta
 				IdsasaranPemda:      item.IdsasaranPemda,
 				SasaranPemda:        item.SasaranPemda,
 				Keterangan:          item.Keterangan,
-				IndikatorSubtematik: convertToIndikatorResponses(indikators),
+				IndikatorSubtematik: convertToIndikatorResponses(item.IndikatorSubtematik),
 			}
 			tematik.SasaranPemda = append(tematik.SasaranPemda, sasaranPemda)
 		}
@@ -288,7 +511,6 @@ func (service *SasaranPemdaServiceImpl) FindAllWithPokin(ctx context.Context, ta
 	// Convert map to slice dan urutkan
 	var responses []sasaranpemda.TematikSasaranPemdaResponse
 	for _, tematik := range tematikMap {
-		// Sort sasaran_pemda berdasarkan level_pohon dan subtematik_id
 		sort.Slice(tematik.SasaranPemda, func(i, j int) bool {
 			if tematik.SasaranPemda[i].LevelPohon != tematik.SasaranPemda[j].LevelPohon {
 				return tematik.SasaranPemda[i].LevelPohon < tematik.SasaranPemda[j].LevelPohon
@@ -298,7 +520,6 @@ func (service *SasaranPemdaServiceImpl) FindAllWithPokin(ctx context.Context, ta
 		responses = append(responses, *tematik)
 	}
 
-	// Sort berdasarkan nama_tematik
 	sort.Slice(responses, func(i, j int) bool {
 		return responses[i].NamaTematik < responses[j].NamaTematik
 	})
@@ -311,31 +532,73 @@ func convertToIndikatorResponses(indikators []domain.Indikator) []sasaranpemda.I
 		return nil
 	}
 
-	// Sort indikator berdasarkan indikator string untuk konsistensi
-	sort.Slice(indikators, func(i, j int) bool {
-		return indikators[i].Indikator < indikators[j].Indikator
-	})
-
 	responses := make([]sasaranpemda.IndikatorSubtematikResponse, len(indikators))
 	for i, indikator := range indikators {
-		// Sort target berdasarkan target string
-		sort.Slice(indikator.Target, func(i, j int) bool {
-			return indikator.Target[i].Target < indikator.Target[j].Target
-		})
-
 		targetResponses := make([]sasaranpemda.TargetResponse, len(indikator.Target))
 		for j, target := range indikator.Target {
 			targetResponses[j] = sasaranpemda.TargetResponse{
+				Id:     target.Id,
 				Target: target.Target,
 				Satuan: target.Satuan,
+				Tahun:  target.Tahun,
 			}
 		}
 
+		// Sort target berdasarkan tahun
+		sort.Slice(targetResponses, func(i, j int) bool {
+			return targetResponses[i].Tahun < targetResponses[j].Tahun
+		})
+
 		responses[i] = sasaranpemda.IndikatorSubtematikResponse{
+			Id:        indikator.Id,
 			Indikator: indikator.Indikator,
 			Target:    targetResponses,
 		}
 	}
+
+	// Sort indikator berdasarkan ID
+	sort.Slice(responses, func(i, j int) bool {
+		return responses[i].Id < responses[j].Id
+	})
+
+	return responses
+}
+
+func convertToIndikatorUpdateResponses(indikators []domain.Indikator) []sasaranpemda.IndikatorResponse {
+	if len(indikators) == 0 {
+		return nil
+	}
+
+	responses := make([]sasaranpemda.IndikatorResponse, len(indikators))
+	for i, indikator := range indikators {
+		targetResponses := make([]sasaranpemda.TargetResponse, len(indikator.Target))
+		for j, target := range indikator.Target {
+			targetResponses[j] = sasaranpemda.TargetResponse{
+				Id:     target.Id,
+				Target: target.Target,
+				Satuan: target.Satuan,
+				Tahun:  target.Tahun,
+			}
+		}
+
+		// Sort target berdasarkan tahun
+		sort.Slice(targetResponses, func(i, j int) bool {
+			return targetResponses[i].Tahun < targetResponses[j].Tahun
+		})
+
+		responses[i] = sasaranpemda.IndikatorResponse{
+			Id:               indikator.Id,
+			Indikator:        indikator.Indikator,
+			RumusPerhitungan: indikator.RumusPerhitungan.String,
+			SumberData:       indikator.SumberData.String,
+			Target:           targetResponses,
+		}
+	}
+
+	// Sort indikator berdasarkan ID
+	sort.Slice(responses, func(i, j int) bool {
+		return responses[i].Id < responses[j].Id
+	})
 
 	return responses
 }

@@ -17,17 +17,62 @@ func NewSasaranPemdaRepositoryImpl() *SasaranPemdaRepositoryImpl {
 }
 
 func (repository *SasaranPemdaRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, sasaranPemda domain.SasaranPemda) (domain.SasaranPemda, error) {
-	query := "INSERT INTO tb_sasaran_pemda(id, tujuan_pemda_id, subtema_id, sasaran_pemda) VALUES (?, ?, ?, ?)"
-	_, err := tx.ExecContext(ctx, query, sasaranPemda.Id, sasaranPemda.TujuanPemdaId, sasaranPemda.SubtemaId, sasaranPemda.SasaranPemda)
+	// Insert sasaran pemda
+	query := "INSERT INTO tb_sasaran_pemda(id, tujuan_pemda_id, subtema_id, sasaran_pemda, periode_id) VALUES (?, ?, ?, ?, ?)"
+	_, err := tx.ExecContext(ctx, query, sasaranPemda.Id, sasaranPemda.TujuanPemdaId, sasaranPemda.SubtemaId, sasaranPemda.SasaranPemda, sasaranPemda.PeriodeId)
 	if err != nil {
 		return sasaranPemda, err
 	}
+
+	// Insert indikator
+	for _, indikator := range sasaranPemda.Indikator {
+		scriptInsertIndikator := `
+            INSERT INTO tb_indikator 
+                (id, sasaran_pemda_id, indikator, rumus_perhitungan, sumber_data) 
+            VALUES 
+                (?, ?, ?, ?, ?)`
+
+		_, err := tx.ExecContext(ctx, scriptInsertIndikator,
+			indikator.Id,
+			sasaranPemda.Id,
+			indikator.Indikator,
+			indikator.RumusPerhitungan,
+			indikator.SumberData)
+		if err != nil {
+			return sasaranPemda, err
+		}
+
+		// Insert target untuk setiap indikator
+		for _, target := range indikator.Target {
+			// Skip jika target kosong
+			if target.Target == "" && target.Satuan == "" {
+				continue
+			}
+
+			scriptInsertTarget := `
+                INSERT INTO tb_target 
+                    (id, indikator_id, target, satuan, tahun)
+                VALUES 
+                    (?, ?, ?, ?, ?)`
+
+			_, err := tx.ExecContext(ctx, scriptInsertTarget,
+				target.Id,
+				indikator.Id,
+				target.Target,
+				target.Satuan,
+				target.Tahun)
+			if err != nil {
+				return sasaranPemda, err
+			}
+		}
+	}
+
 	return sasaranPemda, nil
 }
 
 func (repository *SasaranPemdaRepositoryImpl) CreateIndikator(ctx context.Context, tx *sql.Tx, indikator domain.Indikator) (domain.Indikator, error) {
-	query := "INSERT INTO tb_indikator(id, sasaran_pemda_id, indikator) VALUES (?, ?, ?)"
-	_, err := tx.ExecContext(ctx, query, indikator.Id, indikator.SasaranPemdaId, indikator.Indikator)
+	query := "INSERT INTO tb_indikator(id, sasaran_pemda_id, indikator, rumus_perhitungan, sumber_data) VALUES (?, ?, ?, ?, ?)"
+	_, err := tx.ExecContext(ctx, query, indikator.Id, indikator.SasaranPemdaId, indikator.Indikator, indikator.RumusPerhitungan, indikator.SumberData)
 	if err != nil {
 		return indikator, err
 	}
@@ -41,19 +86,91 @@ func (repository *SasaranPemdaRepositoryImpl) CreateTarget(ctx context.Context, 
 }
 
 func (repository *SasaranPemdaRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, sasaranPemda domain.SasaranPemda) (domain.SasaranPemda, error) {
-	// Update tujuan pemda
-	query := "UPDATE tb_sasaran_pemda SET tujuan_pemda_id = ?, sasaran_pemda = ? WHERE id = ?"
-	_, err := tx.ExecContext(ctx, query, sasaranPemda.TujuanPemdaId, sasaranPemda.SasaranPemda, sasaranPemda.Id)
+	// Update sasaran pemda
+	query := "UPDATE tb_sasaran_pemda SET sasaran_pemda = ?, tujuan_pemda_id = ? WHERE id = ?"
+	_, err := tx.ExecContext(ctx, query, sasaranPemda.SasaranPemda, sasaranPemda.TujuanPemdaId, sasaranPemda.Id)
 	if err != nil {
 		return sasaranPemda, err
+	}
+
+	// Hapus semua indikator lama beserta targetnya
+	scriptDeleteOldIndicators := "DELETE FROM tb_indikator WHERE sasaran_pemda_id = ?"
+	_, err = tx.ExecContext(ctx, scriptDeleteOldIndicators, sasaranPemda.Id)
+	if err != nil {
+		return sasaranPemda, err
+	}
+
+	// Insert indikator baru
+	for _, indikator := range sasaranPemda.Indikator {
+		scriptInsertIndikator := `
+            INSERT INTO tb_indikator 
+                (id, sasaran_pemda_id, indikator, rumus_perhitungan, sumber_data) 
+            VALUES 
+                (?, ?, ?, ?, ?)`
+
+		_, err := tx.ExecContext(ctx, scriptInsertIndikator,
+			indikator.Id,
+			sasaranPemda.Id,
+			indikator.Indikator,
+			indikator.RumusPerhitungan,
+			indikator.SumberData)
+		if err != nil {
+			return sasaranPemda, err
+		}
+
+		// Hapus semua target lama untuk indikator ini
+		scriptDeleteOldTargets := "DELETE FROM tb_target WHERE indikator_id = ?"
+		_, err = tx.ExecContext(ctx, scriptDeleteOldTargets, indikator.Id)
+		if err != nil {
+			return sasaranPemda, err
+		}
+
+		// Insert target baru
+		for _, target := range indikator.Target {
+			// Skip jika target kosong
+			if target.Target == "" && target.Satuan == "" {
+				continue
+			}
+
+			scriptInsertTarget := `
+                INSERT INTO tb_target 
+                    (id, indikator_id, target, satuan, tahun)
+                VALUES 
+                    (?, ?, ?, ?, ?)`
+
+			_, err := tx.ExecContext(ctx, scriptInsertTarget,
+				target.Id,
+				indikator.Id,
+				target.Target,
+				target.Satuan,
+				target.Tahun)
+			if err != nil {
+				return sasaranPemda, err
+			}
+		}
 	}
 
 	return sasaranPemda, nil
 }
 
 func (repository *SasaranPemdaRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, sasaranPemdaId int) error {
+	queryDeleteTarget := `
+	DELETE t FROM tb_target t
+	INNER JOIN tb_indikator i ON t.indikator_id = i.id
+	WHERE i.sasaran_pemda_id = ?`
+	_, err := tx.ExecContext(ctx, queryDeleteTarget, sasaranPemdaId)
+	if err != nil {
+		return err
+	}
+
+	// 2. Hapus indikator yang terkait dengan tujuan pemda
+	queryDeleteIndikator := "DELETE FROM tb_indikator WHERE sasaran_pemda_id = ?"
+	_, err = tx.ExecContext(ctx, queryDeleteIndikator, sasaranPemdaId)
+	if err != nil {
+		return err
+	}
 	query := "DELETE FROM tb_sasaran_pemda WHERE id = ?"
-	_, err := tx.ExecContext(ctx, query, sasaranPemdaId)
+	_, err = tx.ExecContext(ctx, query, sasaranPemdaId)
 	if err != nil {
 		return err
 	}
@@ -62,31 +179,172 @@ func (repository *SasaranPemdaRepositoryImpl) Delete(ctx context.Context, tx *sq
 }
 
 func (repository *SasaranPemdaRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, sasaranPemdaId int) (domain.SasaranPemda, error) {
-
 	query := `
-			SELECT 
-				sp.id,
-				sp.subtema_id,
-				sp.tujuan_pemda_id,
-				sp.sasaran_pemda
-			FROM 
-				tb_sasaran_pemda sp
-			WHERE 
-				sp.id = ?`
+        SELECT DISTINCT
+            tp.id,
+            tp.tujuan_pemda_id,
+            tp.subtema_id,
+            tp.sasaran_pemda,
+            tp.periode_id,
+            COALESCE(p.tahun_awal, '') as tahun_awal,
+            COALESCE(p.tahun_akhir, '') as tahun_akhir,
+            pk.jenis_pohon,
+            i.id as indikator_id,
+            i.indikator as indikator_text,
+            i.rumus_perhitungan,
+            i.sumber_data,
+            t.id as target_id,
+            t.target as target_value,
+            t.satuan as target_satuan,
+            t.tahun as target_tahun
+        FROM 
+            tb_sasaran_pemda tp
+            LEFT JOIN tb_periode p ON tp.periode_id = p.id
+            LEFT JOIN tb_pohon_kinerja pk ON tp.subtema_id = pk.id
+            LEFT JOIN tb_indikator i ON tp.id = i.sasaran_pemda_id
+            LEFT JOIN tb_target t ON t.indikator_id = i.id
+        WHERE tp.id = ?
+        ORDER BY 
+            tp.id, i.id, CAST(t.tahun AS SIGNED)`
 
-	var sasaranPemda domain.SasaranPemda
-	err := tx.QueryRowContext(ctx, query, sasaranPemdaId).Scan(
-		&sasaranPemda.Id,
-		&sasaranPemda.SubtemaId,
-		&sasaranPemda.TujuanPemdaId,
-		&sasaranPemda.SasaranPemda,
-	)
+	rows, err := tx.QueryContext(ctx, query, sasaranPemdaId)
 	if err != nil {
-		return domain.SasaranPemda{}, err
+		return domain.SasaranPemda{}, fmt.Errorf("error querying sasaran pemda: %v", err)
+	}
+	defer rows.Close()
+
+	var result domain.SasaranPemda
+	var firstRow = true
+	indikatorMap := make(map[string]*domain.Indikator)
+
+	for rows.Next() {
+		var (
+			id, subtemaId, periodeId, tujuanPemdaId             int
+			sasaranPemdaText, tahunAwal, tahunAkhir, jenisPohon string // Tambahkan jenisPohon
+			indikatorId, indikatorText                          sql.NullString
+			rumusPerhitunganNull, sumberDataNull                sql.NullString
+			targetId, targetValue, targetSatuan, targetTahun    sql.NullString
+		)
+
+		err := rows.Scan(
+			&id,
+			&tujuanPemdaId,
+			&subtemaId,
+			&sasaranPemdaText,
+			&periodeId,
+			&tahunAwal,
+			&tahunAkhir,
+			&jenisPohon,
+			&indikatorId,
+			&indikatorText,
+			&rumusPerhitunganNull,
+			&sumberDataNull,
+			&targetId,
+			&targetValue,
+			&targetSatuan,
+			&targetTahun,
+		)
+		if err != nil {
+			return domain.SasaranPemda{}, fmt.Errorf("error scanning row: %v", err)
+		}
+
+		if firstRow {
+			result = domain.SasaranPemda{
+				Id:            id,
+				TujuanPemdaId: tujuanPemdaId,
+				SubtemaId:     subtemaId,
+				SasaranPemda:  sasaranPemdaText,
+				PeriodeId:     periodeId,
+				JenisPohon:    jenisPohon,
+				Periode: domain.Periode{
+					TahunAwal:  tahunAwal,
+					TahunAkhir: tahunAkhir,
+				},
+				Indikator: []domain.Indikator{},
+			}
+			firstRow = false
+		}
+
+		if indikatorId.Valid && indikatorText.Valid {
+			currentIndikator, exists := indikatorMap[indikatorId.String]
+
+			if !exists {
+				// Konversi NullString ke string biasa
+				rumusPerhitungan := ""
+				if rumusPerhitunganNull.Valid {
+					rumusPerhitungan = rumusPerhitunganNull.String
+				}
+
+				sumberData := ""
+				if sumberDataNull.Valid {
+					sumberData = sumberDataNull.String
+				}
+
+				indikator := domain.Indikator{
+					Id:               indikatorId.String,
+					SasaranPemdaId:   id,
+					Indikator:        indikatorText.String,
+					RumusPerhitungan: sql.NullString{String: rumusPerhitungan, Valid: rumusPerhitungan != ""},
+					SumberData:       sql.NullString{String: sumberData, Valid: sumberData != ""},
+					Target:           []domain.Target{},
+				}
+
+				// Generate target untuk setiap tahun dalam periode
+				if periodeId != 0 && tahunAwal != "" && tahunAkhir != "" {
+					tahunAwalInt, _ := strconv.Atoi(tahunAwal)
+					tahunAkhirInt, _ := strconv.Atoi(tahunAkhir)
+
+					for tahun := tahunAwalInt; tahun <= tahunAkhirInt; tahun++ {
+						tahunStr := strconv.Itoa(tahun)
+						indikator.Target = append(indikator.Target, domain.Target{
+							Id:          "-",
+							IndikatorId: indikatorId.String,
+							Target:      "",
+							Satuan:      "",
+							Tahun:       tahunStr,
+						})
+					}
+				}
+
+				result.Indikator = append(result.Indikator, indikator)
+				indikatorMap[indikatorId.String] = &result.Indikator[len(result.Indikator)-1]
+				currentIndikator = &result.Indikator[len(result.Indikator)-1]
+			}
+
+			// Update target yang ada dengan data sebenarnya
+			if targetId.Valid && targetValue.Valid && targetTahun.Valid {
+				tahunInt, _ := strconv.Atoi(targetTahun.String)
+				tahunAwalInt, _ := strconv.Atoi(tahunAwal)
+				if tahunInt >= tahunAwalInt {
+					idx := tahunInt - tahunAwalInt
+					if idx >= 0 && idx < len(currentIndikator.Target) {
+						currentIndikator.Target[idx] = domain.Target{
+							Id:          targetId.String,
+							IndikatorId: indikatorId.String,
+							Target:      targetValue.String,
+							Satuan:      targetSatuan.String,
+							Tahun:       targetTahun.String,
+						}
+					}
+				}
+			}
+		}
 	}
 
-	return sasaranPemda, nil
+	if err = rows.Err(); err != nil {
+		return domain.SasaranPemda{}, fmt.Errorf("error iterating rows: %v", err)
+	}
 
+	if result.Id == 0 {
+		return domain.SasaranPemda{}, fmt.Errorf("sasaran pemda dengan id %d tidak ditemukan", sasaranPemdaId)
+	}
+
+	// Sort indikator berdasarkan ID
+	sort.Slice(result.Indikator, func(i, j int) bool {
+		return result.Indikator[i].Id < result.Indikator[j].Id
+	})
+
+	return result, nil
 }
 
 func (repository *SasaranPemdaRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, tahun string) ([]domain.SasaranPemda, error) {
@@ -305,133 +563,103 @@ func (repository *SasaranPemdaRepositoryImpl) UpdatePeriode(ctx context.Context,
 }
 
 func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Context, tx *sql.Tx, tahun string) ([]domain.SasaranPemdaWithPokin, error) {
-	checkQuery := `
-	SELECT COUNT(*) 
-	FROM tb_pohon_kinerja 
-	WHERE level_pohon = 0 AND tahun = ?
-`
-	var count int
-	err := tx.QueryRowContext(ctx, checkQuery, tahun).Scan(&count)
-	if err != nil {
-		return nil, err
-	}
-
-	// Jika tidak ada tematik level 0, return array kosong
-	if count == 0 {
-		return []domain.SasaranPemdaWithPokin{}, nil
-	}
 	query := `
-    WITH tematik_tanpa_turunan AS (
+    WITH RECURSIVE tahun_periode AS (
+        SELECT DISTINCT p.id as periode_id, p.tahun_awal, p.tahun_akhir
+        FROM tb_periode p
+        JOIN tb_tahun_periode tp ON p.id = tp.id_periode
+        WHERE CAST(? AS SIGNED) BETWEEN CAST(p.tahun_awal AS SIGNED) AND CAST(p.tahun_akhir AS SIGNED)
+    ),
+    pohon_kinerja_aktif AS (
+        SELECT DISTINCT pk.*
+        FROM tb_pohon_kinerja pk
+        JOIN tahun_periode tp 
+        WHERE CAST(pk.tahun AS SIGNED) BETWEEN CAST(tp.tahun_awal AS SIGNED) AND CAST(tp.tahun_akhir AS SIGNED)
+    ),
+    pohon_hierarchy AS (
+        -- Ambil semua level
         SELECT 
-            t.id as subtematik_id,
-            t.nama_pohon as nama_subtematik,
-            t.jenis_pohon,
-            t.level_pohon,
-            t.keterangan,
-            t.id as tematik_id,
-            t.nama_pohon as nama_tematik,
-            0 as id_sasaran_pemda,
-            '' as sasaran_pemda,
-            NULL as indikator,
-            NULL as target,
-            NULL as satuan,
-            t.created_at as created_at
-        FROM tb_pohon_kinerja t
-        LEFT JOIN tb_pohon_kinerja child ON child.parent = t.id AND child.tahun = ?
-        WHERE t.level_pohon = 0 
-        AND t.tahun = ?
-        AND child.id IS NULL
-    )
-    SELECT * FROM (
-        SELECT 
-            pk.id as subtematik_id,
-            pk.nama_pohon as nama_subtematik,
-            pk.jenis_pohon,
+            pk.id,
+            pk.nama_pohon,
+            pk.parent,
             pk.level_pohon,
+            pk.jenis_pohon,
             pk.keterangan,
-            COALESCE(
-                CASE 
-                    WHEN pk.level_pohon = 1 THEN parent.id
-                    WHEN pk.level_pohon = 2 THEN grandparent.id
-                    WHEN pk.level_pohon = 3 THEN great_grandparent.id
-                END, 
-                0
-            ) as tematik_id,
-            COALESCE(
-                CASE 
-                    WHEN pk.level_pohon = 1 THEN parent.nama_pohon
-                    WHEN pk.level_pohon = 2 THEN grandparent.nama_pohon
-                    WHEN pk.level_pohon = 3 THEN great_grandparent.nama_pohon
-                END, 
-                ''
-            ) as nama_tematik,
-            COALESCE(sp.id, 0) as id_sasaran_pemda,
-            COALESCE(sp.sasaran_pemda, '') as sasaran_pemda,
-            COALESCE(i_sp.indikator, i_pk.indikator) as indikator,
-            COALESCE(t_sp.target, t_pk.target) as target,
-            COALESCE(t_sp.satuan, t_pk.satuan) as satuan,
-            pk.created_at as created_at
-        FROM 
-            tb_pohon_kinerja pk
-        LEFT JOIN 
-            tb_pohon_kinerja parent ON pk.parent = parent.id AND parent.tahun = ?
-        LEFT JOIN 
-            tb_pohon_kinerja grandparent ON parent.parent = grandparent.id AND grandparent.tahun = ?
-        LEFT JOIN 
-            tb_pohon_kinerja great_grandparent ON grandparent.parent = great_grandparent.id AND great_grandparent.tahun = ?
-        LEFT JOIN 
-            tb_sasaran_pemda sp ON pk.id = sp.subtema_id
-        LEFT JOIN 
-            tb_indikator i_sp ON sp.id = i_sp.sasaran_pemda_id
-        LEFT JOIN 
-            tb_target t_sp ON i_sp.id = t_sp.indikator_id
-        LEFT JOIN 
-            tb_indikator i_pk ON pk.id = i_pk.pokin_id AND i_sp.id IS NULL
-        LEFT JOIN 
-            tb_target t_pk ON i_pk.id = t_pk.indikator_id AND t_sp.id IS NULL
-        WHERE 
-            pk.level_pohon BETWEEN 1 AND 3
-            AND pk.tahun = ?
+            CAST(pk.id AS CHAR(50)) as path,
+            pk.id as root_id,
+            pk.nama_pohon as root_nama
+        FROM pohon_kinerja_aktif pk
+        WHERE pk.level_pohon = 0
 
         UNION ALL
 
-        SELECT * FROM tematik_tanpa_turunan
-    ) combined
+        SELECT 
+            c.id,
+            c.nama_pohon,
+            c.parent,
+            c.level_pohon,
+            c.jenis_pohon,
+            c.keterangan,
+            CONCAT(ph.path, ',', c.id),
+            ph.root_id,
+            ph.root_nama
+        FROM pohon_kinerja_aktif c
+        JOIN pohon_hierarchy ph ON c.parent = ph.id
+        WHERE c.level_pohon BETWEEN 1 AND 3
+    )
+    SELECT DISTINCT
+        pk.id as subtematik_id,
+        pk.nama_pohon as nama_subtematik,
+        pk.jenis_pohon,
+        pk.level_pohon,
+        pk.keterangan,
+        pk.root_id as tematik_id,
+        pk.root_nama as nama_tematik,
+        COALESCE(sp.id, 0) as id_sasaran_pemda,
+        COALESCE(sp.sasaran_pemda, '') as sasaran_pemda,
+        sp.periode_id,
+        tp.tahun_awal,
+        tp.tahun_akhir,
+        i.id as indikator_id,
+        i.indikator,
+        t.id as target_id,
+        t.target,
+        t.satuan,
+        t.tahun
+    FROM pohon_hierarchy pk
+    LEFT JOIN tb_sasaran_pemda sp ON pk.id = sp.subtema_id
+    CROSS JOIN tahun_periode tp
+    LEFT JOIN tb_indikator i ON sp.id = i.sasaran_pemda_id
+    LEFT JOIN tb_target t ON i.id = t.indikator_id
+    WHERE pk.level_pohon BETWEEN 0 AND 3
+        AND (sp.periode_id IS NULL OR sp.periode_id = tp.periode_id)
     ORDER BY 
-        nama_tematik ASC,
-        CASE 
-            WHEN level_pohon = 0 THEN 2  -- Tematik tanpa turunan
-            WHEN level_pohon = 1 THEN 0  -- Subtematik prioritas pertama
-            WHEN level_pohon = 2 THEN 1  -- Sub-subtematik prioritas kedua
-            WHEN level_pohon = 3 THEN 1  -- Sub-sub-subtematik prioritas ketiga
-        END ASC,
-        level_pohon ASC,
-        created_at ASC,
-        nama_subtematik ASC`
+        pk.root_nama,
+        pk.level_pohon,
+        pk.id`
 
-	rows, err := tx.QueryContext(ctx, query, tahun, tahun, tahun, tahun, tahun, tahun)
+	rows, err := tx.QueryContext(ctx, query, tahun)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	subtematikMap := make(map[int]*domain.SasaranPemdaWithPokin)
+	pokinMap := make(map[int]*domain.SasaranPemdaWithPokin)
+	indikatorMap := make(map[int]map[string]*domain.Indikator)
 
 	for rows.Next() {
 		var (
-			subtematikId   int
-			namaSubtematik string
-			jenisPohon     string
-			levelPohon     int
-			keterangan     sql.NullString
-			tematikId      int
-			namaTematik    string
-			idSasaranPemda int
-			sasaranPemda   string
-			indikator      sql.NullString
-			target         sql.NullString
-			satuan         sql.NullString
-			createdAt      sql.NullTime
+			subtematikId                           int
+			namaSubtematik, jenisPohon, keterangan string
+			levelPohon                             int
+			tematikId                              int
+			namaTematik                            string
+			idSasaranPemda                         int
+			sasaranPemda                           string
+			periodeId                              sql.NullInt64
+			tahunAwal, tahunAkhir                  string
+			indikatorId, indikator                 sql.NullString
+			targetId, target, satuan, targetTahun  sql.NullString
 		)
 
 		err := rows.Scan(
@@ -444,80 +672,115 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 			&namaTematik,
 			&idSasaranPemda,
 			&sasaranPemda,
+			&periodeId,
+			&tahunAwal,
+			&tahunAkhir,
+			&indikatorId,
 			&indikator,
+			&targetId,
 			&target,
 			&satuan,
-			&createdAt,
+			&targetTahun,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		item, exists := subtematikMap[subtematikId]
-		if !exists {
-			item = &domain.SasaranPemdaWithPokin{
-				SubtematikId:        subtematikId,
-				NamaSubtematik:      namaSubtematik,
-				JenisPohon:          jenisPohon,
-				LevelPohon:          levelPohon,
-				Keterangan:          keterangan.String,
-				TematikId:           tematikId,
-				NamaTematik:         namaTematik,
-				IdsasaranPemda:      idSasaranPemda,
-				SasaranPemda:        sasaranPemda,
-				IndikatorSubtematik: []domain.Indikator{},
+		if _, exists := pokinMap[subtematikId]; !exists {
+			pokinMap[subtematikId] = &domain.SasaranPemdaWithPokin{
+				SubtematikId:   subtematikId,
+				NamaSubtematik: namaSubtematik,
+				JenisPohon:     jenisPohon,
+				LevelPohon:     levelPohon,
+				Keterangan:     keterangan,
+				TematikId:      tematikId,
+				NamaTematik:    namaTematik,
+				IdsasaranPemda: idSasaranPemda,
+				SasaranPemda:   sasaranPemda,
 			}
-			subtematikMap[subtematikId] = item
+
+			if idSasaranPemda > 0 {
+				indikatorMap[idSasaranPemda] = make(map[string]*domain.Indikator)
+			}
 		}
 
-		if indikator.Valid {
-			var indikatorFound bool
-			for i := range item.IndikatorSubtematik {
-				if item.IndikatorSubtematik[i].Indikator == indikator.String {
-					if target.Valid {
-						item.IndikatorSubtematik[i].Target = append(
-							item.IndikatorSubtematik[i].Target,
-							domain.Target{
-								Target: target.String,
-								Satuan: satuan.String,
-							},
-						)
-					}
-					indikatorFound = true
-					break
-				}
-			}
-
-			if !indikatorFound {
-				newIndikator := domain.Indikator{
+		// Proses indikator dan target
+		if idSasaranPemda > 0 && indikatorId.Valid {
+			if _, exists := indikatorMap[idSasaranPemda][indikatorId.String]; !exists {
+				indikatorMap[idSasaranPemda][indikatorId.String] = &domain.Indikator{
+					Id:        indikatorId.String,
 					Indikator: indikator.String,
 					Target:    []domain.Target{},
 				}
-				if target.Valid {
-					newIndikator.Target = append(newIndikator.Target, domain.Target{
-						Target: target.String,
-						Satuan: satuan.String,
+			}
+
+			currentIndikator := indikatorMap[idSasaranPemda][indikatorId.String]
+
+			// Buat target untuk semua tahun dalam periode
+			tahunAwalInt, _ := strconv.Atoi(tahunAwal)
+			tahunAkhirInt, _ := strconv.Atoi(tahunAkhir)
+
+			// Hanya inisialisasi target jika belum ada
+			if len(currentIndikator.Target) == 0 {
+				for tahun := tahunAwalInt; tahun <= tahunAkhirInt; tahun++ {
+					tahunStr := strconv.Itoa(tahun)
+					currentIndikator.Target = append(currentIndikator.Target, domain.Target{
+						Id:          "-",
+						IndikatorId: indikatorId.String,
+						Target:      "",
+						Satuan:      "",
+						Tahun:       tahunStr,
 					})
 				}
-				item.IndikatorSubtematik = append(item.IndikatorSubtematik, newIndikator)
+			}
+
+			// Update target yang memiliki data
+			if targetId.Valid && targetTahun.Valid {
+				tahunInt, _ := strconv.Atoi(targetTahun.String)
+				if tahunInt >= tahunAwalInt && tahunInt <= tahunAkhirInt {
+					idx := tahunInt - tahunAwalInt
+					if idx >= 0 && idx < len(currentIndikator.Target) {
+						currentIndikator.Target[idx] = domain.Target{
+							Id:          targetId.String,
+							IndikatorId: indikatorId.String,
+							Target:      target.String,
+							Satuan:      satuan.String,
+							Tahun:       targetTahun.String,
+						}
+					}
+				}
 			}
 		}
 	}
 
-	result := make([]domain.SasaranPemdaWithPokin, 0, len(subtematikMap))
-	for _, item := range subtematikMap {
-		if item.LevelPohon == 0 {
-			result = append(result, domain.SasaranPemdaWithPokin{
-				TematikId:   item.TematikId,
-				NamaTematik: item.NamaTematik,
+	var result []domain.SasaranPemdaWithPokin
+	for _, pokin := range pokinMap {
+		if pokin.IdsasaranPemda > 0 {
+			var indikators []domain.Indikator
+			for _, indikator := range indikatorMap[pokin.IdsasaranPemda] {
+				indikators = append(indikators, *indikator)
+			}
+			// Sort indikator berdasarkan ID
+			sort.Slice(indikators, func(i, j int) bool {
+				return indikators[i].Id < indikators[j].Id
 			})
-		} else {
-			result = append(result, *item)
+			pokin.IndikatorSubtematik = indikators
 		}
+		result = append(result, *pokin)
 	}
 
-	return result, nil
+	// Sort hasil akhir
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].TematikId != result[j].TematikId {
+			return result[i].TematikId < result[j].TematikId
+		}
+		if result[i].LevelPohon != result[j].LevelPohon {
+			return result[i].LevelPohon < result[j].LevelPohon
+		}
+		return result[i].SubtematikId < result[j].SubtematikId
+	})
 
+	return result, nil
 }
 
 func (repository *SasaranPemdaRepositoryImpl) IsSubtemaIdExists(ctx context.Context, tx *sql.Tx, subtemaId int) bool {

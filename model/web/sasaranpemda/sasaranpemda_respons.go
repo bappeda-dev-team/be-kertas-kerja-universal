@@ -1,26 +1,30 @@
 package sasaranpemda
 
 type SasaranPemdaResponse struct {
-	Id            int    `json:"id"`
-	SubtemaId     int    `json:"subtema_id,omitempty"`
-	NamaSubtema   string `json:"nama_subtema,omitempty"`
-	TujuanPemdaId int    `json:"tujuan_pemda_id,omitempty"`
-	TujuanPemda   string `json:"tujuan_pemda,omitempty"`
-	SasaranPemda  string `json:"sasaran_pemda"`
-	JenisPohon    string `json:"jenis_pohon"`
+	Id            int                 `json:"id"`
+	SubtemaId     int                 `json:"subtema_id,omitempty"`
+	NamaSubtema   string              `json:"nama_subtema,omitempty"`
+	TujuanPemdaId int                 `json:"tujuan_pemda_id,omitempty"`
+	TujuanPemda   string              `json:"tujuan_pemda,omitempty"`
+	SasaranPemda  string              `json:"sasaran_pemda"`
+	JenisPohon    string              `json:"jenis_pohon"`
+	Periode       PeriodeResponse     `json:"periode"`
+	Indikator     []IndikatorResponse `json:"indikator"`
 }
 
 type IndikatorResponse struct {
-	Id        string           `json:"id"`
-	Indikator string           `json:"indikator"`
-	Target    []TargetResponse `json:"target"`
+	Id               string           `json:"id"`
+	Indikator        string           `json:"indikator"`
+	RumusPerhitungan string           `json:"rumus_perhitungan"`
+	SumberData       string           `json:"sumber_data"`
+	Target           []TargetResponse `json:"target"`
 }
 
 type TargetResponse struct {
-	Id     string `json:"id,omitempty"`
-	Target string `json:"target,omitempty"`
-	Satuan string `json:"satuan,omitempty"`
-	Tahun  string `json:"tahun,omitempty"`
+	Id     string `json:"id"`
+	Target string `json:"target"`
+	Satuan string `json:"satuan"`
+	Tahun  string `json:"tahun"`
 }
 
 type PeriodeResponse struct {
@@ -46,6 +50,7 @@ type SasaranPemdaWithPokinResponse struct {
 }
 
 type IndikatorSubtematikResponse struct {
+	Id        string           `json:"id"`
 	Indikator string           `json:"indikator"`
 	Target    []TargetResponse `json:"target"`
 }

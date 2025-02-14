@@ -15,23 +15,136 @@ func NewRencanaAksiRepositoryImpl() *RencanaAksiRepositoryImpl {
 }
 
 func (repository *RencanaAksiRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, rencanaAksi domain.RencanaAksi) (domain.RencanaAksi, error) {
-	script := "INSERT INTO tb_rencana_aksi (id, rencana_kinerja_id, kode_opd, urutan, nama_rencana_aksi) VALUES (?, ?, ?, ?, ?)"
-	_, err := tx.ExecContext(ctx, script, rencanaAksi.Id, rencanaAksi.RencanaKinerjaId, rencanaAksi.KodeOpd, rencanaAksi.Urutan, rencanaAksi.NamaRencanaAksi)
+	script := `
+        SELECT urutan 
+        FROM tb_rencana_aksi 
+        WHERE rencana_kinerja_id = ? 
+        ORDER BY urutan ASC
+    `
+	rows, err := tx.QueryContext(ctx, script, rencanaAksi.RencanaKinerjaId)
+	if err != nil {
+		return domain.RencanaAksi{}, fmt.Errorf("gagal mengambil data urutan: %v", err)
+	}
+	defer rows.Close()
+
+	var urutanList []int
+	for rows.Next() {
+		var urutan int
+		if err := rows.Scan(&urutan); err != nil {
+			return domain.RencanaAksi{}, fmt.Errorf("gagal scan urutan: %v", err)
+		}
+		urutanList = append(urutanList, urutan)
+	}
+
+	// Cari urutan berurutan yang perlu diupdate
+	var urutanToUpdate []int
+	prevUrutan := -1
+	for _, urutan := range urutanList {
+		if urutan >= rencanaAksi.Urutan {
+			if prevUrutan == -1 || urutan == prevUrutan+1 {
+				urutanToUpdate = append(urutanToUpdate, urutan)
+				prevUrutan = urutan
+			} else {
+				break // Keluar dari loop jika urutan tidak berurutan
+			}
+		}
+	}
+
+	// Update urutan dari yang terbesar
+	for i := len(urutanToUpdate) - 1; i >= 0; i-- {
+		scriptUpdate := `
+            UPDATE tb_rencana_aksi 
+            SET urutan = urutan + 1 
+            WHERE rencana_kinerja_id = ? 
+            AND urutan = ?
+        `
+		_, err := tx.ExecContext(ctx, scriptUpdate, rencanaAksi.RencanaKinerjaId, urutanToUpdate[i])
+		if err != nil {
+			return domain.RencanaAksi{}, fmt.Errorf("gagal mengupdate urutan: %v", err)
+		}
+	}
+
+	// Insert data baru
+	scriptInsert := "INSERT INTO tb_rencana_aksi (id, rencana_kinerja_id, kode_opd, urutan, nama_rencana_aksi) VALUES (?, ?, ?, ?, ?)"
+	_, err = tx.ExecContext(ctx, scriptInsert, rencanaAksi.Id, rencanaAksi.RencanaKinerjaId, rencanaAksi.KodeOpd, rencanaAksi.Urutan, rencanaAksi.NamaRencanaAksi)
 	if err != nil {
 		return domain.RencanaAksi{}, err
 	}
+
 	return rencanaAksi, nil
 }
 
 func (repository *RencanaAksiRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, rencanaAksi domain.RencanaAksi) (domain.RencanaAksi, error) {
+	// Dapatkan urutan lama
+	var urutanLama int
+	scriptGetOld := "SELECT urutan FROM tb_rencana_aksi WHERE id = ?"
+	err := tx.QueryRowContext(ctx, scriptGetOld, rencanaAksi.Id).Scan(&urutanLama)
+	if err != nil {
+		return domain.RencanaAksi{}, fmt.Errorf("gagal mendapatkan urutan lama: %v", err)
+	}
+
+	if urutanLama != rencanaAksi.Urutan {
+		// Dapatkan semua urutan yang ada
+		script := `
+            SELECT urutan 
+            FROM tb_rencana_aksi 
+            WHERE rencana_kinerja_id = ? 
+            AND id != ?
+            ORDER BY urutan ASC
+        `
+		rows, err := tx.QueryContext(ctx, script, rencanaAksi.RencanaKinerjaId, rencanaAksi.Id)
+		if err != nil {
+			return domain.RencanaAksi{}, fmt.Errorf("gagal mengambil data urutan: %v", err)
+		}
+		defer rows.Close()
+
+		var urutanList []int
+		for rows.Next() {
+			var urutan int
+			if err := rows.Scan(&urutan); err != nil {
+				return domain.RencanaAksi{}, fmt.Errorf("gagal scan urutan: %v", err)
+			}
+			urutanList = append(urutanList, urutan)
+		}
+
+		// Cari urutan berurutan yang perlu diupdate
+		var urutanToUpdate []int
+		prevUrutan := -1
+		for _, urutan := range urutanList {
+			if urutan >= rencanaAksi.Urutan {
+				if prevUrutan == -1 || urutan == prevUrutan+1 {
+					urutanToUpdate = append(urutanToUpdate, urutan)
+					prevUrutan = urutan
+				} else {
+					break // Keluar dari loop jika urutan tidak berurutan
+				}
+			}
+		}
+
+		// Update urutan dari yang terbesar
+		for i := len(urutanToUpdate) - 1; i >= 0; i-- {
+			scriptUpdate := `
+                UPDATE tb_rencana_aksi 
+                SET urutan = urutan + 1 
+                WHERE rencana_kinerja_id = ? 
+                AND urutan = ?
+            `
+			_, err := tx.ExecContext(ctx, scriptUpdate, rencanaAksi.RencanaKinerjaId, urutanToUpdate[i])
+			if err != nil {
+				return domain.RencanaAksi{}, fmt.Errorf("gagal mengupdate urutan: %v", err)
+			}
+		}
+	}
+
+	// Update data rencana aksi
 	script := "UPDATE tb_rencana_aksi SET urutan = ?, nama_rencana_aksi = ? WHERE id = ?"
-	_, err := tx.ExecContext(ctx, script, rencanaAksi.Urutan, rencanaAksi.NamaRencanaAksi, rencanaAksi.Id)
+	_, err = tx.ExecContext(ctx, script, rencanaAksi.Urutan, rencanaAksi.NamaRencanaAksi, rencanaAksi.Id)
 	if err != nil {
 		return domain.RencanaAksi{}, err
 	}
+
 	return rencanaAksi, nil
 }
-
 func (repository *RencanaAksiRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, id string) error {
 	// Hapus terlebih dahulu dari tb_pelaksanaan_rencana_aksi
 	scriptPelaksanaan := "DELETE FROM tb_pelaksanaan_rencana_aksi WHERE rencana_aksi_id = ?"

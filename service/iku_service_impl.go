@@ -41,6 +41,7 @@ func (service *IkuServiceImpl) FindAll(ctx context.Context, tahun string) ([]iku
 			targetResponses = append(targetResponses, iku.TargetResponse{
 				Target: target.Target,
 				Satuan: target.Satuan,
+				Tahun:  target.Tahun,
 			})
 		}
 

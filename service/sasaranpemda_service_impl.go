@@ -550,9 +550,11 @@ func convertToIndikatorResponses(indikators []domain.Indikator) []sasaranpemda.I
 		})
 
 		responses[i] = sasaranpemda.IndikatorSubtematikResponse{
-			Id:        indikator.Id,
-			Indikator: indikator.Indikator,
-			Target:    targetResponses,
+			Id:               indikator.Id,
+			Indikator:        indikator.Indikator,
+			RumusPerhitungan: indikator.RumusPerhitungan.String,
+			SumberData:       indikator.SumberData.String,
+			Target:           targetResponses,
 		}
 	}
 

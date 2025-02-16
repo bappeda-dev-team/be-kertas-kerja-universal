@@ -622,6 +622,8 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
         tp.tahun_akhir,
         i.id as indikator_id,
         i.indikator,
+		i.rumus_perhitungan,
+		i.sumber_data,
         t.id as target_id,
         t.target,
         t.satuan,
@@ -659,6 +661,7 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 			periodeId                              sql.NullInt64
 			tahunAwal, tahunAkhir                  string
 			indikatorId, indikator                 sql.NullString
+			rumusPerhitungan, sumberData           sql.NullString
 			targetId, target, satuan, targetTahun  sql.NullString
 		)
 
@@ -677,6 +680,8 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 			&tahunAkhir,
 			&indikatorId,
 			&indikator,
+			&rumusPerhitungan,
+			&sumberData,
 			&targetId,
 			&target,
 			&satuan,
@@ -708,9 +713,11 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 		if idSasaranPemda > 0 && indikatorId.Valid {
 			if _, exists := indikatorMap[idSasaranPemda][indikatorId.String]; !exists {
 				indikatorMap[idSasaranPemda][indikatorId.String] = &domain.Indikator{
-					Id:        indikatorId.String,
-					Indikator: indikator.String,
-					Target:    []domain.Target{},
+					Id:               indikatorId.String,
+					Indikator:        indikator.String,
+					RumusPerhitungan: rumusPerhitungan,
+					SumberData:       sumberData,
+					Target:           []domain.Target{},
 				}
 			}
 

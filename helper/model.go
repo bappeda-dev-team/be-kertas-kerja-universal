@@ -592,9 +592,12 @@ func ToTujuanOpdResponse(tujuanOpd domain.TujuanOpd) tujuanopd.TujuanOpdResponse
 		Tujuan:           tujuanOpd.Tujuan,
 		RumusPerhitungan: tujuanOpd.RumusPerhitungan,
 		SumberData:       tujuanOpd.SumberData,
-		TahunAwal:        tujuanOpd.TahunAwal,
-		TahunAkhir:       tujuanOpd.TahunAkhir,
-		Indikator:        indikatorResponses,
+		Periode: tujuanopd.PeriodeResponse{
+			Id:         tujuanOpd.PeriodeId.Id,
+			TahunAwal:  tujuanOpd.PeriodeId.TahunAwal,
+			TahunAkhir: tujuanOpd.PeriodeId.TahunAkhir,
+		},
+		Indikator: indikatorResponses,
 	}
 }
 

@@ -8,24 +8,27 @@ import (
 	"ekak_kabupaten_madiun/model/web/tujuanopd"
 	"ekak_kabupaten_madiun/repository"
 	"fmt"
+	"sort"
 	"strconv"
 
 	"github.com/google/uuid"
 )
 
 type TujuanOpdServiceImpl struct {
-	TujuanOpdRepository repository.TujuanOpdRepository
-	OpdRepository       repository.OpdRepository
-	PeriodeRepository   repository.PeriodeRepository
-	DB                  *sql.DB
+	TujuanOpdRepository    repository.TujuanOpdRepository
+	OpdRepository          repository.OpdRepository
+	PeriodeRepository      repository.PeriodeRepository
+	BidangUrusanRepository repository.BidangUrusanRepository
+	DB                     *sql.DB
 }
 
-func NewTujuanOpdServiceImpl(tujuanOpdRepository repository.TujuanOpdRepository, opdRepository repository.OpdRepository, periodeRepository repository.PeriodeRepository, DB *sql.DB) *TujuanOpdServiceImpl {
+func NewTujuanOpdServiceImpl(tujuanOpdRepository repository.TujuanOpdRepository, opdRepository repository.OpdRepository, periodeRepository repository.PeriodeRepository, bidangUrusanRepository repository.BidangUrusanRepository, DB *sql.DB) *TujuanOpdServiceImpl {
 	return &TujuanOpdServiceImpl{
-		TujuanOpdRepository: tujuanOpdRepository,
-		OpdRepository:       opdRepository,
-		PeriodeRepository:   periodeRepository,
-		DB:                  DB,
+		TujuanOpdRepository:    tujuanOpdRepository,
+		OpdRepository:          opdRepository,
+		PeriodeRepository:      periodeRepository,
+		BidangUrusanRepository: bidangUrusanRepository,
+		DB:                     DB,
 	}
 }
 
@@ -373,7 +376,7 @@ func (service *TujuanOpdServiceImpl) FindById(ctx context.Context, tujuanOpdId i
 	return response, nil
 }
 
-func (service *TujuanOpdServiceImpl) FindAll(ctx context.Context, kodeOpd string, tahun string) ([]tujuanopd.TujuanOpdResponse, error) {
+func (service *TujuanOpdServiceImpl) FindAll(ctx context.Context, kodeOpd string, tahun string) ([]tujuanopd.TujuanOpdwithBidangUrusanResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return nil, err
@@ -398,18 +401,26 @@ func (service *TujuanOpdServiceImpl) FindAll(ctx context.Context, kodeOpd string
 	tujuanOpds, err := service.TujuanOpdRepository.FindAll(ctx, tx, kodeOpd, tahun)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return make([]tujuanopd.TujuanOpdResponse, 0), nil
+			return make([]tujuanopd.TujuanOpdwithBidangUrusanResponse, 0), nil
 		}
 		return nil, err
 	}
 
-	var responses []tujuanopd.TujuanOpdResponse
+	// Buat map untuk mengelompokkan response berdasarkan kode_bidang_urusan
+	responseMap := make(map[string]*tujuanopd.TujuanOpdwithBidangUrusanResponse)
+
 	for _, tujuan := range tujuanOpds {
+		// Ambil data bidang urusan
+		bidangUrusan, err := service.BidangUrusanRepository.FindByKodeBidangUrusan(ctx, tx, tujuan.KodeBidangUrusan)
+		if err != nil {
+			return nil, err
+		}
+
 		tujuanResponse := tujuanopd.TujuanOpdResponse{
-			Id:               tujuan.Id,
-			KodeBidangUrusan: tujuan.KodeBidangUrusan,
-			KodeOpd:          tujuan.KodeOpd,
-			NamaOpd:          opd.NamaOpd,
+			Id: tujuan.Id,
+			// KodeBidangUrusan: tujuan.KodeBidangUrusan,
+			// KodeOpd:          tujuan.KodeOpd,
+			// NamaOpd:          opd.NamaOpd,
 			Tujuan:           tujuan.Tujuan,
 			RumusPerhitungan: tujuan.RumusPerhitungan,
 			SumberData:       tujuan.SumberData,
@@ -421,7 +432,7 @@ func (service *TujuanOpdServiceImpl) FindAll(ctx context.Context, kodeOpd string
 			Indikator: make([]tujuanopd.IndikatorResponse, 0),
 		}
 
-		// Proses setiap indikator
+		// Proses indikator dan target seperti sebelumnya
 		for _, indikator := range tujuan.Indikator {
 			indikatorResponse := tujuanopd.IndikatorResponse{
 				Id:            indikator.Id,
@@ -469,11 +480,37 @@ func (service *TujuanOpdServiceImpl) FindAll(ctx context.Context, kodeOpd string
 			tujuanResponse.Indikator = append(tujuanResponse.Indikator, indikatorResponse)
 		}
 
-		responses = append(responses, tujuanResponse)
+		// Cek apakah sudah ada entry untuk kode_bidang_urusan ini
+		if existing, exists := responseMap[tujuan.KodeBidangUrusan]; exists {
+			// Jika sudah ada, tambahkan tujuan ke array tujuan yang ada
+			existing.TujuanOpd = append(existing.TujuanOpd, tujuanResponse)
+		} else {
+			// Jika belum ada, buat entry baru
+			responseMap[tujuan.KodeBidangUrusan] = &tujuanopd.TujuanOpdwithBidangUrusanResponse{
+				Urusan:           bidangUrusan.NamaUrusan,
+				KodeUrusan:       bidangUrusan.KodeBidangUrusan[:1],
+				KodeBidangUrusan: bidangUrusan.KodeBidangUrusan,
+				NamaBidangUrusan: bidangUrusan.NamaBidangUrusan,
+				KodeOpd:          tujuan.KodeOpd,
+				NamaOpd:          opd.NamaOpd,
+				TujuanOpd:        []tujuanopd.TujuanOpdResponse{tujuanResponse},
+			}
+		}
 	}
 
+	// Convert map to slice
+	var responses []tujuanopd.TujuanOpdwithBidangUrusanResponse
+	for _, response := range responseMap {
+		responses = append(responses, *response)
+	}
+
+	// Sort responses berdasarkan kode_bidang_urusan
+	sort.Slice(responses, func(i, j int) bool {
+		return responses[i].KodeBidangUrusan < responses[j].KodeBidangUrusan
+	})
+
 	if len(responses) == 0 {
-		responses = make([]tujuanopd.TujuanOpdResponse, 0)
+		responses = make([]tujuanopd.TujuanOpdwithBidangUrusanResponse, 0)
 	}
 
 	return responses, nil

@@ -12,4 +12,6 @@ type UrusanRepository interface {
 	FindAll(ctx context.Context, tx *sql.Tx) ([]domainmaster.Urusan, error)
 	FindById(ctx context.Context, tx *sql.Tx, id string) (domainmaster.Urusan, error)
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
+	FindByKodeOpd(ctx context.Context, tx *sql.Tx, kodeOpd string) ([]domainmaster.Urusan, error)
+	FindUrusanAndBidangByKodeOpd(ctx context.Context, tx *sql.Tx, kodeOpd string) ([]domainmaster.Urusan, error)
 }

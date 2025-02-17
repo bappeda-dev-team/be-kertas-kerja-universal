@@ -2,12 +2,12 @@ package tujuanopd
 
 type TujuanOpdResponse struct {
 	Id               int                 `json:"id_tujuan_opd"`
-	KodeBidangUrusan string              `json:"kode_bidang_urusan"`
-	KodeOpd          string              `json:"kode_opd"`
-	NamaOpd          string              `json:"nama_opd"`
-	Tujuan           string              `json:"tujuan"`
-	RumusPerhitungan string              `json:"rumus_perhitungan"`
-	SumberData       string              `json:"sumber_data"`
+	KodeBidangUrusan string              `json:"kode_bidang_urusan,omitempty"`
+	KodeOpd          string              `json:"kode_opd,omitempty"`
+	NamaOpd          string              `json:"nama_opd,omitempty"`
+	Tujuan           string              `json:"tujuan,omitempty"`
+	RumusPerhitungan string              `json:"rumus_perhitungan,omitempty"`
+	SumberData       string              `json:"sumber_data,omitempty"`
 	Periode          PeriodeResponse     `json:"periode"`
 	Indikator        []IndikatorResponse `json:"indikator"`
 }
@@ -31,4 +31,14 @@ type PeriodeResponse struct {
 	Id         int    `json:"id"`
 	TahunAwal  string `json:"tahun_awal"`
 	TahunAkhir string `json:"tahun_akhir"`
+}
+
+type TujuanOpdwithBidangUrusanResponse struct {
+	KodeUrusan       string              `json:"kode_urusan"`
+	Urusan           string              `json:"urusan"`
+	KodeBidangUrusan string              `json:"kode_bidang_urusan"`
+	NamaBidangUrusan string              `json:"nama_bidang_urusan"`
+	KodeOpd          string              `json:"kode_opd"`
+	NamaOpd          string              `json:"nama_opd"`
+	TujuanOpd        []TujuanOpdResponse `json:"tujuan_opd"`
 }

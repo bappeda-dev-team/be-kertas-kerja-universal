@@ -104,7 +104,7 @@ func InitializeServer() *http.Server {
 	roleServiceImpl := service.NewRoleServiceImpl(roleRepositoryImpl, db)
 	roleControllerImpl := controller.NewRoleControllerImpl(roleServiceImpl)
 	periodeRepositoryImpl := repository.NewPeriodeRepositoryImpl()
-	tujuanOpdServiceImpl := service.NewTujuanOpdServiceImpl(tujuanOpdRepositoryImpl, opdRepositoryImpl, periodeRepositoryImpl, db)
+	tujuanOpdServiceImpl := service.NewTujuanOpdServiceImpl(tujuanOpdRepositoryImpl, opdRepositoryImpl, periodeRepositoryImpl, bidangUrusanRepositoryImpl, db)
 	tujuanOpdControllerImpl := controller.NewTujuanOpdControllerImpl(tujuanOpdServiceImpl)
 	crosscuttingOpdServiceImpl := service.NewCrosscuttingOpdServiceImpl(crosscuttingOpdRepositoryImpl, pohonKinerjaRepositoryImpl, pegawaiRepositoryImpl, opdRepositoryImpl, db)
 	crosscuttingOpdControllerImpl := controller.NewCrosscuttingOpdControllerImpl(crosscuttingOpdServiceImpl)

@@ -233,6 +233,8 @@ func NewRouter(
 	router.GET("/urusan/detail/:id", urusanController.FindById)
 	router.DELETE("/urusan/delete/:id", urusanController.Delete)
 	router.GET("/urusan/findall", urusanController.FindAll)
+	// router.GET("/urusan/findall/:kode_opd", urusanController.FindByKodeOpd)
+	router.GET("/urusan/findall/:kode_opd/urusan_bidang", urusanController.FindUrusanAndBidangByKodeOpd)
 
 	//bidang urusan
 	router.POST("/bidang_urusan/create", bidangUrusanController.Create)

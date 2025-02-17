@@ -11,4 +11,6 @@ type UrusanService interface {
 	FindById(ctx context.Context, id string) (urusanrespon.UrusanResponse, error)
 	FindAll(ctx context.Context) ([]urusanrespon.UrusanResponse, error)
 	Delete(ctx context.Context, id string) error
+	FindByKodeOpd(ctx context.Context, kodeOpd string) ([]urusanrespon.UrusanResponse, error)
+	FindUrusanAndBidangByKodeOpd(ctx context.Context, kodeOpd string) ([]urusanrespon.UrusanResponse, error)
 }

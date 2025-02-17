@@ -127,3 +127,26 @@ func (service *BidangUrusanServiceImpl) FindAll(ctx context.Context) ([]bidangur
 
 	return bidangurusanResponses, nil
 }
+
+func (service *BidangUrusanServiceImpl) FindByKodeOpd(ctx context.Context, kodeOpd string) ([]bidangurusanresponse.BidangUrusanResponse, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return []bidangurusanresponse.BidangUrusanResponse{}, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	bidangUrusans, err := service.BidangUrusanRepository.FindByKodeOpd(ctx, tx, kodeOpd)
+	if err != nil {
+		return []bidangurusanresponse.BidangUrusanResponse{}, err
+	}
+
+	var bidangUrusanResponses []bidangurusanresponse.BidangUrusanResponse
+	for _, bidangUrusan := range bidangUrusans {
+		bidangUrusanResponses = append(bidangUrusanResponses, bidangurusanresponse.BidangUrusanResponse{
+			KodeBidangUrusan: bidangUrusan.KodeBidangUrusan,
+			NamaBidangUrusan: bidangUrusan.NamaBidangUrusan,
+		})
+	}
+
+	return bidangUrusanResponses, nil
+}

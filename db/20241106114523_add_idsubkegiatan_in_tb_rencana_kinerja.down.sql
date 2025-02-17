@@ -1,1 +1,1 @@
-ALTER TABLE tb_rencana_kinerja DROP COLUMN id_sub_kegiatan;
+ALTER TABLE tb_rencana_kinerja DROP COLUMN kode_subkegiatan;

@@ -104,9 +104,16 @@ type TujuanOpdResponse struct {
 	Id        int                       `json:"id"`
 	KodeOpd   string                    `json:"kode_opd"`
 	Tujuan    string                    `json:"tujuan"`
+	Periode   PeriodeResponse           `json:"periode"`
 	Indikator []IndikatorTujuanResponse `json:"indikator"`
 }
 
 type IndikatorTujuanResponse struct {
 	Indikator string `json:"indikator"`
+}
+
+type PeriodeResponse struct {
+	Id         int    `json:"id"`
+	TahunAwal  string `json:"tahun_awal"`
+	TahunAkhir string `json:"tahun_akhir"`
 }

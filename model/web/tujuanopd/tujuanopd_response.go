@@ -15,7 +15,7 @@ type TujuanOpdResponse struct {
 type IndikatorResponse struct {
 	Id            string           `json:"id"`
 	IdTujuanOpd   int              `json:"id_tujuan_opd"`
-	NamaIndikator string           `json:"nama_indikator"`
+	NamaIndikator string           `json:"indikator"`
 	Target        []TargetResponse `json:"target"`
 }
 

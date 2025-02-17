@@ -537,18 +537,95 @@ func (repository *TujuanOpdRepositoryImpl) FindAll(ctx context.Context, tx *sql.
 	return result, nil
 }
 
+// func (repository *TujuanOpdRepositoryImpl) FindTujuanOpdByTahun(ctx context.Context, tx *sql.Tx, kodeOpd string, tahun string) ([]domain.TujuanOpd, error) {
+// 	script := `
+//         SELECT
+//             t.id,
+//             t.kode_opd,
+//             t.tujuan,
+//             p.tahun_awal,
+//             p.tahun_akhir
+//         FROM tb_tujuan_opd t
+//         INNER JOIN tb_periode p ON t.periode_id = p.id
+//         WHERE t.kode_opd = ?
+//         AND ? BETWEEN p.tahun_awal AND p.tahun_akhir
+//         ORDER BY t.id ASC
+//     `
+
+// 	rows, err := tx.QueryContext(ctx, script, kodeOpd, tahun)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer rows.Close()
+
+// 	var tujuanOpds []domain.TujuanOpd
+// 	for rows.Next() {
+// 		var tujuanOpd domain.TujuanOpd
+// 		err := rows.Scan(
+// 			&tujuanOpd.Id,
+// 			&tujuanOpd.KodeOpd,
+// 			&tujuanOpd.Tujuan,
+// 			&tujuanOpd.PeriodeId.TahunAwal,
+// 			&tujuanOpd.PeriodeId.TahunAkhir,
+// 		)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		tujuanOpds = append(tujuanOpds, tujuanOpd)
+// 	}
+
+// 	return tujuanOpds, nil
+// }
+
+// // Tambahkan fungsi untuk mengambil indikator
+// func (repository *TujuanOpdRepositoryImpl) FindIndikatorByTujuanOpdId(ctx context.Context, tx *sql.Tx, tujuanOpdId int) ([]domain.Indikator, error) {
+// 	script := `
+//         SELECT id, indikator
+//         FROM tb_indikator
+//         WHERE tujuan_opd_id = ?
+//         ORDER BY id ASC
+//     `
+
+// 	rows, err := tx.QueryContext(ctx, script, tujuanOpdId)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer rows.Close()
+
+// 	var indikators []domain.Indikator
+// 	for rows.Next() {
+// 		var indikator domain.Indikator
+// 		err := rows.Scan(
+// 			&indikator.Id,
+// 			&indikator.Indikator,
+// 		)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		indikator.TujuanOpdId = tujuanOpdId
+// 		indikators = append(indikators, indikator)
+// 	}
+
+// 	return indikators, nil
+// }
+
 func (repository *TujuanOpdRepositoryImpl) FindTujuanOpdByTahun(ctx context.Context, tx *sql.Tx, kodeOpd string, tahun string) ([]domain.TujuanOpd, error) {
 	script := `
         SELECT 
-            id, 
-            kode_opd, 
-            tujuan, 
-            tahun_awal, 
-            tahun_akhir
-        FROM tb_tujuan_opd
-        WHERE kode_opd = ?
-        AND ? BETWEEN tahun_awal AND tahun_akhir
-        ORDER BY id ASC
+            t.id, 
+            t.kode_opd, 
+            COALESCE(t.kode_bidang_urusan, '') as kode_bidang_urusan,
+            t.tujuan,
+            t.rumus_perhitungan,
+            t.sumber_data,
+            p.id as periode_id,
+            p.tahun_awal,
+            p.tahun_akhir
+        FROM tb_tujuan_opd t
+        INNER JOIN tb_periode p ON t.periode_id = p.id
+        WHERE t.kode_opd = ?
+        AND ? BETWEEN p.tahun_awal AND p.tahun_akhir
+        ORDER BY t.id ASC
     `
 
 	rows, err := tx.QueryContext(ctx, script, kodeOpd, tahun)
@@ -563,9 +640,13 @@ func (repository *TujuanOpdRepositoryImpl) FindTujuanOpdByTahun(ctx context.Cont
 		err := rows.Scan(
 			&tujuanOpd.Id,
 			&tujuanOpd.KodeOpd,
+			&tujuanOpd.KodeBidangUrusan,
 			&tujuanOpd.Tujuan,
-			&tujuanOpd.TahunAwal,
-			&tujuanOpd.TahunAkhir,
+			&tujuanOpd.RumusPerhitungan,
+			&tujuanOpd.SumberData,
+			&tujuanOpd.PeriodeId.Id,
+			&tujuanOpd.PeriodeId.TahunAwal,
+			&tujuanOpd.PeriodeId.TahunAkhir,
 		)
 		if err != nil {
 			return nil, err
@@ -576,13 +657,16 @@ func (repository *TujuanOpdRepositoryImpl) FindTujuanOpdByTahun(ctx context.Cont
 	return tujuanOpds, nil
 }
 
-// Tambahkan fungsi untuk mengambil indikator
+// Fungsi khusus untuk pohon kinerja
 func (repository *TujuanOpdRepositoryImpl) FindIndikatorByTujuanOpdId(ctx context.Context, tx *sql.Tx, tujuanOpdId int) ([]domain.Indikator, error) {
 	script := `
-        SELECT id, indikator 
-        FROM tb_indikator
-        WHERE tujuan_opd_id = ?
-        ORDER BY id ASC
+        SELECT 
+            i.id,
+            i.tujuan_opd_id,
+            i.indikator
+        FROM tb_indikator i
+        WHERE i.tujuan_opd_id = ?
+        ORDER BY i.id ASC
     `
 
 	rows, err := tx.QueryContext(ctx, script, tujuanOpdId)
@@ -596,12 +680,12 @@ func (repository *TujuanOpdRepositoryImpl) FindIndikatorByTujuanOpdId(ctx contex
 		var indikator domain.Indikator
 		err := rows.Scan(
 			&indikator.Id,
+			&indikator.TujuanOpdId,
 			&indikator.Indikator,
 		)
 		if err != nil {
 			return nil, err
 		}
-		indikator.TujuanOpdId = tujuanOpdId
 		indikators = append(indikators, indikator)
 	}
 

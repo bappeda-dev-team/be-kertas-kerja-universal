@@ -13,10 +13,12 @@ type TujuanOpdResponse struct {
 }
 
 type IndikatorResponse struct {
-	Id            string           `json:"id"`
-	IdTujuanOpd   int              `json:"id_tujuan_opd"`
-	NamaIndikator string           `json:"indikator"`
-	Target        []TargetResponse `json:"target"`
+	Id               string           `json:"id"`
+	IdTujuanOpd      int              `json:"id_tujuan_opd"`
+	NamaIndikator    string           `json:"indikator"`
+	RumusPerhitungan string           `json:"rumus_perhitungan"`
+	SumberData       string           `json:"sumber_data"`
+	Target           []TargetResponse `json:"target"`
 }
 
 type TargetResponse struct {

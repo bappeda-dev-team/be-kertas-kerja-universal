@@ -5,17 +5,17 @@ type TujuanOpdUpdateRequest struct {
 	KodeOpd          string                   `json:"kode_opd"`
 	KodeBidangUrusan string                   `json:"kode_bidang_urusan"`
 	Tujuan           string                   `json:"tujuan"`
-	RumusPerhitungan string                   `json:"rumus_perhitungan"`
-	SumberData       string                   `json:"sumber_data"`
 	PeriodeId        int                      `json:"periode_id"`
 	Indikator        []IndikatorUpdateRequest `json:"indikator"`
 }
 
 type IndikatorUpdateRequest struct {
-	Id          string                `json:"id"`
-	IdTujuanOpd string                `json:"id_tujuan_opd"`
-	Indikator   string                `json:"indikator"`
-	Target      []TargetUpdateRequest `json:"target"`
+	Id               string                `json:"id"`
+	IdTujuanOpd      string                `json:"id_tujuan_opd"`
+	Indikator        string                `json:"indikator"`
+	RumusPerhitungan string                `json:"rumus_perhitungan"`
+	SumberData       string                `json:"sumber_data"`
+	Target           []TargetUpdateRequest `json:"target"`
 }
 
 type TargetUpdateRequest struct {

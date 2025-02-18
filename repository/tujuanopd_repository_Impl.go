@@ -17,8 +17,8 @@ func NewTujuanOpdRepositoryImpl() *TujuanOpdRepositoryImpl {
 }
 
 func (repository *TujuanOpdRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, tujuanOpd domain.TujuanOpd) (domain.TujuanOpd, error) {
-	script := "INSERT INTO tb_tujuan_opd (kode_opd, kode_bidang_urusan, tujuan, rumus_perhitungan, sumber_data, periode_id) VALUES (?, ?, ?, ?, ?, ?)"
-	result, err := tx.ExecContext(ctx, script, tujuanOpd.KodeOpd, tujuanOpd.KodeBidangUrusan, tujuanOpd.Tujuan, tujuanOpd.RumusPerhitungan, tujuanOpd.SumberData, tujuanOpd.PeriodeId.Id)
+	script := "INSERT INTO tb_tujuan_opd (kode_opd, kode_bidang_urusan, tujuan, periode_id) VALUES (?, ?, ?, ?)"
+	result, err := tx.ExecContext(ctx, script, tujuanOpd.KodeOpd, tujuanOpd.KodeBidangUrusan, tujuanOpd.Tujuan, tujuanOpd.PeriodeId.Id)
 	if err != nil {
 		return domain.TujuanOpd{}, err
 	}
@@ -31,8 +31,8 @@ func (repository *TujuanOpdRepositoryImpl) Create(ctx context.Context, tx *sql.T
 	tujuanOpd.Id = int(id)
 
 	for _, indikator := range tujuanOpd.Indikator {
-		scriptIndikator := "INSERT INTO tb_indikator (id, tujuan_opd_id, indikator) VALUES (?, ?, ?)"
-		_, err := tx.ExecContext(ctx, scriptIndikator, indikator.Id, id, indikator.Indikator)
+		scriptIndikator := "INSERT INTO tb_indikator (id, tujuan_opd_id, indikator, rumus_perhitungan, sumber_data) VALUES (?, ?, ?, ?, ?)"
+		_, err := tx.ExecContext(ctx, scriptIndikator, indikator.Id, id, indikator.Indikator, indikator.RumusPerhitungan, indikator.SumberData)
 		if err != nil {
 			return domain.TujuanOpd{}, err
 		}
@@ -51,13 +51,11 @@ func (repository *TujuanOpdRepositoryImpl) Create(ctx context.Context, tx *sql.T
 
 func (repository *TujuanOpdRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, tujuanOpd domain.TujuanOpd) error {
 	// Update tujuan OPD
-	script := "UPDATE tb_tujuan_opd SET kode_opd = ?, kode_bidang_urusan = ?, tujuan = ?, rumus_perhitungan = ?, sumber_data = ?, periode_id = ? WHERE id = ?"
+	script := "UPDATE tb_tujuan_opd SET kode_opd = ?, kode_bidang_urusan = ?, tujuan = ?, periode_id = ? WHERE id = ?"
 	_, err := tx.ExecContext(ctx, script,
 		tujuanOpd.KodeOpd,
 		tujuanOpd.KodeBidangUrusan,
 		tujuanOpd.Tujuan,
-		tujuanOpd.RumusPerhitungan,
-		tujuanOpd.SumberData,
 		tujuanOpd.PeriodeId.Id,
 		tujuanOpd.Id)
 	if err != nil {
@@ -84,11 +82,13 @@ func (repository *TujuanOpdRepositoryImpl) Update(ctx context.Context, tx *sql.T
 	// Insert indikator dan target baru
 	for _, indikator := range tujuanOpd.Indikator {
 		// Insert indikator
-		scriptIndikator := "INSERT INTO tb_indikator (id, tujuan_opd_id, indikator) VALUES (?, ?, ?)"
+		scriptIndikator := "INSERT INTO tb_indikator (id, tujuan_opd_id, indikator, rumus_perhitungan, sumber_data) VALUES (?, ?, ?, ?, ?)"
 		_, err = tx.ExecContext(ctx, scriptIndikator,
 			indikator.Id,
 			tujuanOpd.Id,
-			indikator.Indikator)
+			indikator.Indikator,
+			indikator.RumusPerhitungan,
+			indikator.SumberData)
 		if err != nil {
 			return err
 		}
@@ -144,13 +144,13 @@ func (repository *TujuanOpdRepositoryImpl) FindById(ctx context.Context, tx *sql
             t.kode_opd,
             COALESCE(t.kode_bidang_urusan, '') as kode_bidang_urusan,
             t.tujuan, 
-            t.rumus_perhitungan, 
-            t.sumber_data,
             p.id as periode_id,
             p.tahun_awal,
             p.tahun_akhir,
             i.id as indikator_id,
             i.indikator,
+			i.rumus_perhitungan, 
+			i.sumber_data,
             COALESCE(tg.id, '') as target_id,
             COALESCE(tg.target, '') as target_value,
             COALESCE(tg.satuan, '') as satuan,
@@ -178,13 +178,13 @@ func (repository *TujuanOpdRepositoryImpl) FindById(ctx context.Context, tx *sql
 			kodeOpd          string
 			kodeBidangUrusan string
 			tujuan           string
-			rumusPerhitungan string
-			sumberData       string
 			periodeId        int
 			tahunAwal        string
 			tahunAkhir       string
 			indikatorId      sql.NullString
 			indikatorNama    sql.NullString
+			rumusPerhitungan sql.NullString
+			sumberData       sql.NullString
 			targetId         sql.NullString
 			targetValue      sql.NullString
 			satuan           sql.NullString
@@ -196,13 +196,13 @@ func (repository *TujuanOpdRepositoryImpl) FindById(ctx context.Context, tx *sql
 			&kodeOpd,
 			&kodeBidangUrusan,
 			&tujuan,
-			&rumusPerhitungan,
-			&sumberData,
 			&periodeId,
 			&tahunAwal,
 			&tahunAkhir,
 			&indikatorId,
 			&indikatorNama,
+			&rumusPerhitungan,
+			&sumberData,
 			&targetId,
 			&targetValue,
 			&satuan,
@@ -218,8 +218,6 @@ func (repository *TujuanOpdRepositoryImpl) FindById(ctx context.Context, tx *sql
 				KodeOpd:          kodeOpd,
 				KodeBidangUrusan: kodeBidangUrusan,
 				Tujuan:           tujuan,
-				RumusPerhitungan: rumusPerhitungan,
-				SumberData:       sumberData,
 				PeriodeId: domain.Periode{
 					Id:         periodeId,
 					TahunAwal:  tahunAwal,
@@ -232,9 +230,11 @@ func (repository *TujuanOpdRepositoryImpl) FindById(ctx context.Context, tx *sql
 		if indikatorId.Valid {
 			if _, exists := indikatorMap[indikatorId.String]; !exists {
 				indikatorMap[indikatorId.String] = &domain.Indikator{
-					Id:        indikatorId.String,
-					Indikator: indikatorNama.String,
-					Target:    []domain.Target{},
+					Id:               indikatorId.String,
+					Indikator:        indikatorNama.String,
+					RumusPerhitungan: rumusPerhitungan,
+					SumberData:       sumberData,
+					Target:           []domain.Target{},
 				}
 				tujuanOpd.Indikator = append(tujuanOpd.Indikator, *indikatorMap[indikatorId.String])
 			}
@@ -362,13 +362,13 @@ func (repository *TujuanOpdRepositoryImpl) FindAll(ctx context.Context, tx *sql.
             t.kode_opd,
             COALESCE(t.kode_bidang_urusan, '') as kode_bidang_urusan,
             t.tujuan, 
-            t.rumus_perhitungan, 
-            t.sumber_data,
             p.id as periode_id,
             p.tahun_awal,
             p.tahun_akhir,
             i.id as indikator_id,
             i.indikator,
+            i.rumus_perhitungan, 
+            i.sumber_data,
             tg.id as target_id,
             tg.target as target_value,
             tg.satuan,
@@ -405,13 +405,13 @@ func (repository *TujuanOpdRepositoryImpl) FindAll(ctx context.Context, tx *sql.
 			kodeOpd          string
 			kodeBidangUrusan string
 			tujuan           string
-			rumusPerhitungan string
-			sumberData       string
 			periodeId        int
 			tahunAwal        string
 			tahunAkhir       string
 			indikatorId      sql.NullString
 			indikatorNama    sql.NullString
+			rumusPerhitungan sql.NullString
+			sumberData       sql.NullString
 			targetId         sql.NullString
 			targetValue      sql.NullString
 			satuan           sql.NullString
@@ -423,13 +423,13 @@ func (repository *TujuanOpdRepositoryImpl) FindAll(ctx context.Context, tx *sql.
 			&kodeOpd,
 			&kodeBidangUrusan,
 			&tujuan,
-			&rumusPerhitungan,
-			&sumberData,
 			&periodeId,
 			&tahunAwal,
 			&tahunAkhir,
 			&indikatorId,
 			&indikatorNama,
+			&rumusPerhitungan,
+			&sumberData,
 			&targetId,
 			&targetValue,
 			&satuan,
@@ -446,8 +446,6 @@ func (repository *TujuanOpdRepositoryImpl) FindAll(ctx context.Context, tx *sql.
 				KodeOpd:          kodeOpd,
 				KodeBidangUrusan: kodeBidangUrusan,
 				Tujuan:           tujuan,
-				RumusPerhitungan: rumusPerhitungan,
-				SumberData:       sumberData,
 				PeriodeId: domain.Periode{
 					Id:         periodeId,
 					TahunAwal:  tahunAwal,
@@ -461,9 +459,11 @@ func (repository *TujuanOpdRepositoryImpl) FindAll(ctx context.Context, tx *sql.
 		if indikatorId.Valid {
 			if _, exists := indikatorMap[indikatorId.String]; !exists {
 				indikatorMap[indikatorId.String] = &domain.Indikator{
-					Id:        indikatorId.String,
-					Indikator: indikatorNama.String,
-					Target:    []domain.Target{},
+					Id:               indikatorId.String,
+					Indikator:        indikatorNama.String,
+					RumusPerhitungan: rumusPerhitungan,
+					SumberData:       sumberData,
+					Target:           []domain.Target{},
 				}
 				tujuanOpdMap[tujuanId].Indikator = append(tujuanOpdMap[tujuanId].Indikator, *indikatorMap[indikatorId.String])
 			}
@@ -616,8 +616,6 @@ func (repository *TujuanOpdRepositoryImpl) FindTujuanOpdByTahun(ctx context.Cont
             t.kode_opd, 
             COALESCE(t.kode_bidang_urusan, '') as kode_bidang_urusan,
             t.tujuan,
-            t.rumus_perhitungan,
-            t.sumber_data,
             p.id as periode_id,
             p.tahun_awal,
             p.tahun_akhir
@@ -642,8 +640,6 @@ func (repository *TujuanOpdRepositoryImpl) FindTujuanOpdByTahun(ctx context.Cont
 			&tujuanOpd.KodeOpd,
 			&tujuanOpd.KodeBidangUrusan,
 			&tujuanOpd.Tujuan,
-			&tujuanOpd.RumusPerhitungan,
-			&tujuanOpd.SumberData,
 			&tujuanOpd.PeriodeId.Id,
 			&tujuanOpd.PeriodeId.TahunAwal,
 			&tujuanOpd.PeriodeId.TahunAkhir,
@@ -663,7 +659,9 @@ func (repository *TujuanOpdRepositoryImpl) FindIndikatorByTujuanOpdId(ctx contex
         SELECT 
             i.id,
             i.tujuan_opd_id,
-            i.indikator
+            i.indikator,
+			i.rumus_perhitungan,
+			i.sumber_data
         FROM tb_indikator i
         WHERE i.tujuan_opd_id = ?
         ORDER BY i.id ASC
@@ -682,6 +680,8 @@ func (repository *TujuanOpdRepositoryImpl) FindIndikatorByTujuanOpdId(ctx contex
 			&indikator.Id,
 			&indikator.TujuanOpdId,
 			&indikator.Indikator,
+			&indikator.RumusPerhitungan,
+			&indikator.SumberData,
 		)
 		if err != nil {
 			return nil, err

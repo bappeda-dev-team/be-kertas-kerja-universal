@@ -59,12 +59,16 @@ func (service *TujuanOpdServiceImpl) Create(ctx context.Context, request tujuano
 		return tujuanopd.TujuanOpdResponse{}, fmt.Errorf("format tahun akhir periode tidak valid: %s", periode.TahunAkhir)
 	}
 
+	//validasi bidang urusan
+	_, err = service.BidangUrusanRepository.FindByKodeBidangUrusan(ctx, tx, request.KodeBidangUrusan)
+	if err != nil {
+		return tujuanopd.TujuanOpdResponse{}, err
+	}
+
 	tujuanOpdDomain := domain.TujuanOpd{
 		KodeOpd:          request.KodeOpd,
 		KodeBidangUrusan: request.KodeBidangUrusan,
 		Tujuan:           request.Tujuan,
-		RumusPerhitungan: request.RumusPerhitungan,
-		SumberData:       request.SumberData,
 		PeriodeId:        domain.Periode{Id: request.PeriodeId},
 	}
 
@@ -75,8 +79,10 @@ func (service *TujuanOpdServiceImpl) Create(ctx context.Context, request tujuano
 		indikatorId := fmt.Sprintf("IND-TJN-%s", uuidInd)
 
 		indikatorDomain := domain.Indikator{
-			Id:        indikatorId,
-			Indikator: indikatorReq.Indikator,
+			Id:               indikatorId,
+			Indikator:        indikatorReq.Indikator,
+			RumusPerhitungan: sql.NullString{String: indikatorReq.RumusPerhitungan, Valid: true},
+			SumberData:       sql.NullString{String: indikatorReq.SumberData, Valid: true},
 		}
 
 		// Map untuk mengecek duplikasi tahun
@@ -190,14 +196,18 @@ func (service *TujuanOpdServiceImpl) Update(ctx context.Context, request tujuano
 		return tujuanopd.TujuanOpdResponse{}, err
 	}
 
+	//validasi bidang urusan
+	_, err = service.BidangUrusanRepository.FindByKodeBidangUrusan(ctx, tx, request.KodeBidangUrusan)
+	if err != nil {
+		return tujuanopd.TujuanOpdResponse{}, err
+	}
+
 	// Update data utama
 	tujuanOpd := domain.TujuanOpd{
 		Id:               request.Id,
 		KodeOpd:          request.KodeOpd,
 		KodeBidangUrusan: request.KodeBidangUrusan,
 		Tujuan:           request.Tujuan,
-		RumusPerhitungan: request.RumusPerhitungan,
-		SumberData:       request.SumberData,
 		PeriodeId:        domain.Periode{Id: request.PeriodeId},
 	}
 
@@ -214,8 +224,10 @@ func (service *TujuanOpdServiceImpl) Update(ctx context.Context, request tujuano
 		}
 
 		indikatorDomain := domain.Indikator{
-			Id:        indikatorId,
-			Indikator: indikatorReq.Indikator,
+			Id:               indikatorId,
+			Indikator:        indikatorReq.Indikator,
+			RumusPerhitungan: sql.NullString{String: indikatorReq.RumusPerhitungan, Valid: true},
+			SumberData:       sql.NullString{String: indikatorReq.SumberData, Valid: true},
 		}
 
 		// Map untuk mengecek duplikasi tahun
@@ -341,8 +353,6 @@ func (service *TujuanOpdServiceImpl) FindById(ctx context.Context, tujuanOpdId i
 		KodeOpd:          tujuanOpd.KodeOpd,
 		NamaOpd:          opd.NamaOpd,
 		Tujuan:           tujuanOpd.Tujuan,
-		RumusPerhitungan: tujuanOpd.RumusPerhitungan,
-		SumberData:       tujuanOpd.SumberData,
 		Periode: tujuanopd.PeriodeResponse{
 			Id:         tujuanOpd.PeriodeId.Id,
 			TahunAwal:  tujuanOpd.PeriodeId.TahunAwal,
@@ -353,10 +363,12 @@ func (service *TujuanOpdServiceImpl) FindById(ctx context.Context, tujuanOpdId i
 
 	for _, indikator := range tujuanOpd.Indikator {
 		indikatorResponse := tujuanopd.IndikatorResponse{
-			Id:            indikator.Id,
-			IdTujuanOpd:   tujuanOpd.Id,
-			NamaIndikator: indikator.Indikator,
-			Target:        make([]tujuanopd.TargetResponse, 0),
+			Id:               indikator.Id,
+			IdTujuanOpd:      tujuanOpd.Id,
+			NamaIndikator:    indikator.Indikator,
+			RumusPerhitungan: indikator.RumusPerhitungan.String,
+			SumberData:       indikator.SumberData.String,
+			Target:           make([]tujuanopd.TargetResponse, 0),
 		}
 
 		for _, target := range indikator.Target {
@@ -421,9 +433,7 @@ func (service *TujuanOpdServiceImpl) FindAll(ctx context.Context, kodeOpd string
 			// KodeBidangUrusan: tujuan.KodeBidangUrusan,
 			// KodeOpd:          tujuan.KodeOpd,
 			// NamaOpd:          opd.NamaOpd,
-			Tujuan:           tujuan.Tujuan,
-			RumusPerhitungan: tujuan.RumusPerhitungan,
-			SumberData:       tujuan.SumberData,
+			Tujuan: tujuan.Tujuan,
 			Periode: tujuanopd.PeriodeResponse{
 				Id:         tujuan.PeriodeId.Id,
 				TahunAwal:  tujuan.PeriodeId.TahunAwal,
@@ -435,10 +445,12 @@ func (service *TujuanOpdServiceImpl) FindAll(ctx context.Context, kodeOpd string
 		// Proses indikator dan target seperti sebelumnya
 		for _, indikator := range tujuan.Indikator {
 			indikatorResponse := tujuanopd.IndikatorResponse{
-				Id:            indikator.Id,
-				IdTujuanOpd:   tujuan.Id,
-				NamaIndikator: indikator.Indikator,
-				Target:        make([]tujuanopd.TargetResponse, 0),
+				Id:               indikator.Id,
+				IdTujuanOpd:      tujuan.Id,
+				NamaIndikator:    indikator.Indikator,
+				RumusPerhitungan: indikator.RumusPerhitungan.String,
+				SumberData:       indikator.SumberData.String,
+				Target:           make([]tujuanopd.TargetResponse, 0),
 			}
 
 			// Buat map untuk target yang ada

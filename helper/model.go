@@ -578,20 +578,21 @@ func ToTujuanOpdResponse(tujuanOpd domain.TujuanOpd) tujuanopd.TujuanOpdResponse
 
 		// Konversi indikator
 		indikatorResponse := tujuanopd.IndikatorResponse{
-			Id:            indikator.Id,
-			NamaIndikator: indikator.Indikator,
-			Target:        targetResponses,
+			Id:               indikator.Id,
+			NamaIndikator:    indikator.Indikator,
+			RumusPerhitungan: indikator.RumusPerhitungan.String,
+			SumberData:       indikator.SumberData.String,
+			Target:           targetResponses,
 		}
 		indikatorResponses = append(indikatorResponses, indikatorResponse)
 	}
 
 	return tujuanopd.TujuanOpdResponse{
-		Id:               tujuanOpd.Id,
-		KodeOpd:          tujuanOpd.KodeOpd,
-		NamaOpd:          tujuanOpd.NamaOpd,
-		Tujuan:           tujuanOpd.Tujuan,
-		RumusPerhitungan: tujuanOpd.RumusPerhitungan,
-		SumberData:       tujuanOpd.SumberData,
+		Id:      tujuanOpd.Id,
+		KodeOpd: tujuanOpd.KodeOpd,
+		NamaOpd: tujuanOpd.NamaOpd,
+		Tujuan:  tujuanOpd.Tujuan,
+
 		Periode: tujuanopd.PeriodeResponse{
 			Id:         tujuanOpd.PeriodeId.Id,
 			TahunAwal:  tujuanOpd.PeriodeId.TahunAwal,

@@ -23,4 +23,5 @@ type SasaranPemdaWithPokin struct {
 	SasaranPemda        string
 	Keterangan          string
 	IndikatorSubtematik []Indikator
+	SasaranPemdaList    []SasaranPemda
 }

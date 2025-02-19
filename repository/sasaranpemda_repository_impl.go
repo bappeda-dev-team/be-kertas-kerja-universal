@@ -562,22 +562,14 @@ func (repository *SasaranPemdaRepositoryImpl) UpdatePeriode(ctx context.Context,
 	return updatedSasaranPemda, nil
 }
 
-func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Context, tx *sql.Tx, tahun string) ([]domain.SasaranPemdaWithPokin, error) {
+func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Context, tx *sql.Tx, tahun string) ([]domain.PohonKinerjaWithSasaran, error) {
 	query := `
-    WITH RECURSIVE tahun_periode AS (
+      WITH RECURSIVE tahun_periode AS (
         SELECT DISTINCT p.id as periode_id, p.tahun_awal, p.tahun_akhir
         FROM tb_periode p
-        JOIN tb_tahun_periode tp ON p.id = tp.id_periode
         WHERE CAST(? AS SIGNED) BETWEEN CAST(p.tahun_awal AS SIGNED) AND CAST(p.tahun_akhir AS SIGNED)
     ),
-    pohon_kinerja_aktif AS (
-        SELECT DISTINCT pk.*
-        FROM tb_pohon_kinerja pk
-        JOIN tahun_periode tp 
-        WHERE CAST(pk.tahun AS SIGNED) BETWEEN CAST(tp.tahun_awal AS SIGNED) AND CAST(tp.tahun_akhir AS SIGNED)
-    ),
     pohon_hierarchy AS (
-        -- Ambil semua level
         SELECT 
             pk.id,
             pk.nama_pohon,
@@ -585,11 +577,16 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
             pk.level_pohon,
             pk.jenis_pohon,
             pk.keterangan,
+            pk.tahun,
             CAST(pk.id AS CHAR(50)) as path,
             pk.id as root_id,
             pk.nama_pohon as root_nama
-        FROM pohon_kinerja_aktif pk
+        FROM tb_pohon_kinerja pk
         WHERE pk.level_pohon = 0
+        AND EXISTS (
+            SELECT 1 FROM tahun_periode tp 
+            WHERE CAST(pk.tahun AS SIGNED) BETWEEN CAST(tp.tahun_awal AS SIGNED) AND CAST(tp.tahun_akhir AS SIGNED)
+        )
 
         UNION ALL
 
@@ -600,12 +597,12 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
             c.level_pohon,
             c.jenis_pohon,
             c.keterangan,
+            c.tahun,
             CONCAT(ph.path, ',', c.id),
             ph.root_id,
             ph.root_nama
-        FROM pohon_kinerja_aktif c
+        FROM tb_pohon_kinerja c
         JOIN pohon_hierarchy ph ON c.parent = ph.id
-        WHERE c.level_pohon BETWEEN 1 AND 3
     )
     SELECT DISTINCT
         pk.id as subtematik_id,
@@ -613,53 +610,57 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
         pk.jenis_pohon,
         pk.level_pohon,
         pk.keterangan,
+        pk.tahun as pohon_tahun,
         pk.root_id as tematik_id,
         pk.root_nama as nama_tematik,
-        COALESCE(sp.id, 0) as id_sasaran_pemda,
-        COALESCE(sp.sasaran_pemda, '') as sasaran_pemda,
+        sp.id as id_sasaran_pemda,
+        sp.sasaran_pemda,
         sp.periode_id,
-        tp.tahun_awal,
-        tp.tahun_akhir,
+        p.tahun_awal,
+        p.tahun_akhir,
         i.id as indikator_id,
         i.indikator,
-		i.rumus_perhitungan,
-		i.sumber_data,
+        i.rumus_perhitungan,
+        i.sumber_data,
         t.id as target_id,
         t.target,
         t.satuan,
-        t.tahun
+        t.tahun as target_tahun
     FROM pohon_hierarchy pk
     LEFT JOIN tb_sasaran_pemda sp ON pk.id = sp.subtema_id
-    CROSS JOIN tahun_periode tp
+    LEFT JOIN tb_periode p ON sp.periode_id = p.id
     LEFT JOIN tb_indikator i ON sp.id = i.sasaran_pemda_id
-    LEFT JOIN tb_target t ON i.id = t.indikator_id
-    WHERE pk.level_pohon BETWEEN 0 AND 3
-        AND (sp.periode_id IS NULL OR sp.periode_id = tp.periode_id)
-    ORDER BY 
-        pk.root_nama,
-        pk.level_pohon,
-        pk.id`
+    LEFT JOIN tb_target t ON i.id = t.indikator_id 
+        AND CAST(t.tahun AS SIGNED) BETWEEN CAST(p.tahun_awal AS SIGNED) AND CAST(p.tahun_akhir AS SIGNED)
+    WHERE (pk.level_pohon BETWEEN 1 AND 3)
+    AND (
+        sp.id IS NULL 
+        OR EXISTS (
+            SELECT 1 FROM tahun_periode tp 
+            WHERE CAST(? AS SIGNED) BETWEEN CAST(p.tahun_awal AS SIGNED) AND CAST(p.tahun_akhir AS SIGNED)
+        )
+    )
+    ORDER BY pk.root_id, pk.level_pohon, pk.id, sp.id, i.id, CAST(t.tahun AS SIGNED)`
 
-	rows, err := tx.QueryContext(ctx, query, tahun)
+	rows, err := tx.QueryContext(ctx, query, tahun, tahun)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
-	pokinMap := make(map[int]*domain.SasaranPemdaWithPokin)
-	indikatorMap := make(map[int]map[string]*domain.Indikator)
+	tematikMap := make(map[int]*domain.PohonKinerjaWithSasaran)
 
 	for rows.Next() {
 		var (
 			subtematikId                           int
 			namaSubtematik, jenisPohon, keterangan string
 			levelPohon                             int
+			pohonTahun                             string
 			tematikId                              int
 			namaTematik                            string
-			idSasaranPemda                         int
-			sasaranPemda                           string
+			idSasaranPemda                         sql.NullInt64
+			sasaranPemda                           sql.NullString
 			periodeId                              sql.NullInt64
-			tahunAwal, tahunAkhir                  string
+			tahunAwal, tahunAkhir                  sql.NullString
 			indikatorId, indikator                 sql.NullString
 			rumusPerhitungan, sumberData           sql.NullString
 			targetId, target, satuan, targetTahun  sql.NullString
@@ -671,6 +672,7 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 			&jenisPohon,
 			&levelPohon,
 			&keterangan,
+			&pohonTahun,
 			&tematikId,
 			&namaTematik,
 			&idSasaranPemda,
@@ -691,68 +693,112 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 			return nil, err
 		}
 
-		if _, exists := pokinMap[subtematikId]; !exists {
-			pokinMap[subtematikId] = &domain.SasaranPemdaWithPokin{
-				SubtematikId:   subtematikId,
-				NamaSubtematik: namaSubtematik,
-				JenisPohon:     jenisPohon,
-				LevelPohon:     levelPohon,
-				Keterangan:     keterangan,
-				TematikId:      tematikId,
-				NamaTematik:    namaTematik,
-				IdsasaranPemda: idSasaranPemda,
-				SasaranPemda:   sasaranPemda,
-			}
-
-			if idSasaranPemda > 0 {
-				indikatorMap[idSasaranPemda] = make(map[string]*domain.Indikator)
+		// Inisialisasi tematik jika belum ada
+		if _, exists := tematikMap[tematikId]; !exists {
+			tematikMap[tematikId] = &domain.PohonKinerjaWithSasaran{
+				TematikId:   tematikId,
+				NamaTematik: namaTematik,
+				Tahun:       pohonTahun,
+				Subtematik:  []domain.SubtematikWithSasaran{},
 			}
 		}
 
-		// Proses indikator dan target
-		if idSasaranPemda > 0 && indikatorId.Valid {
-			if _, exists := indikatorMap[idSasaranPemda][indikatorId.String]; !exists {
-				indikatorMap[idSasaranPemda][indikatorId.String] = &domain.Indikator{
-					Id:               indikatorId.String,
-					Indikator:        indikator.String,
-					RumusPerhitungan: rumusPerhitungan,
-					SumberData:       sumberData,
-					Target:           []domain.Target{},
+		// Cari subtematik yang sudah ada
+		var foundSubtematik *domain.SubtematikWithSasaran
+		for i := range tematikMap[tematikId].Subtematik {
+			if tematikMap[tematikId].Subtematik[i].SubtematikId == subtematikId {
+				foundSubtematik = &tematikMap[tematikId].Subtematik[i]
+				break
+			}
+		}
+
+		// Jika subtematik belum ada, tambahkan baru
+		if foundSubtematik == nil {
+			newSubtematik := domain.SubtematikWithSasaran{
+				SubtematikId:     subtematikId,
+				NamaSubtematik:   namaSubtematik,
+				JenisPohon:       jenisPohon,
+				LevelPohon:       levelPohon,
+				Keterangan:       keterangan,
+				SasaranPemdaList: []domain.SasaranPemdaDetail{},
+			}
+			tematikMap[tematikId].Subtematik = append(tematikMap[tematikId].Subtematik, newSubtematik)
+			foundSubtematik = &tematikMap[tematikId].Subtematik[len(tematikMap[tematikId].Subtematik)-1]
+		}
+
+		// Proses sasaran pemda jika ada
+		if idSasaranPemda.Valid && sasaranPemda.Valid {
+			// Cari sasaran pemda yang sudah ada
+			var foundSasaran *domain.SasaranPemdaDetail
+			for i := range foundSubtematik.SasaranPemdaList {
+				if foundSubtematik.SasaranPemdaList[i].Id == int(idSasaranPemda.Int64) {
+					foundSasaran = &foundSubtematik.SasaranPemdaList[i]
+					break
 				}
 			}
 
-			currentIndikator := indikatorMap[idSasaranPemda][indikatorId.String]
-
-			// Buat target untuk semua tahun dalam periode
-			tahunAwalInt, _ := strconv.Atoi(tahunAwal)
-			tahunAkhirInt, _ := strconv.Atoi(tahunAkhir)
-
-			// Hanya inisialisasi target jika belum ada
-			if len(currentIndikator.Target) == 0 {
-				for tahun := tahunAwalInt; tahun <= tahunAkhirInt; tahun++ {
-					tahunStr := strconv.Itoa(tahun)
-					currentIndikator.Target = append(currentIndikator.Target, domain.Target{
-						Id:          "-",
-						IndikatorId: indikatorId.String,
-						Target:      "",
-						Satuan:      "",
-						Tahun:       tahunStr,
-					})
+			// Jika sasaran pemda belum ada, tambahkan baru
+			if foundSasaran == nil {
+				newSasaran := domain.SasaranPemdaDetail{
+					Id:           int(idSasaranPemda.Int64),
+					SasaranPemda: sasaranPemda.String,
+					Periode: domain.Periode{
+						TahunAwal:  tahunAwal.String,
+						TahunAkhir: tahunAkhir.String,
+					},
+					Indikator: []domain.IndikatorDetail{},
 				}
+				foundSubtematik.SasaranPemdaList = append(foundSubtematik.SasaranPemdaList, newSasaran)
+				foundSasaran = &foundSubtematik.SasaranPemdaList[len(foundSubtematik.SasaranPemdaList)-1]
 			}
 
-			// Update target yang memiliki data
-			if targetId.Valid && targetTahun.Valid {
-				tahunInt, _ := strconv.Atoi(targetTahun.String)
-				if tahunInt >= tahunAwalInt && tahunInt <= tahunAkhirInt {
-					idx := tahunInt - tahunAwalInt
-					if idx >= 0 && idx < len(currentIndikator.Target) {
-						currentIndikator.Target[idx] = domain.Target{
-							Id:          targetId.String,
-							IndikatorId: indikatorId.String,
-							Target:      target.String,
-							Satuan:      satuan.String,
-							Tahun:       targetTahun.String,
+			// Proses indikator jika ada
+			if indikatorId.Valid {
+				var foundIndikator *domain.IndikatorDetail
+				for i := range foundSasaran.Indikator {
+					if foundSasaran.Indikator[i].Id == indikatorId.String {
+						foundIndikator = &foundSasaran.Indikator[i]
+						break
+					}
+				}
+
+				if foundIndikator == nil {
+					newIndikator := domain.IndikatorDetail{
+						Id:               indikatorId.String,
+						Indikator:        indikator.String,
+						RumusPerhitungan: rumusPerhitungan,
+						SumberData:       sumberData,
+						Target:           []domain.TargetDetail{},
+					}
+
+					// Buat target untuk semua tahun dalam periode
+					if tahunAwal.Valid && tahunAkhir.Valid {
+						tahunAwalInt, _ := strconv.Atoi(tahunAwal.String)
+						tahunAkhirInt, _ := strconv.Atoi(tahunAkhir.String)
+
+						for tahun := tahunAwalInt; tahun <= tahunAkhirInt; tahun++ {
+							tahunStr := strconv.Itoa(tahun)
+							newIndikator.Target = append(newIndikator.Target, domain.TargetDetail{
+								Id:     "-",
+								Target: "",
+								Satuan: "",
+								Tahun:  tahunStr,
+							})
+						}
+					}
+
+					foundSasaran.Indikator = append(foundSasaran.Indikator, newIndikator)
+					foundIndikator = &foundSasaran.Indikator[len(foundSasaran.Indikator)-1]
+				}
+
+				// Update target jika ada
+				if targetId.Valid && targetTahun.Valid {
+					for i := range foundIndikator.Target {
+						if foundIndikator.Target[i].Tahun == targetTahun.String {
+							foundIndikator.Target[i].Id = targetId.String
+							foundIndikator.Target[i].Target = target.String
+							foundIndikator.Target[i].Satuan = satuan.String
+							break
 						}
 					}
 				}
@@ -760,31 +806,15 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 		}
 	}
 
-	var result []domain.SasaranPemdaWithPokin
-	for _, pokin := range pokinMap {
-		if pokin.IdsasaranPemda > 0 {
-			var indikators []domain.Indikator
-			for _, indikator := range indikatorMap[pokin.IdsasaranPemda] {
-				indikators = append(indikators, *indikator)
-			}
-			// Sort indikator berdasarkan ID
-			sort.Slice(indikators, func(i, j int) bool {
-				return indikators[i].Id < indikators[j].Id
-			})
-			pokin.IndikatorSubtematik = indikators
-		}
-		result = append(result, *pokin)
+	// Convert map to slice
+	var result []domain.PohonKinerjaWithSasaran
+	for _, tematik := range tematikMap {
+		result = append(result, *tematik)
 	}
 
 	// Sort hasil akhir
 	sort.Slice(result, func(i, j int) bool {
-		if result[i].TematikId != result[j].TematikId {
-			return result[i].TematikId < result[j].TematikId
-		}
-		if result[i].LevelPohon != result[j].LevelPohon {
-			return result[i].LevelPohon < result[j].LevelPohon
-		}
-		return result[i].SubtematikId < result[j].SubtematikId
+		return result[i].TematikId < result[j].TematikId
 	})
 
 	return result, nil

@@ -15,4 +15,11 @@ type RencanaKinerjaRepository interface {
 	Update(ctx context.Context, tx *sql.Tx, rencanaKinerja domain.RencanaKinerja) (domain.RencanaKinerja, error)
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 	FindAllRincianKak(ctx context.Context, tx *sql.Tx, rencanakinerjaid, pegawaiId string) ([]domain.RencanaKinerja, error)
+
+	//sasaran opd
+	// CreateSasaranOpd(ctx context.Context, tx *sql.Tx, sasaranOpd domain.RencanaKinerja) (domain.RencanaKinerja, error)
+	// UpdateSasaranOpd(ctx context.Context, tx *sql.Tx, sasaranOpd domain.RencanaKinerja) (domain.RencanaKinerja, error)
+	// DeleteSasaranOpd(ctx context.Context, tx *sql.Tx, id string) error
+	// FindAllSasaranOpd(ctx context.Context, tx *sql.Tx, kodeOPD string, tahun string) ([]domain.RencanaKinerja, error)
+	// FindByIdSasaran(ctx context.Context, tx *sql.Tx, id string) (domain.RencanaKinerja, error)
 }

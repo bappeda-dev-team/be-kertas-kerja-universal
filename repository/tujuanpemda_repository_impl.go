@@ -621,15 +621,25 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
 				KodeOpd:     kodeOpd,
 				Keterangan:  keterangan,
 				TahunPokin:  tahunPokin,
-				TujuanPemda: nil,
+				TujuanPemda: []domain.TujuanPemda{},
 			}
 			pokinMap[pokinId] = pokin
 		}
 
 		// Jika ada data tujuan pemda
 		if tujuanId.Valid && tujuanPemda.Valid {
-			if pokin.TujuanPemda == nil {
-				pokin.TujuanPemda = &domain.TujuanPemda{
+			// Cek apakah tujuan pemda sudah ada dalam array
+			var existingTujuanPemda *domain.TujuanPemda
+			for i := range pokin.TujuanPemda {
+				if pokin.TujuanPemda[i].Id == int(tujuanId.Int64) {
+					existingTujuanPemda = &pokin.TujuanPemda[i]
+					break
+				}
+			}
+
+			if existingTujuanPemda == nil {
+				// Tambahkan tujuan pemda baru
+				newTujuanPemda := domain.TujuanPemda{
 					Id:          int(tujuanId.Int64),
 					TujuanPemda: tujuanPemda.String,
 					TematikId:   pokinId,
@@ -641,6 +651,8 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
 					},
 					Indikator: []domain.Indikator{},
 				}
+				pokin.TujuanPemda = append(pokin.TujuanPemda, newTujuanPemda)
+				// existingTujuanPemda = &pokin.TujuanPemda[len(pokin.TujuanPemda)-1]
 			}
 
 			// Proses indikator
@@ -651,7 +663,6 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
 					if rumusPerhitungan.Valid {
 						rumusPerhitunganStr = rumusPerhitungan.String
 					}
-
 					sumberDataStr := ""
 					if sumberData.Valid {
 						sumberDataStr = sumberData.String
@@ -683,52 +694,61 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
 	}
 
 	// Proses final untuk menambahkan target sesuai periode
-	for pokinId, pokin := range pokinMap {
-		if pokin.TujuanPemda != nil && pokin.TujuanPemda.Periode.TahunAwal != "" {
-			tahunAwal, _ := strconv.Atoi(pokin.TujuanPemda.Periode.TahunAwal)
-			tahunAkhir, _ := strconv.Atoi(pokin.TujuanPemda.Periode.TahunAkhir)
+	for _, pokin := range pokinMap {
+		for i := range pokin.TujuanPemda {
+			tujuanPemda := &pokin.TujuanPemda[i]
+			if tujuanPemda.Periode.TahunAwal != "" {
+				tahunAwal, _ := strconv.Atoi(tujuanPemda.Periode.TahunAwal)
+				tahunAkhir, _ := strconv.Atoi(tujuanPemda.Periode.TahunAkhir)
 
-			for indikatorId, indikator := range indikatorMap {
-				if indikator.TujuanPemdaId == pokin.TujuanPemda.Id {
-					var targets []domain.Target
-					for tahun := tahunAwal; tahun <= tahunAkhir; tahun++ {
-						tahunStr := strconv.Itoa(tahun)
-						if target, exists := targetMap[indikatorId][tahunStr]; exists {
-							targets = append(targets, target)
-						} else {
-							// Tambahkan target kosong jika tidak ada data
-							targets = append(targets, domain.Target{
-								Id:          "-",
-								IndikatorId: indikatorId,
-								Target:      "-",
-								Satuan:      "-",
-								Tahun:       tahunStr,
-							})
+				for indikatorId, indikator := range indikatorMap {
+					if indikator.TujuanPemdaId == tujuanPemda.Id {
+						var targets []domain.Target
+						for tahun := tahunAwal; tahun <= tahunAkhir; tahun++ {
+							tahunStr := strconv.Itoa(tahun)
+							if target, exists := targetMap[indikatorId][tahunStr]; exists {
+								targets = append(targets, target)
+							} else {
+								targets = append(targets, domain.Target{
+									Id:          "-",
+									IndikatorId: indikatorId,
+									Target:      "-",
+									Satuan:      "-",
+									Tahun:       tahunStr,
+								})
+							}
 						}
+
+						sort.Slice(targets, func(i, j int) bool {
+							return targets[i].Tahun < targets[j].Tahun
+						})
+
+						indikator.Target = targets
+						tujuanPemda.Indikator = append(tujuanPemda.Indikator, *indikator)
 					}
-
-					// Sort targets berdasarkan tahun
-					sort.Slice(targets, func(i, j int) bool {
-						return targets[i].Tahun < targets[j].Tahun
-					})
-
-					indikator.Target = targets
-					pokin.TujuanPemda.Indikator = append(pokin.TujuanPemda.Indikator, *indikator)
 				}
 			}
 		}
-		pokinMap[pokinId] = pokin
 	}
 
 	// Konversi map ke slice
+	// Konversi map ke slice
 	result := make([]domain.TujuanPemdaWithPokin, 0, len(pokinMap))
 	for _, pokin := range pokinMap {
-		// Sort indikator jika ada
-		if pokin.TujuanPemda != nil {
-			sort.Slice(pokin.TujuanPemda.Indikator, func(i, j int) bool {
-				return pokin.TujuanPemda.Indikator[i].Id < pokin.TujuanPemda.Indikator[j].Id
-			})
+		// Sort tujuan pemda berdasarkan ID
+		sort.Slice(pokin.TujuanPemda, func(i, j int) bool {
+			return pokin.TujuanPemda[i].Id < pokin.TujuanPemda[j].Id
+		})
+
+		// Sort indikator untuk setiap tujuan pemda
+		for tpIndex := range pokin.TujuanPemda {
+			if len(pokin.TujuanPemda[tpIndex].Indikator) > 1 {
+				sort.Slice(pokin.TujuanPemda[tpIndex].Indikator, func(i, j int) bool {
+					return pokin.TujuanPemda[tpIndex].Indikator[i].Id < pokin.TujuanPemda[tpIndex].Indikator[j].Id
+				})
+			}
 		}
+
 		result = append(result, *pokin)
 	}
 

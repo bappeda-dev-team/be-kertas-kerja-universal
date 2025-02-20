@@ -3,6 +3,7 @@ package tujuanopd
 type TujuanOpdResponse struct {
 	Id               int                 `json:"id_tujuan_opd"`
 	KodeBidangUrusan string              `json:"kode_bidang_urusan,omitempty"`
+	NamaBidangUrusan string              `json:"nama_bidang_urusan,omitempty"`
 	KodeOpd          string              `json:"kode_opd,omitempty"`
 	NamaOpd          string              `json:"nama_opd,omitempty"`
 	Tujuan           string              `json:"tujuan,omitempty"`

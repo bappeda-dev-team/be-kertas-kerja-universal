@@ -347,9 +347,16 @@ func (service *TujuanOpdServiceImpl) FindById(ctx context.Context, tujuanOpdId i
 		return tujuanopd.TujuanOpdResponse{}, err
 	}
 
+	// Ambil data bidang urusan
+	bidangUrusan, err := service.BidangUrusanRepository.FindByKodeBidangUrusan(ctx, tx, tujuanOpd.KodeBidangUrusan)
+	if err != nil {
+		return tujuanopd.TujuanOpdResponse{}, err
+	}
+
 	response := tujuanopd.TujuanOpdResponse{
 		Id:               tujuanOpd.Id,
 		KodeBidangUrusan: tujuanOpd.KodeBidangUrusan,
+		NamaBidangUrusan: bidangUrusan.NamaBidangUrusan,
 		KodeOpd:          tujuanOpd.KodeOpd,
 		NamaOpd:          opd.NamaOpd,
 		Tujuan:           tujuanOpd.Tujuan,

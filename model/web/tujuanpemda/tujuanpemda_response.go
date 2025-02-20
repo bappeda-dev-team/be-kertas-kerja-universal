@@ -36,7 +36,7 @@ type TujuanPemdaWithPokinResponse struct {
 	LevelPohon  int                   `json:"level_pohon"`
 	Keterangan  string                `json:"keterangan"`
 	TahunPokin  string                `json:"tahun_pokin"`
-	TujuanPemda []TujuanPemdaResponse `json:"tujuan_pemda,omitempty"`
+	TujuanPemda []TujuanPemdaResponse `json:"tujuan_pemda"`
 }
 
 // pokin with periode

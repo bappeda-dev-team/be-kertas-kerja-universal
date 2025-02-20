@@ -513,7 +513,7 @@ func (repository *TujuanPemdaRepositoryImpl) UpdatePeriode(ctx context.Context, 
 
 func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Context, tx *sql.Tx, tahun string) ([]domain.TujuanPemdaWithPokin, error) {
 	query := `
-    WITH periode_aktif AS (
+      WITH periode_aktif AS (
         SELECT id, tahun_awal, tahun_akhir
         FROM tb_periode
         WHERE CAST(? AS SIGNED) BETWEEN CAST(tahun_awal AS SIGNED) AND CAST(tahun_akhir AS SIGNED)
@@ -546,7 +546,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
     LEFT JOIN 
         tb_periode pa ON tp.periode_id = pa.id
     LEFT JOIN
-        periode_aktif p ON CAST(pk.tahun AS SIGNED) BETWEEN CAST(p.tahun_awal AS SIGNED) AND CAST(p.tahun_akhir AS SIGNED)
+        periode_aktif p ON 1=1
     LEFT JOIN 
         tb_indikator i ON tp.id = i.tujuan_pemda_id
     LEFT JOIN 
@@ -555,7 +555,10 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
         pk.level_pohon = 0
         AND (
             (tp.id IS NOT NULL AND CAST(? AS SIGNED) BETWEEN CAST(pa.tahun_awal AS SIGNED) AND CAST(pa.tahun_akhir AS SIGNED))
-            OR (tp.id IS NULL AND CAST(pk.tahun AS SIGNED) BETWEEN CAST(p.tahun_awal AS SIGNED) AND CAST(p.tahun_akhir AS SIGNED))
+            OR (tp.id IS NULL AND EXISTS (
+                SELECT 1 FROM periode_aktif pa2 
+                WHERE CAST(pk.tahun AS SIGNED) BETWEEN CAST(pa2.tahun_awal AS SIGNED) AND CAST(pa2.tahun_akhir AS SIGNED)
+            ))
         )
     ORDER BY 
         pk.id, tp.id, i.id, t.tahun`

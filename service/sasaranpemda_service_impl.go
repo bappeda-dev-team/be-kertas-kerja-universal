@@ -75,11 +75,6 @@ func (service *SasaranPemdaServiceImpl) Create(ctx context.Context, request sasa
 		return sasaranpemda.SasaranPemdaResponse{}, fmt.Errorf("level pohon kinerja harus berada di antara 1-3, level saat ini: %d", pokinData.LevelPohon)
 	}
 
-	// Validasi subtema id belum digunakan
-	if service.SasaranPemdaRepository.IsSubtemaIdExists(ctx, tx, request.SubtemaId) {
-		return sasaranpemda.SasaranPemdaResponse{}, fmt.Errorf("pohon kinerja dengan id %d sudah digunakan untuk sasaran pemda lain", request.SubtemaId)
-	}
-
 	// Validasi tujuan pemda exists
 	exists := service.TujuanPemdaRepository.IsIdExists(ctx, tx, request.TujuanPemdaId)
 	if !exists {

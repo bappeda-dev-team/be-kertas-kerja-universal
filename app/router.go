@@ -44,6 +44,8 @@ func NewRouter(
 	sasaranPemdaController controller.SasaranPemdaController,
 	permasalahanRekinController controller.PermasalahanRekinController,
 	ikuController controller.IkuController,
+	sasaranOpdController controller.SasaranOpdController,
+	visiPemdaController controller.VisiPemdaController,
 ) *httprouter.Router {
 	router := httprouter.New()
 
@@ -313,7 +315,7 @@ func NewRouter(
 	router.GET("/tujuan_pemda/detail/:id", tujuanPemdaController.FindById)
 	router.GET("/tujuan_pemda/findall/:tahun", tujuanPemdaController.FindAll)
 	router.PUT("/tujuan_pemda/update_periode/:id", tujuanPemdaController.UpdatePeriode)
-	router.GET("/tujuan_pemda/findall_with_pokin/:tahun", tujuanPemdaController.FindAllWithPokin)
+	router.GET("/tujuan_pemda/findall_with_pokin/:tahun_awal/:tahun_akhir/:jenis_periode", tujuanPemdaController.FindAllWithPokin)
 	router.GET("/pohon_kinerja/pokin_with_periode/:pokin_id", tujuanPemdaController.FindPokinWithPeriode)
 
 	//sasaran pemda
@@ -333,6 +335,16 @@ func NewRouter(
 
 	//iku
 	router.GET("/indikator_utama/findall/:tahun", ikuController.FindAll)
+
+	//sasaran opd
+	router.GET("/sasaran_opd/findall/:kode_opd/:tahun_awal/:tahun_akhir", sasaranOpdController.FindAll)
+
+	//visi pemda
+	router.POST("/visi_pemda/create", visiPemdaController.Create)
+	router.PUT("/visi_pemda/update/:id", visiPemdaController.Update)
+	router.DELETE("/visi_pemda/delete/:id", visiPemdaController.Delete)
+	router.GET("/visi_pemda/findall/tahunawal/:tahun_awal/tahunakhir/:tahun_akhir/jenisperiode/:jenis_periode", visiPemdaController.FindAll)
+	router.GET("/visi_pemda/detail/:id", visiPemdaController.FindById)
 
 	return router
 }

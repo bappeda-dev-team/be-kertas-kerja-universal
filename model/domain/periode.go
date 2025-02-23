@@ -1,9 +1,10 @@
 package domain
 
 type Periode struct {
-	Id         int
-	TahunAwal  string
-	TahunAkhir string
+	Id           int
+	TahunAwal    string
+	TahunAkhir   string
+	JenisPeriode string
 }
 
 type TahunPeriode struct {

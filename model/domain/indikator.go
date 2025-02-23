@@ -21,6 +21,7 @@ type Indikator struct {
 	Sumber           string
 	ParentId         int
 	ParentName       string
+	ManualIK         *ManualIKSasaranOpd
 	CreatedAt        time.Time
 	Target           []Target
 	RencanaKinerja   RencanaKinerja

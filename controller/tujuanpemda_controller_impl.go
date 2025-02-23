@@ -206,8 +206,10 @@ func (controller *TujuanPemdaControllerImpl) UpdatePeriode(writer http.ResponseW
 }
 
 func (controller *TujuanPemdaControllerImpl) FindAllWithPokin(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	tahun := params.ByName("tahun")
-	tujuanPemdaResponses, err := controller.TujuanPemdaService.FindAllWithPokin(request.Context(), tahun)
+	tahunAwal := params.ByName("tahun_awal")
+	tahunAkhir := params.ByName("tahun_akhir")
+	jenisPeriode := params.ByName("jenis_periode")
+	tujuanPemdaResponses, err := controller.TujuanPemdaService.FindAllWithPokin(request.Context(), tahunAwal, tahunAkhir, jenisPeriode)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   http.StatusInternalServerError,

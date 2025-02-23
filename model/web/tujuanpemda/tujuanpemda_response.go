@@ -30,13 +30,18 @@ type PeriodeResponse struct {
 }
 
 type TujuanPemdaWithPokinResponse struct {
-	PokinId     int                   `json:"pokin_id"`
-	NamaPohon   string                `json:"nama_tematik"`
-	JenisPohon  string                `json:"jenis_pohon"`
-	LevelPohon  int                   `json:"level_pohon"`
-	Keterangan  string                `json:"keterangan"`
-	TahunPokin  string                `json:"tahun_pokin"`
-	TujuanPemda []TujuanPemdaResponse `json:"tujuan_pemda"`
+	PokinId      int                   `json:"pokin_id"`
+	VisiUrutan   string                `json:"visi_urutan"`
+	MisiUrutan   string                `json:"misi_urutan"`
+	TahunAwal    string                `json:"tahun_awal"`
+	TahunAkhir   string                `json:"tahun_akhir"`
+	JenisPeriode string                `json:"jenis_periode"`
+	NamaPohon    string                `json:"nama_tematik"`
+	JenisPohon   string                `json:"jenis_pohon"`
+	LevelPohon   int                   `json:"level_pohon"`
+	Keterangan   string                `json:"keterangan"`
+	TahunPokin   string                `json:"tahun_pokin"`
+	TujuanPemda  []TujuanPemdaResponse `json:"tujuan_pemda"`
 }
 
 // pokin with periode

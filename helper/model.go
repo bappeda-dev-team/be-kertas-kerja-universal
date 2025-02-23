@@ -16,6 +16,7 @@ import (
 	"ekak_kabupaten_madiun/model/web/subkegiatan"
 	"ekak_kabupaten_madiun/model/web/tujuanopd"
 	"ekak_kabupaten_madiun/model/web/usulan"
+	visimisipemda "ekak_kabupaten_madiun/model/web/visimisi"
 	"fmt"
 	"os"
 )
@@ -686,4 +687,23 @@ func ToManualIKResponses(manualIKs []domain.ManualIK) []rencanakinerja.ManualIKR
 		manualIKResponses = append(manualIKResponses, ToManualIKResponse(manualIK))
 	}
 	return manualIKResponses
+}
+
+func ToVisiPemdaResponse(visiPemda domain.VisiPemda) visimisipemda.VisiPemdaResponse {
+	return visimisipemda.VisiPemdaResponse{
+		Id:                visiPemda.Id,
+		Visi:              visiPemda.Visi,
+		TahunAwalPeriode:  visiPemda.TahunAwalPeriode,
+		TahunAkhirPeriode: visiPemda.TahunAkhirPeriode,
+		JenisPeriode:      visiPemda.JenisPeriode,
+		Keterangan:        visiPemda.Keterangan,
+	}
+}
+
+func ToVisiPemdaResponses(visiPemdaList []domain.VisiPemda) []visimisipemda.VisiPemdaResponse {
+	var visiPemdaResponses []visimisipemda.VisiPemdaResponse
+	for _, visiPemda := range visiPemdaList {
+		visiPemdaResponses = append(visiPemdaResponses, ToVisiPemdaResponse(visiPemda))
+	}
+	return visiPemdaResponses
 }

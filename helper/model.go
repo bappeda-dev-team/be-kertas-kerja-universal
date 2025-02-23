@@ -707,3 +707,24 @@ func ToVisiPemdaResponses(visiPemdaList []domain.VisiPemda) []visimisipemda.Visi
 	}
 	return visiPemdaResponses
 }
+
+func ToMisiPemdaResponse(misiPemda domain.MisiPemda) visimisipemda.MisiPemdaResponse {
+	return visimisipemda.MisiPemdaResponse{
+		Id:                misiPemda.Id,
+		IdVisi:            misiPemda.IdVisi,
+		Misi:              misiPemda.Misi,
+		Urutan:            misiPemda.Urutan,
+		TahunAwalPeriode:  misiPemda.TahunAwalPeriode,
+		TahunAkhirPeriode: misiPemda.TahunAkhirPeriode,
+		JenisPeriode:      misiPemda.JenisPeriode,
+		Keterangan:        misiPemda.Keterangan,
+	}
+}
+
+func ToMisiPemdaResponses(misiPemdaList []domain.MisiPemda) []visimisipemda.MisiPemdaResponse {
+	var misiPemdaResponses []visimisipemda.MisiPemdaResponse
+	for _, misiPemda := range misiPemdaList {
+		misiPemdaResponses = append(misiPemdaResponses, ToMisiPemdaResponse(misiPemda))
+	}
+	return misiPemdaResponses
+}

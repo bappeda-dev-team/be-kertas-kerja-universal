@@ -17,8 +17,8 @@ func NewTujuanPemdaRepositoryImpl() *TujuanPemdaRepositoryImpl {
 }
 
 func (repository *TujuanPemdaRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, tujuanPemda domain.TujuanPemda) (domain.TujuanPemda, error) {
-	query := "INSERT INTO tb_tujuan_pemda(id, tujuan_pemda, tematik_id, periode_id, tahun_awal_periode, tahun_akhir_periode, jenis_periode, visi_urutan, misi_urutan) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-	_, err := tx.ExecContext(ctx, query, tujuanPemda.Id, tujuanPemda.TujuanPemda, tujuanPemda.TematikId, tujuanPemda.PeriodeId, tujuanPemda.TahunAwalPeriode, tujuanPemda.TahunAkhirPeriode, tujuanPemda.JenisPeriode, tujuanPemda.VisiUrutan, tujuanPemda.MisiUrutan)
+	query := "INSERT INTO tb_tujuan_pemda(id, tujuan_pemda, tematik_id, periode_id, tahun_awal_periode, tahun_akhir_periode, jenis_periode, id_visi, id_misi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	_, err := tx.ExecContext(ctx, query, tujuanPemda.Id, tujuanPemda.TujuanPemda, tujuanPemda.TematikId, tujuanPemda.PeriodeId, tujuanPemda.TahunAwalPeriode, tujuanPemda.TahunAkhirPeriode, tujuanPemda.JenisPeriode, tujuanPemda.IdVisi, tujuanPemda.IdMisi)
 	if err != nil {
 		return tujuanPemda, err
 	}
@@ -42,8 +42,8 @@ func (repository *TujuanPemdaRepositoryImpl) CreateTarget(ctx context.Context, t
 
 func (repository *TujuanPemdaRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, tujuanPemda domain.TujuanPemda) (domain.TujuanPemda, error) {
 	// Update tujuan pemda
-	query := "UPDATE tb_tujuan_pemda SET tujuan_pemda = ?, tematik_id = ?, periode_id = ?, tahun_awal_periode = ?, tahun_akhir_periode = ?, jenis_periode = ?, visi_urutan = ?, misi_urutan = ? WHERE id = ?"
-	_, err := tx.ExecContext(ctx, query, tujuanPemda.TujuanPemda, tujuanPemda.TematikId, tujuanPemda.PeriodeId, tujuanPemda.TahunAwalPeriode, tujuanPemda.TahunAkhirPeriode, tujuanPemda.JenisPeriode, tujuanPemda.VisiUrutan, tujuanPemda.MisiUrutan, tujuanPemda.Id)
+	query := "UPDATE tb_tujuan_pemda SET tujuan_pemda = ?, tematik_id = ?, periode_id = ?, tahun_awal_periode = ?, tahun_akhir_periode = ?, jenis_periode = ?, id_visi = ?, id_misi = ? WHERE id = ?"
+	_, err := tx.ExecContext(ctx, query, tujuanPemda.TujuanPemda, tujuanPemda.TematikId, tujuanPemda.PeriodeId, tujuanPemda.TahunAwalPeriode, tujuanPemda.TahunAkhirPeriode, tujuanPemda.JenisPeriode, tujuanPemda.IdVisi, tujuanPemda.IdMisi, tujuanPemda.Id)
 	if err != nil {
 		return tujuanPemda, err
 	}
@@ -512,7 +512,21 @@ func (repository *TujuanPemdaRepositoryImpl) UpdatePeriode(ctx context.Context, 
 }
 
 func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Context, tx *sql.Tx, tahunAwal string, tahunAkhir string, jenisPeriode string) ([]domain.TujuanPemdaWithPokin, error) {
-	// ... kode validasi periode tetap sama ...
+	validateQuery := `SELECT EXISTS (
+        SELECT 1 FROM tb_periode 
+        WHERE tahun_awal = ? 
+        AND tahun_akhir = ? 
+        AND jenis_periode = ?
+    )`
+	var exists bool
+	err := tx.QueryRowContext(ctx, validateQuery, tahunAwal, tahunAkhir, jenisPeriode).Scan(&exists)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, fmt.Errorf("periode dengan tahun awal %s, tahun akhir %s, dan jenis periode %s tidak ditemukan",
+			tahunAwal, tahunAkhir, jenisPeriode)
+	}
 
 	query := `
     SELECT 
@@ -525,6 +539,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
         pk.tahun as tahun_pokin,
         tp.id as tujuan_id,
         tp.tujuan_pemda,
+        tp.id_visi,
         tp.tahun_awal_periode,
         tp.tahun_akhir_periode,
         tp.jenis_periode,
@@ -565,7 +580,6 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
 
 	pokinMap := make(map[int]*domain.TujuanPemdaWithPokin)
 	indikatorMap := make(map[string]*domain.Indikator)
-	// targetMap := make(map[string]map[string]domain.Target)
 
 	for rows.Next() {
 		var (
@@ -574,6 +588,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
 			levelPohon                                             int
 			tujuanId                                               sql.NullInt64
 			tujuanPemda                                            sql.NullString
+			idVisi                                                 sql.NullInt64
 			tahunAwalPeriode, tahunAkhirPeriode, jenisPeriodeVal   sql.NullString
 			indikatorId, indikatorText                             sql.NullString
 			rumusPerhitungan, sumberData                           sql.NullString
@@ -590,6 +605,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
 			&tahunPokin,
 			&tujuanId,
 			&tujuanPemda,
+			&idVisi,
 			&tahunAwalPeriode,
 			&tahunAkhirPeriode,
 			&jenisPeriodeVal,
@@ -637,6 +653,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
 					Id:          int(tujuanId.Int64),
 					TujuanPemda: tujuanPemda.String,
 					TematikId:   pokinId,
+					IdVisi:      int(idVisi.Int64),
 					Indikator:   []domain.Indikator{},
 				}
 				pokin.TujuanPemda = append(pokin.TujuanPemda, newTujuanPemda)
@@ -720,6 +737,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
 
 	return result, nil
 }
+
 func (repository *TujuanPemdaRepositoryImpl) IsPokinIdExists(ctx context.Context, tx *sql.Tx, pokinId int) (bool, error) {
 	query := "SELECT COUNT(*) FROM tb_tujuan_pemda WHERE tematik_id = ?"
 	var count int

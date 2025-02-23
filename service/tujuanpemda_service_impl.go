@@ -565,6 +565,11 @@ func (service *TujuanPemdaServiceImpl) FindAllWithPokin(ctx context.Context, tah
 		for _, tujuanPemda := range item.TujuanPemda {
 			var indikatorResponses []tujuanpemda.IndikatorResponse
 
+			visiPemda, err := service.VisiPemdaRepository.FindById(ctx, tx, tujuanPemda.IdVisi)
+			if err != nil {
+				return nil, fmt.Errorf("gagal mengambil data visi: %v", err)
+			}
+
 			// Proses indikator
 			for _, indikator := range tujuanPemda.Indikator {
 				targetResponses := make([]tujuanpemda.TargetResponse, 0)
@@ -609,6 +614,7 @@ func (service *TujuanPemdaServiceImpl) FindAllWithPokin(ctx context.Context, tah
 
 			tujuanPemdaResponse := tujuanpemda.TujuanPemdaResponse{
 				Id:          tujuanPemda.Id,
+				Visi:        visiPemda.Visi,
 				TujuanPemda: tujuanPemda.TujuanPemda,
 				Periode: tujuanpemda.PeriodeResponse{
 					TahunAwal:  tahunAwal,

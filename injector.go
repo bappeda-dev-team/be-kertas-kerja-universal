@@ -351,6 +351,15 @@ var visiPemdaSet = wire.NewSet(
 	wire.Bind(new(controller.VisiPemdaController), new(*controller.VisiPemdaControllerImpl)),
 )
 
+var misiPemdaSet = wire.NewSet(
+	repository.NewMisiPemdaRepositoryImpl,
+	wire.Bind(new(repository.MisiPemdaRepository), new(*repository.MisiPemdaRepositoryImpl)),
+	service.NewMisiPemdaServiceImpl,
+	wire.Bind(new(service.MisiPemdaService), new(*service.MisiPemdaServiceImpl)),
+	controller.NewMisiPemdaControllerImpl,
+	wire.Bind(new(controller.MisiPemdaController), new(*controller.MisiPemdaControllerImpl)),
+)
+
 func InitializeServer() *http.Server {
 
 	wire.Build(
@@ -393,6 +402,7 @@ func InitializeServer() *http.Server {
 		ikuSet,
 		sasaranOpdSet,
 		visiPemdaSet,
+		misiPemdaSet,
 		app.NewRouter,
 		wire.Bind(new(http.Handler), new(*httprouter.Router)),
 		middleware.NewAuthMiddleware,

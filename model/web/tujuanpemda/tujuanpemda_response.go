@@ -2,6 +2,8 @@ package tujuanpemda
 
 type TujuanPemdaResponse struct {
 	Id          int                 `json:"id"`
+	IdVisi      int                 `json:"id_visi,omitempty"`
+	Visi        string              `json:"visi"`
 	TujuanPemda string              `json:"tujuan_pemda"`
 	TematikId   int                 `json:"tematik_id,omitempty"`
 	NamaTematik string              `json:"nama_tematik,omitempty"`
@@ -31,8 +33,6 @@ type PeriodeResponse struct {
 
 type TujuanPemdaWithPokinResponse struct {
 	PokinId      int                   `json:"pokin_id"`
-	VisiUrutan   string                `json:"visi_urutan"`
-	MisiUrutan   string                `json:"misi_urutan"`
 	TahunAwal    string                `json:"tahun_awal"`
 	TahunAkhir   string                `json:"tahun_akhir"`
 	JenisPeriode string                `json:"jenis_periode"`

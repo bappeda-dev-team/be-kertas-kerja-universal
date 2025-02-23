@@ -12,4 +12,5 @@ type VisiPemdaRepository interface {
 	Delete(ctx context.Context, tx *sql.Tx, visiPemdaId int) error
 	FindById(ctx context.Context, tx *sql.Tx, visiPemdaId int) (domain.VisiPemda, error)
 	FindAll(ctx context.Context, tx *sql.Tx, tahunAwal string, tahunAkhir string, jenisPeriode string) ([]domain.VisiPemda, error)
+	FindByIdWithDefault(ctx context.Context, tx *sql.Tx, visiPemdaId int) (domain.VisiPemda, error)
 }

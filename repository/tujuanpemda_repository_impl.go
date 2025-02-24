@@ -137,6 +137,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
             tp.id,
             tp.tujuan_pemda,
             tp.tematik_id,
+			tp.periode_id,
             tp.tahun_awal_periode,
             tp.tahun_akhir_periode,
             tp.jenis_periode,
@@ -170,7 +171,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
 
 	for rows.Next() {
 		var (
-			id, tematikId                                                    int
+			id, tematikId, periodeId                                         int
 			tujuanPemdaText, tahunAwal, tahunAkhir, jenisPeriode, jenisPohon string
 			indikatorId, indikatorText                                       sql.NullString
 			rumusPerhitunganNull, sumberDataNull                             sql.NullString
@@ -181,6 +182,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
 			&id,
 			&tujuanPemdaText,
 			&tematikId,
+			&periodeId,
 			&tahunAwal,
 			&tahunAkhir,
 			&jenisPeriode,
@@ -204,6 +206,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
 				TujuanPemda: tujuanPemdaText,
 				TematikId:   tematikId,
 				JenisPohon:  jenisPohon,
+				PeriodeId:   periodeId,
 				Periode: domain.Periode{
 					TahunAwal:    tahunAwal,
 					TahunAkhir:   tahunAkhir,

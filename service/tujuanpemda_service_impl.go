@@ -111,13 +111,27 @@ func (service *TujuanPemdaServiceImpl) Create(ctx context.Context, request tujua
 		}
 	}
 
-	tujuanPemda := domain.TujuanPemda{
-		Id:          service.generateRandomId(ctx, tx),
-		TujuanPemda: request.TujuanPemda,
-		TematikId:   request.TematikId,
-		PeriodeId:   request.PeriodeId,
+	visiPemda, err := service.VisiPemdaRepository.FindById(ctx, tx, request.IdVisi)
+	if err != nil {
+		return tujuanpemda.TujuanPemdaResponse{}, err
 	}
 
+	misiPemda, err := service.MisiPemdaRepository.FindById(ctx, tx, request.IdMisi)
+	if err != nil {
+		return tujuanpemda.TujuanPemdaResponse{}, err
+	}
+
+	tujuanPemda := domain.TujuanPemda{
+		Id:                service.generateRandomId(ctx, tx),
+		TujuanPemda:       request.TujuanPemda,
+		IdVisi:            visiPemda.Id,
+		IdMisi:            misiPemda.Id,
+		TematikId:         request.TematikId,
+		PeriodeId:         request.PeriodeId,
+		TahunAwalPeriode:  periode.TahunAwal,
+		TahunAkhirPeriode: periode.TahunAkhir,
+		JenisPeriode:      periode.JenisPeriode,
+	}
 	tujuanPemda, err = service.TujuanPemdaRepository.Create(ctx, tx, tujuanPemda)
 	if err != nil {
 		return tujuanpemda.TujuanPemdaResponse{}, err
@@ -178,12 +192,15 @@ func (service *TujuanPemdaServiceImpl) Create(ctx context.Context, request tujua
 
 	return tujuanpemda.TujuanPemdaResponse{
 		Id:          tujuanPemda.Id,
+		Visi:        visiPemda.Visi,
+		Misi:        misiPemda.Misi,
 		TujuanPemda: tujuanPemda.TujuanPemda,
 		TematikId:   tujuanPemda.TematikId,
 		NamaTematik: TujuanPemdaId.NamaPohon,
 		Periode: tujuanpemda.PeriodeResponse{
-			TahunAwal:  periode.TahunAwal,
-			TahunAkhir: periode.TahunAkhir,
+			TahunAwal:    periode.TahunAwal,
+			TahunAkhir:   periode.TahunAkhir,
+			JenisPeriode: periode.JenisPeriode,
 		},
 		Indikator: indikatorResponses,
 	}, nil
@@ -206,9 +223,19 @@ func (service *TujuanPemdaServiceImpl) Update(ctx context.Context, request tujua
 	}
 
 	// Ambil data periode
-	periode, err := service.PeriodeRepository.FindById(ctx, tx, tujuanPemda.PeriodeId)
+	periode, err := service.PeriodeRepository.FindById(ctx, tx, request.PeriodeId)
 	if err != nil {
 		return tujuanpemda.TujuanPemdaResponse{}, fmt.Errorf("periode tidak ditemukan: %v", err)
+	}
+
+	visiPemda, err := service.VisiPemdaRepository.FindById(ctx, tx, tujuanPemda.IdVisi)
+	if err != nil {
+		return tujuanpemda.TujuanPemdaResponse{}, err
+	}
+
+	misiPemda, err := service.MisiPemdaRepository.FindById(ctx, tx, tujuanPemda.IdMisi)
+	if err != nil {
+		return tujuanpemda.TujuanPemdaResponse{}, err
 	}
 
 	// Validasi tahun target untuk setiap indikator
@@ -241,6 +268,12 @@ func (service *TujuanPemdaServiceImpl) Update(ctx context.Context, request tujua
 
 	// Update data tujuan pemda
 	tujuanPemda.TujuanPemda = request.TujuanPemda
+	tujuanPemda.IdVisi = visiPemda.Id
+	tujuanPemda.IdMisi = misiPemda.Id
+	tujuanPemda.PeriodeId = request.PeriodeId
+	tujuanPemda.TahunAwalPeriode = periode.TahunAwal
+	tujuanPemda.TahunAkhirPeriode = periode.TahunAkhir
+	tujuanPemda.JenisPeriode = periode.JenisPeriode
 
 	// Proses indikator
 	var indikators []domain.Indikator
@@ -364,6 +397,7 @@ func (service *TujuanPemdaServiceImpl) FindById(ctx context.Context, tujuanPemda
 		TematikId:   tujuanPemda.TematikId,
 		NamaTematik: pokinData.NamaPohon,
 		JenisPohon:  tujuanPemda.JenisPohon,
+		PeriodeId:   tujuanPemda.PeriodeId,
 		Periode: tujuanpemda.PeriodeResponse{
 			TahunAwal:    tujuanPemda.Periode.TahunAwal,
 			TahunAkhir:   tujuanPemda.Periode.TahunAkhir,
@@ -470,11 +504,14 @@ func (service *TujuanPemdaServiceImpl) toTujuanPemdaResponse(tujuanPemda domain.
 	return tujuanpemda.TujuanPemdaResponse{
 		Id:          tujuanPemda.Id,
 		TujuanPemda: tujuanPemda.TujuanPemda,
+		Visi:        tujuanPemda.Visi,
+		Misi:        tujuanPemda.Misi,
 		TematikId:   tujuanPemda.TematikId,
 		NamaTematik: tujuanPemda.NamaTematik,
 		Periode: tujuanpemda.PeriodeResponse{
-			TahunAwal:  tujuanPemda.Periode.TahunAwal,
-			TahunAkhir: tujuanPemda.Periode.TahunAkhir,
+			TahunAwal:    tujuanPemda.Periode.TahunAwal,
+			TahunAkhir:   tujuanPemda.Periode.TahunAkhir,
+			JenisPeriode: tujuanPemda.Periode.JenisPeriode,
 		},
 		Indikator: indikatorResponses,
 	}

@@ -239,13 +239,13 @@ func (service *PeriodeServiceImpl) FindByTahun(ctx context.Context, tahun string
 	}, nil
 }
 
-func (service *PeriodeServiceImpl) FindAll(ctx context.Context) ([]periodetahun.PeriodeResponse, error) {
+func (service *PeriodeServiceImpl) FindAll(ctx context.Context, jenis_periode string) ([]periodetahun.PeriodeResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return nil, err
 	}
 
-	periodes, err := service.PeriodeRepository.FindAll(ctx, tx)
+	periodes, err := service.PeriodeRepository.FindAll(ctx, tx, jenis_periode)
 	if err != nil {
 		return nil, err
 	}

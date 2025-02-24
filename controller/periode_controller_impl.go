@@ -88,7 +88,8 @@ func (controller *PeriodeControllerImpl) FindByTahun(writer http.ResponseWriter,
 }
 
 func (controller *PeriodeControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	periodeResponse, err := controller.PeriodeService.FindAll(request.Context())
+	jenis_periode := request.URL.Query().Get("jenis_periode")
+	periodeResponse, err := controller.PeriodeService.FindAll(request.Context(), jenis_periode)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   400,

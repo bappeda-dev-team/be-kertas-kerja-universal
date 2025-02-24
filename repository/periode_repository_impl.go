@@ -156,9 +156,19 @@ func (repository *PeriodeRepositoryImpl) FindOverlappingPeriodesExcludeCurrent(c
 	return periodes, nil
 }
 
-func (repository *PeriodeRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]domain.Periode, error) {
-	query := "SELECT id, tahun_awal, tahun_akhir, jenis_periode FROM tb_periode"
-	rows, err := tx.QueryContext(ctx, query)
+func (repository *PeriodeRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, jenis_periode string) ([]domain.Periode, error) {
+	query := "SELECT id, tahun_awal, tahun_akhir, jenis_periode FROM tb_periode WHERE 1=1"
+
+	var params []interface{}
+
+	if jenis_periode != "" {
+		query += " AND jenis_periode = ?"
+		params = append(params, jenis_periode)
+	}
+
+	query += " ORDER BY id ASC"
+
+	rows, err := tx.QueryContext(ctx, query, params...)
 	if err != nil {
 		return nil, err
 	}

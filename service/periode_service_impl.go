@@ -276,9 +276,10 @@ func (service *PeriodeServiceImpl) FindById(ctx context.Context, id int) (period
 	}
 
 	return periodetahun.PeriodeResponse{
-		Id:         periode.Id,
-		TahunAwal:  periode.TahunAwal,
-		TahunAkhir: periode.TahunAkhir,
+		Id:           periode.Id,
+		TahunAwal:    periode.TahunAwal,
+		TahunAkhir:   periode.TahunAkhir,
+		JenisPeriode: periode.JenisPeriode,
 	}, nil
 }
 

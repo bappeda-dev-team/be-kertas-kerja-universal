@@ -124,8 +124,8 @@ func (service *TujuanPemdaServiceImpl) Create(ctx context.Context, request tujua
 	tujuanPemda := domain.TujuanPemda{
 		Id:                service.generateRandomId(ctx, tx),
 		TujuanPemda:       request.TujuanPemda,
-		IdVisi:            visiPemda.Id,
-		IdMisi:            misiPemda.Id,
+		IdVisi:            request.IdVisi,
+		IdMisi:            request.IdMisi,
 		TematikId:         request.TematikId,
 		PeriodeId:         request.PeriodeId,
 		TahunAwalPeriode:  periode.TahunAwal,
@@ -228,12 +228,12 @@ func (service *TujuanPemdaServiceImpl) Update(ctx context.Context, request tujua
 		return tujuanpemda.TujuanPemdaResponse{}, fmt.Errorf("periode tidak ditemukan: %v", err)
 	}
 
-	visiPemda, err := service.VisiPemdaRepository.FindById(ctx, tx, tujuanPemda.IdVisi)
+	_, err = service.VisiPemdaRepository.FindById(ctx, tx, tujuanPemda.IdVisi)
 	if err != nil {
 		return tujuanpemda.TujuanPemdaResponse{}, err
 	}
 
-	misiPemda, err := service.MisiPemdaRepository.FindById(ctx, tx, tujuanPemda.IdMisi)
+	_, err = service.MisiPemdaRepository.FindById(ctx, tx, tujuanPemda.IdMisi)
 	if err != nil {
 		return tujuanpemda.TujuanPemdaResponse{}, err
 	}
@@ -268,8 +268,8 @@ func (service *TujuanPemdaServiceImpl) Update(ctx context.Context, request tujua
 
 	// Update data tujuan pemda
 	tujuanPemda.TujuanPemda = request.TujuanPemda
-	tujuanPemda.IdVisi = visiPemda.Id
-	tujuanPemda.IdMisi = misiPemda.Id
+	tujuanPemda.IdVisi = request.IdVisi
+	tujuanPemda.IdMisi = request.IdMisi
 	tujuanPemda.PeriodeId = request.PeriodeId
 	tujuanPemda.TahunAwalPeriode = periode.TahunAwal
 	tujuanPemda.TahunAkhirPeriode = periode.TahunAkhir
@@ -504,6 +504,8 @@ func (service *TujuanPemdaServiceImpl) toTujuanPemdaResponse(tujuanPemda domain.
 	return tujuanpemda.TujuanPemdaResponse{
 		Id:          tujuanPemda.Id,
 		TujuanPemda: tujuanPemda.TujuanPemda,
+		IdVisi:      tujuanPemda.IdVisi,
+		IdMisi:      tujuanPemda.IdMisi,
 		Visi:        tujuanPemda.Visi,
 		Misi:        tujuanPemda.Misi,
 		TematikId:   tujuanPemda.TematikId,

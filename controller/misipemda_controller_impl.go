@@ -25,7 +25,12 @@ func (controller *MisiPemdaControllerImpl) Create(writer http.ResponseWriter, re
 
 	misiPemdaResponse, err := controller.MisiPemdaService.Create(request.Context(), misiPemdaCreateRequest)
 	if err != nil {
-		helper.WriteToResponseBody(writer, err.Error())
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
 		return
 	}
 

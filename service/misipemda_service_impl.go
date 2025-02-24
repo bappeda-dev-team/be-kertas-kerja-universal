@@ -216,6 +216,14 @@ func (service *MisiPemdaServiceImpl) FindById(ctx context.Context, id int) (visi
 		return visimisipemda.MisiPemdaResponse{}, err
 	}
 
+	visiPemda, err := service.VisiPemdaRepository.FindById(ctx, tx, misiPemda.IdVisi)
+	if err != nil {
+		return visimisipemda.MisiPemdaResponse{}, err
+	}
+
+	misiPemda.IdVisi = visiPemda.Id
+	misiPemda.Visi = visiPemda.Visi
+
 	return helper.ToMisiPemdaResponse(misiPemda), nil
 }
 

@@ -712,6 +712,7 @@ func ToMisiPemdaResponse(misiPemda domain.MisiPemda) visimisipemda.MisiPemdaResp
 	return visimisipemda.MisiPemdaResponse{
 		Id:                misiPemda.Id,
 		IdVisi:            misiPemda.IdVisi,
+		Visi:              misiPemda.Visi,
 		Misi:              misiPemda.Misi,
 		Urutan:            misiPemda.Urutan,
 		TahunAwalPeriode:  misiPemda.TahunAwalPeriode,

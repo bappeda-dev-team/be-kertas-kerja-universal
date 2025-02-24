@@ -137,9 +137,9 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
             tp.id,
             tp.tujuan_pemda,
             tp.tematik_id,
-            tp.periode_id,
-            COALESCE(p.tahun_awal, '') as tahun_awal,
-            COALESCE(p.tahun_akhir, '') as tahun_akhir,
+            tp.tahun_awal_periode,
+            tp.tahun_akhir_periode,
+            tp.jenis_periode,
             pk.jenis_pohon, 
             i.id as indikator_id,
             i.indikator as indikator_text,
@@ -151,7 +151,6 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
             t.tahun as target_tahun
         FROM 
             tb_tujuan_pemda tp
-            LEFT JOIN tb_periode p ON tp.periode_id = p.id
             LEFT JOIN tb_pohon_kinerja pk ON tp.tematik_id = pk.id 
             LEFT JOIN tb_indikator i ON tp.id = i.tujuan_pemda_id
             LEFT JOIN tb_target t ON t.indikator_id = i.id
@@ -171,20 +170,20 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
 
 	for rows.Next() {
 		var (
-			id, tematikId, periodeId                           int
-			tujuanPemdaText, tahunAwal, tahunAkhir, jenisPohon string // Tambahkan jenisPohon
-			indikatorId, indikatorText                         sql.NullString
-			rumusPerhitunganNull, sumberDataNull               sql.NullString
-			targetId, targetValue, targetSatuan, targetTahun   sql.NullString
+			id, tematikId                                                    int
+			tujuanPemdaText, tahunAwal, tahunAkhir, jenisPeriode, jenisPohon string
+			indikatorId, indikatorText                                       sql.NullString
+			rumusPerhitunganNull, sumberDataNull                             sql.NullString
+			targetId, targetValue, targetSatuan, targetTahun                 sql.NullString
 		)
 
 		err := rows.Scan(
 			&id,
 			&tujuanPemdaText,
 			&tematikId,
-			&periodeId,
 			&tahunAwal,
 			&tahunAkhir,
+			&jenisPeriode,
 			&jenisPohon,
 			&indikatorId,
 			&indikatorText,
@@ -204,11 +203,11 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
 				Id:          id,
 				TujuanPemda: tujuanPemdaText,
 				TematikId:   tematikId,
-				PeriodeId:   periodeId,
-				JenisPohon:  jenisPohon, // Tambahkan field JenisPohon
+				JenisPohon:  jenisPohon,
 				Periode: domain.Periode{
-					TahunAwal:  tahunAwal,
-					TahunAkhir: tahunAkhir,
+					TahunAwal:    tahunAwal,
+					TahunAkhir:   tahunAkhir,
+					JenisPeriode: jenisPeriode,
 				},
 				Indikator: []domain.Indikator{},
 			}
@@ -240,7 +239,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
 				}
 
 				// Generate target untuk setiap tahun dalam periode
-				if periodeId != 0 && tahunAwal != "" && tahunAkhir != "" {
+				if tahunAwal != "" && tahunAkhir != "" {
 					tahunAwalInt, errAwal := strconv.Atoi(tahunAwal)
 					tahunAkhirInt, errAkhir := strconv.Atoi(tahunAkhir)
 

@@ -345,8 +345,8 @@ func (service *TujuanPemdaServiceImpl) FindById(ctx context.Context, tujuanPemda
 			Target:           []tujuanpemda.TargetResponse{},
 		}
 
-		// Tambahkan target hanya jika periode valid
-		if tujuanPemda.PeriodeId != 0 && tujuanPemda.Periode.TahunAwal != "Pilih periode" {
+		// Tambahkan target hanya jika tahun awal dan akhir valid
+		if tujuanPemda.Periode.TahunAwal != "" && tujuanPemda.Periode.TahunAwal != "Pilih periode" {
 			// Urutkan target berdasarkan tahun
 			sort.Slice(indikator.Target, func(i, j int) bool {
 				return indikator.Target[i].Tahun < indikator.Target[j].Tahun
@@ -544,10 +544,28 @@ func (service *TujuanPemdaServiceImpl) FindAllWithPokin(ctx context.Context, tah
 		return nil, err
 	}
 
+	tahunAwalInt, err := strconv.Atoi(tahunAwal)
+	if err != nil {
+		return nil, fmt.Errorf("format tahun awal tidak valid: %v", err)
+	}
+	tahunAkhirInt, err := strconv.Atoi(tahunAkhir)
+	if err != nil {
+		return nil, fmt.Errorf("format tahun akhir tidak valid: %v", err)
+	}
+
 	// Buat map untuk mengelompokkan berdasarkan PokinId
 	pokinMap := make(map[int]tujuanpemda.TujuanPemdaWithPokinResponse)
 
 	for _, item := range tujuanPemdaList {
+		tahunPokinInt, err := strconv.Atoi(item.TahunPokin)
+		if err != nil {
+			continue // Skip jika tahun pokin tidak valid
+		}
+
+		// Skip jika tahun pokin di luar range periode
+		if tahunPokinInt < tahunAwalInt || tahunPokinInt > tahunAkhirInt {
+			continue
+		}
 		pokinResp, exists := pokinMap[item.PokinId]
 		if !exists {
 			pokinResp = tujuanpemda.TujuanPemdaWithPokinResponse{

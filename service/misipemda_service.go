@@ -11,4 +11,5 @@ type MisiPemdaService interface {
 	Delete(ctx context.Context, id int) error
 	FindAll(ctx context.Context, tahunAwal string, tahunAkhir string, jenisPeriode string) ([]visimisipemda.VisiPemdaRespons, error)
 	FindById(ctx context.Context, id int) (visimisipemda.MisiPemdaResponse, error)
+	FindByIdVisi(ctx context.Context, idVisi int) (visimisipemda.VisiPemdaRespons, error)
 }

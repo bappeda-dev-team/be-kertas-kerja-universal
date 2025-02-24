@@ -7,6 +7,8 @@ import (
 	"ekak_kabupaten_madiun/model/domain"
 	visimisipemda "ekak_kabupaten_madiun/model/web/visimisi"
 	"ekak_kabupaten_madiun/repository"
+	"fmt"
+	"strconv"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -121,10 +123,45 @@ func (service *VisiPemdaServiceImpl) FindAll(ctx context.Context, tahunAwal stri
 	}
 	defer helper.CommitOrRollback(tx)
 
+	// Validasi format tahun jika ada
+	if tahunAwal != "" {
+		_, err := strconv.Atoi(tahunAwal)
+		if err != nil {
+			return nil, fmt.Errorf("format tahun awal tidak valid")
+		}
+	}
+	if tahunAkhir != "" {
+		_, err := strconv.Atoi(tahunAkhir)
+		if err != nil {
+			return nil, fmt.Errorf("format tahun akhir tidak valid")
+		}
+	}
+
+	// Jika hanya tahun awal yang diisi
+	if tahunAwal != "" && tahunAkhir == "" {
+		tahunAkhir = tahunAwal
+	}
+	// Jika hanya tahun akhir yang diisi
+	if tahunAkhir != "" && tahunAwal == "" {
+		tahunAwal = tahunAkhir
+	}
+
 	visiPemdaList, err := service.VisiPemdaRepository.FindAll(ctx, tx, tahunAwal, tahunAkhir, jenisPeriode)
 	if err != nil {
 		return nil, err
 	}
 
-	return helper.ToVisiPemdaResponses(visiPemdaList), nil
+	var responses []visimisipemda.VisiPemdaResponse
+	for _, visiPemda := range visiPemdaList {
+		responses = append(responses, visimisipemda.VisiPemdaResponse{
+			Id:                visiPemda.Id,
+			Visi:              visiPemda.Visi,
+			TahunAwalPeriode:  visiPemda.TahunAwalPeriode,
+			TahunAkhirPeriode: visiPemda.TahunAkhirPeriode,
+			JenisPeriode:      visiPemda.JenisPeriode,
+			Keterangan:        visiPemda.Keterangan,
+		})
+	}
+
+	return responses, nil
 }

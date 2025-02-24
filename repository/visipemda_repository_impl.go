@@ -7,6 +7,7 @@ import (
 	"ekak_kabupaten_madiun/model/domain"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -82,8 +83,26 @@ func (repository *VisiPemdaRepositoryImpl) FindById(ctx context.Context, tx *sql
 }
 
 func (repository *VisiPemdaRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, tahunAwal string, tahunAkhir string, jenisPeriode string) ([]domain.VisiPemda, error) {
-	script := "SELECT id, visi, tahun_awal_periode, tahun_akhir_periode, jenis_periode, keterangan FROM tb_visi_pemda WHERE tahun_awal_periode = ? AND tahun_akhir_periode = ? AND jenis_periode = ?"
-	rows, err := tx.QueryContext(ctx, script, tahunAwal, tahunAkhir, jenisPeriode)
+	var conditions []string
+	var params []interface{}
+
+	script := "SELECT id, visi, tahun_awal_periode, tahun_akhir_periode, jenis_periode, keterangan FROM tb_visi_pemda"
+
+	if tahunAwal != "" && tahunAkhir != "" {
+		conditions = append(conditions, "CAST(? AS SIGNED) BETWEEN CAST(tahun_awal_periode AS SIGNED) AND CAST(tahun_akhir_periode AS SIGNED)")
+		params = append(params, tahunAwal)
+	}
+
+	if jenisPeriode != "" {
+		conditions = append(conditions, "jenis_periode = ?")
+		params = append(params, jenisPeriode)
+	}
+
+	if len(conditions) > 0 {
+		script += " WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	rows, err := tx.QueryContext(ctx, script, params...)
 	if err != nil {
 		return nil, err
 	}

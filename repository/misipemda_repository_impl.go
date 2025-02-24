@@ -3,9 +3,10 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"ekak_kabupaten_madiun/helper"
 	"ekak_kabupaten_madiun/model/domain"
-	"errors"
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -73,44 +74,65 @@ func (repository *MisiPemdaRepositoryImpl) FindById(ctx context.Context, tx *sql
 			&visiPemda.JenisPeriode,
 			&visiPemda.Keterangan,
 		)
-		if err != nil {
-			return domain.MisiPemda{}, err
-		}
+		helper.PanicIfError(err)
 
-		return visiPemda, nil
 	}
 
-	return domain.MisiPemda{}, errors.New("visi pemda not found")
+	return visiPemda, nil
 }
 
 func (repository *MisiPemdaRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, tahunAwal string, tahunAkhir string, jenisPeriode string) ([]domain.MisiPemda, error) {
-	script := "SELECT id, id_visi, misi, urutan, tahun_awal_periode, tahun_akhir_periode, jenis_periode, keterangan FROM tb_misi_pemda WHERE tahun_awal_periode = ? AND tahun_akhir_periode = ? AND jenis_periode = ?"
-	rows, err := tx.QueryContext(ctx, script, tahunAwal, tahunAkhir, jenisPeriode)
+	var conditions []string
+	var params []interface{}
+
+	baseQuery := `SELECT id, id_visi, misi, urutan, tahun_awal_periode, tahun_akhir_periode, 
+                  jenis_periode, keterangan FROM tb_misi_pemda`
+
+	// Membangun query dinamis berdasarkan filter yang ada
+	if tahunAwal != "" && tahunAkhir != "" {
+		conditions = append(conditions, "CAST(? AS SIGNED) BETWEEN CAST(tahun_awal_periode AS SIGNED) AND CAST(tahun_akhir_periode AS SIGNED)")
+		params = append(params, tahunAwal)
+	}
+
+	if jenisPeriode != "" {
+		conditions = append(conditions, "jenis_periode = ?")
+		params = append(params, jenisPeriode)
+	}
+
+	// Menggabungkan kondisi WHERE jika ada
+	if len(conditions) > 0 {
+		baseQuery += " WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	// Tambahkan ORDER BY untuk mengurutkan berdasarkan id_visi dan urutan
+	baseQuery += " ORDER BY id_visi, urutan"
+
+	rows, err := tx.QueryContext(ctx, baseQuery, params...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var visiPemdaList []domain.MisiPemda
+	var misiPemdaList []domain.MisiPemda
 	for rows.Next() {
-		var visiPemda domain.MisiPemda
+		var misiPemda domain.MisiPemda
 		err := rows.Scan(
-			&visiPemda.Id,
-			&visiPemda.IdVisi,
-			&visiPemda.Misi,
-			&visiPemda.Urutan,
-			&visiPemda.TahunAwalPeriode,
-			&visiPemda.TahunAkhirPeriode,
-			&visiPemda.JenisPeriode,
-			&visiPemda.Keterangan,
+			&misiPemda.Id,
+			&misiPemda.IdVisi,
+			&misiPemda.Misi,
+			&misiPemda.Urutan,
+			&misiPemda.TahunAwalPeriode,
+			&misiPemda.TahunAkhirPeriode,
+			&misiPemda.JenisPeriode,
+			&misiPemda.Keterangan,
 		)
 		if err != nil {
 			return nil, err
 		}
-		visiPemdaList = append(visiPemdaList, visiPemda)
+		misiPemdaList = append(misiPemdaList, misiPemda)
 	}
 
-	return visiPemdaList, nil
+	return misiPemdaList, nil
 }
 
 func (repository *MisiPemdaRepositoryImpl) FindByIdWithDefault(ctx context.Context, tx *sql.Tx, visiPemdaId int) (domain.MisiPemda, error) {
@@ -148,4 +170,39 @@ func (repository *MisiPemdaRepositoryImpl) CheckUrutanExistsExcept(ctx context.C
 		return false, err
 	}
 	return exists, nil
+}
+
+func (repository *MisiPemdaRepositoryImpl) FindByIdVisi(ctx context.Context, tx *sql.Tx, idVisi int) ([]domain.MisiPemda, error) {
+	script := `SELECT id, id_visi, misi, urutan, tahun_awal_periode, tahun_akhir_periode, 
+               jenis_periode, keterangan 
+               FROM tb_misi_pemda 
+               WHERE id_visi = ? 
+               ORDER BY urutan`
+
+	rows, err := tx.QueryContext(ctx, script, idVisi)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var misiPemdaList []domain.MisiPemda
+	for rows.Next() {
+		var misiPemda domain.MisiPemda
+		err := rows.Scan(
+			&misiPemda.Id,
+			&misiPemda.IdVisi,
+			&misiPemda.Misi,
+			&misiPemda.Urutan,
+			&misiPemda.TahunAwalPeriode,
+			&misiPemda.TahunAkhirPeriode,
+			&misiPemda.JenisPeriode,
+			&misiPemda.Keterangan,
+		)
+		if err != nil {
+			return nil, err
+		}
+		misiPemdaList = append(misiPemdaList, misiPemda)
+	}
+
+	return misiPemdaList, nil
 }

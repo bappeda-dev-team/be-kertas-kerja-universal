@@ -141,3 +141,30 @@ func (controller *MisiPemdaControllerImpl) FindAll(writer http.ResponseWriter, r
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *MisiPemdaControllerImpl) FindByIdVisi(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	idVisistr := params.ByName("id_visi")
+
+	idVisi, err := strconv.Atoi(idVisistr)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusBadRequest,
+			Status: "BAD REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+	misiPemdaResponses, err := controller.MisiPemdaService.FindByIdVisi(request.Context(), idVisi)
+	if err != nil {
+		helper.WriteToResponseBody(writer, err.Error())
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "success find all misi pemda by id visi",
+		Data:   misiPemdaResponses,
+	}
+	helper.WriteToResponseBody(writer, webResponse)
+}

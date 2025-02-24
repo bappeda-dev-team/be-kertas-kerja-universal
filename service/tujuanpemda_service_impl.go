@@ -21,15 +21,17 @@ type TujuanPemdaServiceImpl struct {
 	PeriodeRepository      repository.PeriodeRepository
 	PohonKinerjaRepository repository.PohonKinerjaRepository
 	VisiPemdaRepository    repository.VisiPemdaRepository
+	MisiPemdaRepository    repository.MisiPemdaRepository
 	DB                     *sql.DB
 }
 
-func NewTujuanPemdaServiceImpl(tujuanPemdaRepository repository.TujuanPemdaRepository, periodeRepository repository.PeriodeRepository, pohonKinerjaRepository repository.PohonKinerjaRepository, visiPemdaRepository repository.VisiPemdaRepository, DB *sql.DB) *TujuanPemdaServiceImpl {
+func NewTujuanPemdaServiceImpl(tujuanPemdaRepository repository.TujuanPemdaRepository, periodeRepository repository.PeriodeRepository, pohonKinerjaRepository repository.PohonKinerjaRepository, visiPemdaRepository repository.VisiPemdaRepository, misiPemdaRepository repository.MisiPemdaRepository, DB *sql.DB) *TujuanPemdaServiceImpl {
 	return &TujuanPemdaServiceImpl{
 		TujuanPemdaRepository:  tujuanPemdaRepository,
 		PeriodeRepository:      periodeRepository,
 		PohonKinerjaRepository: pohonKinerjaRepository,
 		VisiPemdaRepository:    visiPemdaRepository,
+		MisiPemdaRepository:    misiPemdaRepository,
 		DB:                     DB,
 	}
 }
@@ -363,8 +365,9 @@ func (service *TujuanPemdaServiceImpl) FindById(ctx context.Context, tujuanPemda
 		NamaTematik: pokinData.NamaPohon,
 		JenisPohon:  tujuanPemda.JenisPohon,
 		Periode: tujuanpemda.PeriodeResponse{
-			TahunAwal:  tujuanPemda.Periode.TahunAwal,
-			TahunAkhir: tujuanPemda.Periode.TahunAkhir,
+			TahunAwal:    tujuanPemda.Periode.TahunAwal,
+			TahunAkhir:   tujuanPemda.Periode.TahunAkhir,
+			JenisPeriode: tujuanPemda.Periode.JenisPeriode,
 		},
 		Indikator: indikatorResponses,
 	}, nil
@@ -548,16 +551,13 @@ func (service *TujuanPemdaServiceImpl) FindAllWithPokin(ctx context.Context, tah
 		pokinResp, exists := pokinMap[item.PokinId]
 		if !exists {
 			pokinResp = tujuanpemda.TujuanPemdaWithPokinResponse{
-				PokinId:      item.PokinId,
-				NamaPohon:    item.NamaPohon,
-				JenisPohon:   item.JenisPohon,
-				LevelPohon:   item.LevelPohon,
-				Keterangan:   item.Keterangan,
-				TahunPokin:   item.TahunPokin,
-				TahunAwal:    tahunAwal,
-				TahunAkhir:   tahunAkhir,
-				JenisPeriode: jenisPeriode,
-				TujuanPemda:  make([]tujuanpemda.TujuanPemdaResponse, 0),
+				PokinId:     item.PokinId,
+				NamaPohon:   item.NamaPohon,
+				JenisPohon:  item.JenisPohon,
+				LevelPohon:  item.LevelPohon,
+				Keterangan:  item.Keterangan,
+				TahunPokin:  item.TahunPokin,
+				TujuanPemda: make([]tujuanpemda.TujuanPemdaResponse, 0),
 			}
 		}
 
@@ -565,9 +565,24 @@ func (service *TujuanPemdaServiceImpl) FindAllWithPokin(ctx context.Context, tah
 		for _, tujuanPemda := range item.TujuanPemda {
 			var indikatorResponses []tujuanpemda.IndikatorResponse
 
-			visiPemda, err := service.VisiPemdaRepository.FindById(ctx, tx, tujuanPemda.IdVisi)
+			// Ambil data visi dengan penanganan default
+			visiPemda, err := service.VisiPemdaRepository.FindByIdWithDefault(ctx, tx, tujuanPemda.IdVisi)
 			if err != nil {
-				return nil, fmt.Errorf("gagal mengambil data visi: %v", err)
+				// Jika visi tidak ditemukan, gunakan nilai default
+				visiPemda = domain.VisiPemda{
+					Id:   0,
+					Visi: "Belum ada visi",
+				}
+			}
+
+			// Ambil data misi dengan penanganan default
+			misiPemda, err := service.MisiPemdaRepository.FindById(ctx, tx, tujuanPemda.IdVisi)
+			if err != nil {
+				// Jika misi tidak ditemukan, gunakan nilai default
+				misiPemda = domain.MisiPemda{
+					Id:   0,
+					Misi: "Belum ada misi",
+				}
 			}
 
 			// Proses indikator
@@ -614,11 +629,15 @@ func (service *TujuanPemdaServiceImpl) FindAllWithPokin(ctx context.Context, tah
 
 			tujuanPemdaResponse := tujuanpemda.TujuanPemdaResponse{
 				Id:          tujuanPemda.Id,
+				IdVisi:      visiPemda.Id, // Tambahkan ID Visi
 				Visi:        visiPemda.Visi,
+				IdMisi:      misiPemda.Id, // Tambahkan ID Misi
+				Misi:        misiPemda.Misi,
 				TujuanPemda: tujuanPemda.TujuanPemda,
 				Periode: tujuanpemda.PeriodeResponse{
-					TahunAwal:  tahunAwal,
-					TahunAkhir: tahunAkhir,
+					TahunAwal:    tahunAwal,
+					TahunAkhir:   tahunAkhir,
+					JenisPeriode: jenisPeriode,
 				},
 				Indikator: indikatorResponses,
 			}

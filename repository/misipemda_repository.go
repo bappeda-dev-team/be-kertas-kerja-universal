@@ -15,4 +15,5 @@ type MisiPemdaRepository interface {
 	FindByIdWithDefault(ctx context.Context, tx *sql.Tx, visiPemdaId int) (domain.MisiPemda, error)
 	CheckUrutanExists(ctx context.Context, tx *sql.Tx, idVisi int, urutan int) (bool, error)
 	CheckUrutanExistsExcept(ctx context.Context, tx *sql.Tx, idVisi int, urutan int, id int) (bool, error)
+	FindByIdVisi(ctx context.Context, tx *sql.Tx, idVisi int) ([]domain.MisiPemda, error)
 }

@@ -9,6 +9,7 @@ import (
 	"ekak_kabupaten_madiun/repository"
 	"fmt"
 	"sort"
+	"strconv"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -121,6 +122,29 @@ func (service *MisiPemdaServiceImpl) FindAll(ctx context.Context, tahunAwal stri
 	}
 	defer helper.CommitOrRollback(tx)
 
+	// Validasi format tahun jika ada
+	if tahunAwal != "" {
+		_, err := strconv.Atoi(tahunAwal)
+		if err != nil {
+			return nil, fmt.Errorf("format tahun awal tidak valid")
+		}
+	}
+	if tahunAkhir != "" {
+		_, err := strconv.Atoi(tahunAkhir)
+		if err != nil {
+			return nil, fmt.Errorf("format tahun akhir tidak valid")
+		}
+	}
+
+	// Jika hanya tahun awal yang diisi
+	if tahunAwal != "" && tahunAkhir == "" {
+		tahunAkhir = tahunAwal
+	}
+	// Jika hanya tahun akhir yang diisi
+	if tahunAkhir != "" && tahunAwal == "" {
+		tahunAwal = tahunAkhir
+	}
+
 	// Ambil semua data misi
 	misiPemdaList, err := service.MisiPemdaRepository.FindAll(ctx, tx, tahunAwal, tahunAkhir, jenisPeriode)
 	if err != nil {
@@ -128,41 +152,48 @@ func (service *MisiPemdaServiceImpl) FindAll(ctx context.Context, tahunAwal stri
 	}
 
 	// Buat map untuk mengelompokkan misi berdasarkan id_visi
-	visiMisiMap := make(map[int]*visimisipemda.VisiPemdaRespons)
+	visiMisiMap := make(map[int]visimisipemda.VisiPemdaRespons)
 
 	// Iterasi setiap misi dan kelompokkan berdasarkan id_visi
 	for _, misi := range misiPemdaList {
-		// Jika id_visi belum ada di map, ambil data visi dan buat entry baru
-		if _, exists := visiMisiMap[misi.IdVisi]; !exists {
-			// Ambil data visi
+		// Jika id_visi belum ada di map, ambil data visi
+		visiResp, exists := visiMisiMap[misi.IdVisi]
+		if !exists {
 			visiPemda, err := service.VisiPemdaRepository.FindByIdWithDefault(ctx, tx, misi.IdVisi)
 			if err != nil {
 				return nil, fmt.Errorf("gagal mengambil data visi: %v", err)
 			}
 
-			visiMisiMap[misi.IdVisi] = &visimisipemda.VisiPemdaRespons{
+			visiResp = visimisipemda.VisiPemdaRespons{
 				IdVisi: visiPemda.Id,
 				Visi:   visiPemda.Visi,
 				Misi:   make([]visimisipemda.MisiPemdaResponse, 0),
 			}
 		}
 
-		// Tambahkan misi ke array misi yang sesuai dengan id_visi
+		// Tambahkan misi ke array misi
 		misiResponse := visimisipemda.MisiPemdaResponse{
 			Id:                misi.Id,
+			IdVisi:            misi.IdVisi,
 			Misi:              misi.Misi,
+			Urutan:            misi.Urutan,
 			TahunAwalPeriode:  misi.TahunAwalPeriode,
 			TahunAkhirPeriode: misi.TahunAkhirPeriode,
 			JenisPeriode:      misi.JenisPeriode,
 			Keterangan:        misi.Keterangan,
 		}
-		visiMisiMap[misi.IdVisi].Misi = append(visiMisiMap[misi.IdVisi].Misi, misiResponse)
+		visiResp.Misi = append(visiResp.Misi, misiResponse)
+		visiMisiMap[misi.IdVisi] = visiResp
 	}
 
 	// Konversi map ke slice untuk response
 	result := make([]visimisipemda.VisiPemdaRespons, 0, len(visiMisiMap))
 	for _, visiMisi := range visiMisiMap {
-		result = append(result, *visiMisi)
+		// Sort misi berdasarkan urutan
+		sort.Slice(visiMisi.Misi, func(i, j int) bool {
+			return visiMisi.Misi[i].Urutan < visiMisi.Misi[j].Urutan
+		})
+		result = append(result, visiMisi)
 	}
 
 	// Sort berdasarkan IdVisi
@@ -186,4 +217,48 @@ func (service *MisiPemdaServiceImpl) FindById(ctx context.Context, id int) (visi
 	}
 
 	return helper.ToMisiPemdaResponse(misiPemda), nil
+}
+
+func (service *MisiPemdaServiceImpl) FindByIdVisi(ctx context.Context, idVisi int) (visimisipemda.VisiPemdaRespons, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return visimisipemda.VisiPemdaRespons{}, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	// Ambil data visi
+	visiPemda, err := service.VisiPemdaRepository.FindById(ctx, tx, idVisi)
+	if err != nil {
+		return visimisipemda.VisiPemdaRespons{}, fmt.Errorf("gagal mengambil data visi: %v", err)
+	}
+
+	// Ambil semua misi dengan id_visi yang sesuai
+	misiList, err := service.MisiPemdaRepository.FindByIdVisi(ctx, tx, idVisi)
+	if err != nil {
+		return visimisipemda.VisiPemdaRespons{}, fmt.Errorf("gagal mengambil data misi: %v", err)
+	}
+
+	// Buat response
+	response := visimisipemda.VisiPemdaRespons{
+		IdVisi: visiPemda.Id,
+		Visi:   visiPemda.Visi,
+		Misi:   make([]visimisipemda.MisiPemdaResponse, 0),
+	}
+
+	// Tambahkan semua misi ke response
+	for _, misi := range misiList {
+		misiResponse := visimisipemda.MisiPemdaResponse{
+			Id:                misi.Id,
+			IdVisi:            misi.IdVisi,
+			Misi:              misi.Misi,
+			Urutan:            misi.Urutan,
+			TahunAwalPeriode:  misi.TahunAwalPeriode,
+			TahunAkhirPeriode: misi.TahunAkhirPeriode,
+			JenisPeriode:      misi.JenisPeriode,
+			Keterangan:        misi.Keterangan,
+		}
+		response.Misi = append(response.Misi, misiResponse)
+	}
+
+	return response, nil
 }

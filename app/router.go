@@ -344,15 +344,18 @@ func NewRouter(
 	router.POST("/visi_pemda/create", visiPemdaController.Create)
 	router.PUT("/visi_pemda/update/:id", visiPemdaController.Update)
 	router.DELETE("/visi_pemda/delete/:id", visiPemdaController.Delete)
-	router.GET("/visi_pemda/findall/tahunawal/:tahun_awal/tahunakhir/:tahun_akhir/jenisperiode/:jenis_periode", visiPemdaController.FindAll)
+	// router.GET("/visi_pemda/findall/tahunawal/:tahun_awal/tahunakhir/:tahun_akhir/jenisperiode/:jenis_periode", visiPemdaController.FindAll)
+	router.GET("/visi_pemda/findall/tahun/:tahun_awal/jenisperiode/:jenis_periode", visiPemdaController.FindAll)
 	router.GET("/visi_pemda/detail/:id", visiPemdaController.FindById)
 
 	//misi pemda
 	router.POST("/misi_pemda/create", misiPemdaController.Create)
 	router.PUT("/misi_pemda/update/:id", misiPemdaController.Update)
 	router.DELETE("/misi_pemda/delete/:id", misiPemdaController.Delete)
-	router.GET("/misi_pemda/findall/tahunawal/:tahun_awal/tahunakhir/:tahun_akhir/jenisperiode/:jenis_periode", misiPemdaController.FindAll)
+	// router.GET("/misi_pemda/findall/tahunawal/:tahun_awal/tahunakhir/:tahun_akhir/jenisperiode/:jenis_periode", misiPemdaController.FindAll)
+	router.GET("/misi_pemda/findall/tahun/:tahun_awal/jenisperiode/:jenis_periode", misiPemdaController.FindAll)
 	router.GET("/misi_pemda/detail/:id", misiPemdaController.FindById)
+	router.GET("/misi_pemda/findbyvisi/:id_visi", misiPemdaController.FindByIdVisi)
 
 	return router
 }

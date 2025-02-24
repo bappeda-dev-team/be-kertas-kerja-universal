@@ -18,8 +18,8 @@ func NewSasaranPemdaRepositoryImpl() *SasaranPemdaRepositoryImpl {
 
 func (repository *SasaranPemdaRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, sasaranPemda domain.SasaranPemda) (domain.SasaranPemda, error) {
 	// Insert sasaran pemda
-	query := "INSERT INTO tb_sasaran_pemda(id, tujuan_pemda_id, subtema_id, sasaran_pemda, periode_id) VALUES (?, ?, ?, ?, ?)"
-	_, err := tx.ExecContext(ctx, query, sasaranPemda.Id, sasaranPemda.TujuanPemdaId, sasaranPemda.SubtemaId, sasaranPemda.SasaranPemda, sasaranPemda.PeriodeId)
+	query := "INSERT INTO tb_sasaran_pemda(id, tujuan_pemda_id, subtema_id, sasaran_pemda, periode_id, tahun_awal, tahun_akhir, jenis_periode) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+	_, err := tx.ExecContext(ctx, query, sasaranPemda.Id, sasaranPemda.TujuanPemdaId, sasaranPemda.SubtemaId, sasaranPemda.SasaranPemda, sasaranPemda.PeriodeId, sasaranPemda.TahunAwal, sasaranPemda.TahunAkhir, sasaranPemda.JenisPeriode)
 	if err != nil {
 		return sasaranPemda, err
 	}
@@ -87,8 +87,8 @@ func (repository *SasaranPemdaRepositoryImpl) CreateTarget(ctx context.Context, 
 
 func (repository *SasaranPemdaRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, sasaranPemda domain.SasaranPemda) (domain.SasaranPemda, error) {
 	// Update sasaran pemda
-	query := "UPDATE tb_sasaran_pemda SET sasaran_pemda = ?, tujuan_pemda_id = ? WHERE id = ?"
-	_, err := tx.ExecContext(ctx, query, sasaranPemda.SasaranPemda, sasaranPemda.TujuanPemdaId, sasaranPemda.Id)
+	query := "UPDATE tb_sasaran_pemda SET sasaran_pemda = ?, tujuan_pemda_id = ?, periode_id = ?, tahun_awal = ?, tahun_akhir = ?, jenis_periode = ? WHERE id = ?"
+	_, err := tx.ExecContext(ctx, query, sasaranPemda.SasaranPemda, sasaranPemda.TujuanPemdaId, sasaranPemda.PeriodeId, sasaranPemda.TahunAwal, sasaranPemda.TahunAkhir, sasaranPemda.JenisPeriode, sasaranPemda.Id)
 	if err != nil {
 		return sasaranPemda, err
 	}
@@ -188,6 +188,7 @@ func (repository *SasaranPemdaRepositoryImpl) FindById(ctx context.Context, tx *
             tp.periode_id,
             COALESCE(p.tahun_awal, '') as tahun_awal,
             COALESCE(p.tahun_akhir, '') as tahun_akhir,
+			COALESCE(p.jenis_periode, '') as jenis_periode,
             pk.jenis_pohon,
             i.id as indikator_id,
             i.indikator as indikator_text,
@@ -219,11 +220,11 @@ func (repository *SasaranPemdaRepositoryImpl) FindById(ctx context.Context, tx *
 
 	for rows.Next() {
 		var (
-			id, subtemaId, periodeId, tujuanPemdaId             int
-			sasaranPemdaText, tahunAwal, tahunAkhir, jenisPohon string // Tambahkan jenisPohon
-			indikatorId, indikatorText                          sql.NullString
-			rumusPerhitunganNull, sumberDataNull                sql.NullString
-			targetId, targetValue, targetSatuan, targetTahun    sql.NullString
+			id, subtemaId, periodeId, tujuanPemdaId                           int
+			sasaranPemdaText, tahunAwal, tahunAkhir, jenisPeriode, jenisPohon string // Tambahkan jenisPohon
+			indikatorId, indikatorText                                        sql.NullString
+			rumusPerhitunganNull, sumberDataNull                              sql.NullString
+			targetId, targetValue, targetSatuan, targetTahun                  sql.NullString
 		)
 
 		err := rows.Scan(
@@ -234,6 +235,7 @@ func (repository *SasaranPemdaRepositoryImpl) FindById(ctx context.Context, tx *
 			&periodeId,
 			&tahunAwal,
 			&tahunAkhir,
+			&jenisPeriode,
 			&jenisPohon,
 			&indikatorId,
 			&indikatorText,
@@ -257,8 +259,9 @@ func (repository *SasaranPemdaRepositoryImpl) FindById(ctx context.Context, tx *
 				PeriodeId:     periodeId,
 				JenisPohon:    jenisPohon,
 				Periode: domain.Periode{
-					TahunAwal:  tahunAwal,
-					TahunAkhir: tahunAkhir,
+					TahunAwal:    tahunAwal,
+					TahunAkhir:   tahunAkhir,
+					JenisPeriode: jenisPeriode,
 				},
 				Indikator: []domain.Indikator{},
 			}
@@ -562,91 +565,83 @@ func (repository *SasaranPemdaRepositoryImpl) UpdatePeriode(ctx context.Context,
 	return updatedSasaranPemda, nil
 }
 
-func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Context, tx *sql.Tx, tahun string) ([]domain.PohonKinerjaWithSasaran, error) {
+func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Context, tx *sql.Tx, tahunAwal string, tahunAkhir string, jenisPeriode string) ([]domain.PohonKinerjaWithSasaran, error) {
 	query := `
-      WITH RECURSIVE tahun_periode AS (
-        SELECT DISTINCT p.id as periode_id, p.tahun_awal, p.tahun_akhir
-        FROM tb_periode p
-        WHERE CAST(? AS SIGNED) BETWEEN CAST(p.tahun_awal AS SIGNED) AND CAST(p.tahun_akhir AS SIGNED)
-    ),
-    pohon_hierarchy AS (
-        SELECT 
-            pk.id,
-            pk.nama_pohon,
-            pk.parent,
-            pk.level_pohon,
-            pk.jenis_pohon,
-            pk.keterangan,
-            pk.tahun,
-            CAST(pk.id AS CHAR(50)) as path,
-            pk.id as root_id,
-            pk.nama_pohon as root_nama
-        FROM tb_pohon_kinerja pk
-        WHERE pk.level_pohon = 0
-        AND EXISTS (
-            SELECT 1 FROM tahun_periode tp 
-            WHERE CAST(pk.tahun AS SIGNED) BETWEEN CAST(tp.tahun_awal AS SIGNED) AND CAST(tp.tahun_akhir AS SIGNED)
-        )
-
-        UNION ALL
-
-        SELECT 
-            c.id,
-            c.nama_pohon,
-            c.parent,
-            c.level_pohon,
-            c.jenis_pohon,
-            c.keterangan,
-            c.tahun,
-            CONCAT(ph.path, ',', c.id),
-            ph.root_id,
-            ph.root_nama
-        FROM tb_pohon_kinerja c
-        JOIN pohon_hierarchy ph ON c.parent = ph.id
-    )
-    SELECT DISTINCT
-        pk.id as subtematik_id,
-        pk.nama_pohon as nama_subtematik,
-        pk.jenis_pohon,
-        pk.level_pohon,
-        pk.keterangan,
-        pk.tahun as pohon_tahun,
-        pk.root_id as tematik_id,
-        pk.root_nama as nama_tematik,
-        sp.id as id_sasaran_pemda,
-        sp.sasaran_pemda,
-        sp.periode_id,
-        p.tahun_awal,
-        p.tahun_akhir,
-        i.id as indikator_id,
-        i.indikator,
-        i.rumus_perhitungan,
-        i.sumber_data,
-        t.id as target_id,
-        t.target,
-        t.satuan,
-        t.tahun as target_tahun
-    FROM pohon_hierarchy pk
-    LEFT JOIN tb_sasaran_pemda sp ON pk.id = sp.subtema_id
-    LEFT JOIN tb_periode p ON sp.periode_id = p.id
-    LEFT JOIN tb_indikator i ON sp.id = i.sasaran_pemda_id
-    LEFT JOIN tb_target t ON i.id = t.indikator_id 
-        AND CAST(t.tahun AS SIGNED) BETWEEN CAST(p.tahun_awal AS SIGNED) AND CAST(p.tahun_akhir AS SIGNED)
-    WHERE (pk.level_pohon BETWEEN 1 AND 3)
-    AND (
-        sp.id IS NULL 
-        OR EXISTS (
-            SELECT 1 FROM tahun_periode tp 
-            WHERE CAST(? AS SIGNED) BETWEEN CAST(p.tahun_awal AS SIGNED) AND CAST(p.tahun_akhir AS SIGNED)
-        )
-    )
-    ORDER BY pk.root_id, pk.level_pohon, pk.id, sp.id, i.id, CAST(t.tahun AS SIGNED)`
-
-	rows, err := tx.QueryContext(ctx, query, tahun, tahun)
+	WITH RECURSIVE pohon_hierarchy AS (
+		SELECT 
+			pk.id,
+			pk.nama_pohon,
+			pk.parent,
+			pk.level_pohon,
+			pk.jenis_pohon,
+			pk.keterangan,
+			pk.tahun,
+			CAST(pk.id AS CHAR(50)) as path,
+			pk.id as root_id,
+			pk.nama_pohon as root_nama  -- Ini adalah alias untuk nama_pohon di level root
+		FROM tb_pohon_kinerja pk
+		WHERE pk.level_pohon = 0
+		AND CAST(pk.tahun AS SIGNED) BETWEEN CAST(? AS SIGNED) AND CAST(? AS SIGNED)
+	
+		UNION ALL
+	
+		SELECT 
+			c.id,
+			c.nama_pohon,
+			c.parent,
+			c.level_pohon,
+			c.jenis_pohon,
+			c.keterangan,
+			c.tahun,
+			CONCAT(ph.path, ',', c.id),
+			ph.root_id,
+			ph.root_nama    -- Menggunakan root_nama dari parent
+		FROM tb_pohon_kinerja c
+		JOIN pohon_hierarchy ph ON c.parent = ph.id
+		WHERE CAST(c.tahun AS SIGNED) BETWEEN CAST(? AS SIGNED) AND CAST(? AS SIGNED)
+	)
+	SELECT DISTINCT
+		pk.id as subtematik_id,
+		pk.nama_pohon as nama_subtematik,
+		pk.jenis_pohon,
+		pk.level_pohon,
+		pk.keterangan,
+		pk.tahun as pohon_tahun,
+		pk.root_id as tematik_id,
+		pk.root_nama as nama_tematik,  -- Menggunakan root_nama dari CTE
+		sp.id as id_sasaran_pemda,
+		sp.sasaran_pemda,
+		sp.tahun_awal,
+		sp.tahun_akhir,
+		sp.jenis_periode,
+		i.id as indikator_id,
+		i.indikator,
+		i.rumus_perhitungan,
+		i.sumber_data,
+		t.id as target_id,
+		t.target,
+		t.satuan,
+		t.tahun as target_tahun
+	FROM pohon_hierarchy pk
+	LEFT JOIN tb_sasaran_pemda sp ON pk.id = sp.subtema_id
+	LEFT JOIN tb_indikator i ON sp.id = i.sasaran_pemda_id
+	LEFT JOIN tb_target t ON i.id = t.indikator_id
+	WHERE (pk.level_pohon BETWEEN 1 AND 3)
+	AND (
+		sp.id IS NULL 
+		OR (
+			sp.tahun_awal = ? 
+			AND sp.tahun_akhir = ?
+			AND sp.jenis_periode = ?
+		)
+	)
+	ORDER BY pk.root_id, pk.level_pohon, pk.id, sp.id, i.id, CAST(t.tahun AS SIGNED)`
+	rows, err := tx.QueryContext(ctx, query, tahunAwal, tahunAkhir, tahunAwal, tahunAkhir, tahunAwal, tahunAkhir, jenisPeriode)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
+
 	tematikMap := make(map[int]*domain.PohonKinerjaWithSasaran)
 
 	for rows.Next() {
@@ -659,8 +654,9 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 			namaTematik                            string
 			idSasaranPemda                         sql.NullInt64
 			sasaranPemda                           sql.NullString
-			periodeId                              sql.NullInt64
-			tahunAwal, tahunAkhir                  sql.NullString
+			tahunAwalSasaran                       sql.NullString // tambahan
+			tahunAkhirSasaran                      sql.NullString // tambahan
+			jenisPeriodeSasaran                    sql.NullString // tambahan
 			indikatorId, indikator                 sql.NullString
 			rumusPerhitungan, sumberData           sql.NullString
 			targetId, target, satuan, targetTahun  sql.NullString
@@ -677,9 +673,9 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 			&namaTematik,
 			&idSasaranPemda,
 			&sasaranPemda,
-			&periodeId,
-			&tahunAwal,
-			&tahunAkhir,
+			&tahunAwalSasaran,    // tambahan
+			&tahunAkhirSasaran,   // tambahan
+			&jenisPeriodeSasaran, // tambahan
 			&indikatorId,
 			&indikator,
 			&rumusPerhitungan,
@@ -694,41 +690,40 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 		}
 
 		// Inisialisasi tematik jika belum ada
-		if _, exists := tematikMap[tematikId]; !exists {
-			tematikMap[tematikId] = &domain.PohonKinerjaWithSasaran{
+		tematik, exists := tematikMap[tematikId]
+		if !exists {
+			tematik = &domain.PohonKinerjaWithSasaran{
 				TematikId:   tematikId,
 				NamaTematik: namaTematik,
-				Tahun:       pohonTahun,
 				Subtematik:  []domain.SubtematikWithSasaran{},
 			}
+			tematikMap[tematikId] = tematik
 		}
 
 		// Cari subtematik yang sudah ada
 		var foundSubtematik *domain.SubtematikWithSasaran
-		for i := range tematikMap[tematikId].Subtematik {
-			if tematikMap[tematikId].Subtematik[i].SubtematikId == subtematikId {
-				foundSubtematik = &tematikMap[tematikId].Subtematik[i]
+		for i := range tematik.Subtematik {
+			if tematik.Subtematik[i].SubtematikId == subtematikId {
+				foundSubtematik = &tematik.Subtematik[i]
 				break
 			}
 		}
 
-		// Jika subtematik belum ada, tambahkan baru
+		// Buat subtematik baru jika belum ada
 		if foundSubtematik == nil {
 			newSubtematik := domain.SubtematikWithSasaran{
 				SubtematikId:     subtematikId,
 				NamaSubtematik:   namaSubtematik,
 				JenisPohon:       jenisPohon,
 				LevelPohon:       levelPohon,
-				Keterangan:       keterangan,
 				SasaranPemdaList: []domain.SasaranPemdaDetail{},
 			}
-			tematikMap[tematikId].Subtematik = append(tematikMap[tematikId].Subtematik, newSubtematik)
-			foundSubtematik = &tematikMap[tematikId].Subtematik[len(tematikMap[tematikId].Subtematik)-1]
+			tematik.Subtematik = append(tematik.Subtematik, newSubtematik)
+			foundSubtematik = &tematik.Subtematik[len(tematik.Subtematik)-1]
 		}
 
 		// Proses sasaran pemda jika ada
 		if idSasaranPemda.Valid && sasaranPemda.Valid {
-			// Cari sasaran pemda yang sudah ada
 			var foundSasaran *domain.SasaranPemdaDetail
 			for i := range foundSubtematik.SasaranPemdaList {
 				if foundSubtematik.SasaranPemdaList[i].Id == int(idSasaranPemda.Int64) {
@@ -737,14 +732,14 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 				}
 			}
 
-			// Jika sasaran pemda belum ada, tambahkan baru
 			if foundSasaran == nil {
 				newSasaran := domain.SasaranPemdaDetail{
 					Id:           int(idSasaranPemda.Int64),
 					SasaranPemda: sasaranPemda.String,
 					Periode: domain.Periode{
-						TahunAwal:  tahunAwal.String,
-						TahunAkhir: tahunAkhir.String,
+						TahunAwal:    tahunAwal,
+						TahunAkhir:   tahunAkhir,
+						JenisPeriode: jenisPeriode,
 					},
 					Indikator: []domain.IndikatorDetail{},
 				}
@@ -771,20 +766,17 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 						Target:           []domain.TargetDetail{},
 					}
 
-					// Buat target untuk semua tahun dalam periode
-					if tahunAwal.Valid && tahunAkhir.Valid {
-						tahunAwalInt, _ := strconv.Atoi(tahunAwal.String)
-						tahunAkhirInt, _ := strconv.Atoi(tahunAkhir.String)
-
-						for tahun := tahunAwalInt; tahun <= tahunAkhirInt; tahun++ {
-							tahunStr := strconv.Itoa(tahun)
-							newIndikator.Target = append(newIndikator.Target, domain.TargetDetail{
-								Id:     "-",
-								Target: "",
-								Satuan: "",
-								Tahun:  tahunStr,
-							})
-						}
+					// Buat target kosong untuk setiap tahun dalam range
+					tahunAwalInt, _ := strconv.Atoi(tahunAwal)
+					tahunAkhirInt, _ := strconv.Atoi(tahunAkhir)
+					for tahun := tahunAwalInt; tahun <= tahunAkhirInt; tahun++ {
+						tahunStr := strconv.Itoa(tahun)
+						newIndikator.Target = append(newIndikator.Target, domain.TargetDetail{
+							Id:     "-",
+							Target: "",
+							Satuan: "",
+							Tahun:  tahunStr,
+						})
 					}
 
 					foundSasaran.Indikator = append(foundSasaran.Indikator, newIndikator)
@@ -793,16 +785,31 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 
 				// Update target jika ada
 				if targetId.Valid && targetTahun.Valid {
-					for i := range foundIndikator.Target {
-						if foundIndikator.Target[i].Tahun == targetTahun.String {
-							foundIndikator.Target[i].Id = targetId.String
-							foundIndikator.Target[i].Target = target.String
-							foundIndikator.Target[i].Satuan = satuan.String
-							break
+					tahunTarget, _ := strconv.Atoi(targetTahun.String)
+					tahunAwalInt, _ := strconv.Atoi(tahunAwal)
+					tahunAkhirInt, _ := strconv.Atoi(tahunAkhir)
+
+					if tahunTarget >= tahunAwalInt && tahunTarget <= tahunAkhirInt {
+						for i := range foundIndikator.Target {
+							if foundIndikator.Target[i].Tahun == targetTahun.String {
+								foundIndikator.Target[i] = domain.TargetDetail{
+									Id:     targetId.String,
+									Target: target.String,
+									Satuan: satuan.String,
+									Tahun:  targetTahun.String,
+								}
+								break
+							}
 						}
 					}
 				}
+				sort.Slice(foundIndikator.Target, func(i, j int) bool {
+					tahunI, _ := strconv.Atoi(foundIndikator.Target[i].Tahun)
+					tahunJ, _ := strconv.Atoi(foundIndikator.Target[j].Tahun)
+					return tahunI < tahunJ
+				})
 			}
+
 		}
 	}
 
@@ -811,11 +818,6 @@ func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Conte
 	for _, tematik := range tematikMap {
 		result = append(result, *tematik)
 	}
-
-	// Sort hasil akhir
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].TematikId < result[j].TematikId
-	})
 
 	return result, nil
 }

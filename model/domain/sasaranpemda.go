@@ -8,6 +8,9 @@ type SasaranPemda struct {
 	SasaranPemda  string
 	JenisPohon    string
 	PeriodeId     int
+	TahunAwal     string
+	TahunAkhir    string
+	JenisPeriode  string
 	Periode       Periode
 	Indikator     []Indikator
 }

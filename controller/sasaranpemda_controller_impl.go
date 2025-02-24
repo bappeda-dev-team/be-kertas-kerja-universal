@@ -170,8 +170,11 @@ func (controller *SasaranPemdaControllerImpl) FindAll(writer http.ResponseWriter
 }
 
 func (controller *SasaranPemdaControllerImpl) FindAllWithPokin(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	tahun := params.ByName("tahun")
-	sasaranPemdaResponses, err := controller.sasaranPemdaService.FindAllWithPokin(request.Context(), tahun)
+	tahunAwal := params.ByName("tahun_awal")
+	tahunAkhir := params.ByName("tahun_akhir")
+	jenisPeriode := params.ByName("jenis_periode")
+
+	sasaranPemdaResponses, err := controller.sasaranPemdaService.FindAllWithPokin(request.Context(), tahunAwal, tahunAkhir, jenisPeriode)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   http.StatusInternalServerError,

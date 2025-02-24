@@ -6,6 +6,9 @@ type SasaranPemdaUpdateRequest struct {
 	SubtemaId     int                      `json:"subtema_id"`
 	SasaranPemda  string                   `json:"sasaran_pemda"`
 	PeriodeId     int                      `json:"periode_id"`
+	TahunAwal     string                   `json:"tahun_awal"`
+	TahunAkhir    string                   `json:"tahun_akhir"`
+	JenisPeriode  string                   `json:"jenis_periode"`
 	Indikator     []IndikatorUpdateRequest `json:"indikator"`
 }
 

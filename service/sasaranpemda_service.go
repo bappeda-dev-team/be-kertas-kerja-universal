@@ -11,5 +11,5 @@ type SasaranPemdaService interface {
 	Delete(ctx context.Context, id int) error
 	FindById(ctx context.Context, sasaranPemdaId int) (sasaranpemda.SasaranPemdaResponse, error)
 	FindAll(ctx context.Context, tahun string) ([]sasaranpemda.SasaranPemdaResponse, error)
-	FindAllWithPokin(ctx context.Context, tahun string) ([]sasaranpemda.TematikResponse, error)
+	FindAllWithPokin(ctx context.Context, tahunAwal, tahunAkhir, jenisPeriode string) ([]sasaranpemda.TematikResponse, error)
 }

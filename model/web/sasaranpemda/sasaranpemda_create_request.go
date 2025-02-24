@@ -5,6 +5,9 @@ type SasaranPemdaCreateRequest struct {
 	TujuanPemdaId int                      `json:"tujuan_pemda_id"`
 	SasaranPemda  string                   `json:"sasaran_pemda"`
 	PeriodeId     int                      `json:"periode_id"`
+	TahunAwal     string                   `json:"tahun_awal"`
+	TahunAkhir    string                   `json:"tahun_akhir"`
+	JenisPeriode  string                   `json:"jenis_periode"`
 	Indikator     []IndikatorCreateRequest `json:"indikator"`
 }
 

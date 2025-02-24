@@ -28,8 +28,10 @@ type TargetResponse struct {
 }
 
 type PeriodeResponse struct {
-	TahunAwal  string `json:"tahun_awal"`
-	TahunAkhir string `json:"tahun_akhir"`
+	Id           int    `json:"id"`
+	TahunAwal    string `json:"tahun_awal"`
+	TahunAkhir   string `json:"tahun_akhir"`
+	JenisPeriode string `json:"jenis_periode"`
 }
 
 // type TematikSasaranPemdaResponse struct {

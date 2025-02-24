@@ -244,6 +244,7 @@ func (service *PeriodeServiceImpl) FindAll(ctx context.Context, jenis_periode st
 	if err != nil {
 		return nil, err
 	}
+	defer helper.CommitOrRollback(tx)
 
 	periodes, err := service.PeriodeRepository.FindAll(ctx, tx, jenis_periode)
 	if err != nil {
@@ -252,11 +253,28 @@ func (service *PeriodeServiceImpl) FindAll(ctx context.Context, jenis_periode st
 
 	var periodesResponse []periodetahun.PeriodeResponse
 	for _, periode := range periodes {
+		// Generate tahunList seperti di FindByTahun
+		tahunAwal, err := strconv.Atoi(periode.TahunAwal)
+		if err != nil {
+			return nil, fmt.Errorf("invalid tahun awal format: %v", err)
+		}
+
+		tahunAkhir, err := strconv.Atoi(periode.TahunAkhir)
+		if err != nil {
+			return nil, fmt.Errorf("invalid tahun akhir format: %v", err)
+		}
+
+		var tahunList []string
+		for tahun := tahunAwal; tahun <= tahunAkhir; tahun++ {
+			tahunList = append(tahunList, strconv.Itoa(tahun))
+		}
+
 		periodesResponse = append(periodesResponse, periodetahun.PeriodeResponse{
 			Id:           periode.Id,
 			TahunAwal:    periode.TahunAwal,
 			TahunAkhir:   periode.TahunAkhir,
 			JenisPeriode: periode.JenisPeriode,
+			TahunList:    tahunList,
 		})
 	}
 

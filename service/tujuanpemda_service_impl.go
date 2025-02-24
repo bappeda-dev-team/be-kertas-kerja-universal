@@ -421,14 +421,14 @@ func (service *TujuanPemdaServiceImpl) FindById(ctx context.Context, tujuanPemda
 	}, nil
 }
 
-func (service *TujuanPemdaServiceImpl) FindAll(ctx context.Context, tahun string) ([]tujuanpemda.TujuanPemdaResponse, error) {
+func (service *TujuanPemdaServiceImpl) FindAll(ctx context.Context, tahun string, jenisPeriode string) ([]tujuanpemda.TujuanPemdaResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return []tujuanpemda.TujuanPemdaResponse{}, err
 	}
 	defer helper.CommitOrRollback(tx)
 
-	tujuanPemdaList, err := service.TujuanPemdaRepository.FindAll(ctx, tx, tahun)
+	tujuanPemdaList, err := service.TujuanPemdaRepository.FindAll(ctx, tx, tahun, jenisPeriode)
 	if err != nil {
 		return []tujuanpemda.TujuanPemdaResponse{}, err
 	}
@@ -440,38 +440,16 @@ func (service *TujuanPemdaServiceImpl) FindAll(ctx context.Context, tahun string
 			return []tujuanpemda.TujuanPemdaResponse{}, fmt.Errorf("gagal mengambil data pohon kinerja: %v", err)
 		}
 
-		var indikatorResponses []tujuanpemda.IndikatorResponse
-		for _, indikator := range tujuanPemda.Indikator {
-			indikatorResponse := tujuanpemda.IndikatorResponse{
-				Id:               indikator.Id,
-				Indikator:        indikator.Indikator,
-				RumusPerhitungan: indikator.RumusPerhitungan.String,
-				SumberData:       indikator.SumberData.String,
-				Target:           []tujuanpemda.TargetResponse{},
-			}
-
-			// Tambahkan semua target dalam rentang periode
-			if tujuanPemda.PeriodeId != 0 && tujuanPemda.Periode.TahunAwal != "" {
-				// Urutkan target berdasarkan tahun
-				sort.Slice(indikator.Target, func(i, j int) bool {
-					return indikator.Target[i].Tahun < indikator.Target[j].Tahun
-				})
-				indikatorResponse.Target = convertToTargetResponses(indikator.Target)
-			}
-
-			indikatorResponses = append(indikatorResponses, indikatorResponse)
-		}
-
 		tujuanPemdaResponses = append(tujuanPemdaResponses, tujuanpemda.TujuanPemdaResponse{
 			Id:          tujuanPemda.Id,
 			TujuanPemda: tujuanPemda.TujuanPemda,
 			TematikId:   tujuanPemda.TematikId,
 			NamaTematik: pokinData.NamaPohon,
 			Periode: tujuanpemda.PeriodeResponse{
-				TahunAwal:  tujuanPemda.Periode.TahunAwal,
-				TahunAkhir: tujuanPemda.Periode.TahunAkhir,
+				TahunAwal:    tujuanPemda.Periode.TahunAwal,
+				TahunAkhir:   tujuanPemda.Periode.TahunAkhir,
+				JenisPeriode: tujuanPemda.Periode.JenisPeriode,
 			},
-			Indikator: indikatorResponses,
 		})
 	}
 

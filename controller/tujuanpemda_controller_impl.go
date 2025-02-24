@@ -149,7 +149,8 @@ func (controller *TujuanPemdaControllerImpl) FindById(writer http.ResponseWriter
 
 func (controller *TujuanPemdaControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	tahun := params.ByName("tahun")
-	tujuanPemdaResponses, err := controller.TujuanPemdaService.FindAll(request.Context(), tahun)
+	jenisPeriode := params.ByName("jenis_periode")
+	tujuanPemdaResponses, err := controller.TujuanPemdaService.FindAll(request.Context(), tahun, jenisPeriode)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   http.StatusInternalServerError,

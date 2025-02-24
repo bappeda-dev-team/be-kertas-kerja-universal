@@ -368,6 +368,16 @@ func (service *TujuanPemdaServiceImpl) FindById(ctx context.Context, tujuanPemda
 		return tujuanpemda.TujuanPemdaResponse{}, fmt.Errorf("gagal mengambil data pohon kinerja: %v", err)
 	}
 
+	visiPemda, err := service.VisiPemdaRepository.FindById(ctx, tx, tujuanPemda.IdVisi)
+	if err != nil {
+		return tujuanpemda.TujuanPemdaResponse{}, err
+	}
+
+	misiPemda, err := service.MisiPemdaRepository.FindById(ctx, tx, tujuanPemda.IdMisi)
+	if err != nil {
+		return tujuanpemda.TujuanPemdaResponse{}, err
+	}
+
 	var indikatorResponses []tujuanpemda.IndikatorResponse
 	for _, indikator := range tujuanPemda.Indikator {
 		indikatorResponse := tujuanpemda.IndikatorResponse{
@@ -393,6 +403,10 @@ func (service *TujuanPemdaServiceImpl) FindById(ctx context.Context, tujuanPemda
 
 	return tujuanpemda.TujuanPemdaResponse{
 		Id:          tujuanPemda.Id,
+		IdVisi:      tujuanPemda.IdVisi,
+		IdMisi:      tujuanPemda.IdMisi,
+		Visi:        visiPemda.Visi,
+		Misi:        misiPemda.Misi,
 		TujuanPemda: tujuanPemda.TujuanPemda,
 		TematikId:   tujuanPemda.TematikId,
 		NamaTematik: pokinData.NamaPohon,
@@ -623,7 +637,7 @@ func (service *TujuanPemdaServiceImpl) FindAllWithPokin(ctx context.Context, tah
 			var indikatorResponses []tujuanpemda.IndikatorResponse
 
 			// Ambil data visi dengan penanganan default
-			visiPemda, err := service.VisiPemdaRepository.FindByIdWithDefault(ctx, tx, tujuanPemda.IdVisi)
+			visiPemda, err := service.VisiPemdaRepository.FindById(ctx, tx, tujuanPemda.IdVisi)
 			if err != nil {
 				// Jika visi tidak ditemukan, gunakan nilai default
 				visiPemda = domain.VisiPemda{
@@ -633,7 +647,7 @@ func (service *TujuanPemdaServiceImpl) FindAllWithPokin(ctx context.Context, tah
 			}
 
 			// Ambil data misi dengan penanganan default
-			misiPemda, err := service.MisiPemdaRepository.FindById(ctx, tx, tujuanPemda.IdVisi)
+			misiPemda, err := service.MisiPemdaRepository.FindById(ctx, tx, tujuanPemda.IdMisi)
 			if err != nil {
 				// Jika misi tidak ditemukan, gunakan nilai default
 				misiPemda = domain.MisiPemda{
@@ -688,7 +702,7 @@ func (service *TujuanPemdaServiceImpl) FindAllWithPokin(ctx context.Context, tah
 				Id:          tujuanPemda.Id,
 				IdVisi:      visiPemda.Id, // Tambahkan ID Visi
 				Visi:        visiPemda.Visi,
-				IdMisi:      misiPemda.Id, // Tambahkan ID Misi
+				IdMisi:      misiPemda.Id,
 				Misi:        misiPemda.Misi,
 				TujuanPemda: tujuanPemda.TujuanPemda,
 				Periode: tujuanpemda.PeriodeResponse{

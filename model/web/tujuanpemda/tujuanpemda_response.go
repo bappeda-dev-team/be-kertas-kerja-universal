@@ -2,9 +2,9 @@ package tujuanpemda
 
 type TujuanPemdaResponse struct {
 	Id          int                 `json:"id"`
-	IdVisi      int                 `json:"id_visi,omitempty"`
+	IdVisi      int                 `json:"id_visi"`
 	Visi        string              `json:"visi"`
-	IdMisi      int                 `json:"id_misi,omitempty"`
+	IdMisi      int                 `json:"id_misi"`
 	Misi        string              `json:"misi"`
 	TujuanPemda string              `json:"tujuan_pemda"`
 	TematikId   int                 `json:"tematik_id,omitempty"`

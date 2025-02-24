@@ -137,10 +137,12 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
             tp.id,
             tp.tujuan_pemda,
             tp.tematik_id,
-			tp.periode_id,
+            tp.periode_id,
             tp.tahun_awal_periode,
             tp.tahun_akhir_periode,
             tp.jenis_periode,
+            tp.id_visi,
+            tp.id_misi,
             pk.jenis_pohon, 
             i.id as indikator_id,
             i.indikator as indikator_text,
@@ -171,7 +173,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
 
 	for rows.Next() {
 		var (
-			id, tematikId, periodeId                                         int
+			id, tematikId, periodeId, idVisi, idMisi                         int
 			tujuanPemdaText, tahunAwal, tahunAkhir, jenisPeriode, jenisPohon string
 			indikatorId, indikatorText                                       sql.NullString
 			rumusPerhitunganNull, sumberDataNull                             sql.NullString
@@ -186,6 +188,8 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
 			&tahunAwal,
 			&tahunAkhir,
 			&jenisPeriode,
+			&idVisi,
+			&idMisi,
 			&jenisPohon,
 			&indikatorId,
 			&indikatorText,
@@ -202,11 +206,16 @@ func (repository *TujuanPemdaRepositoryImpl) FindById(ctx context.Context, tx *s
 
 		if firstRow {
 			result = domain.TujuanPemda{
-				Id:          id,
-				TujuanPemda: tujuanPemdaText,
-				TematikId:   tematikId,
-				JenisPohon:  jenisPohon,
-				PeriodeId:   periodeId,
+				Id:                id,
+				TujuanPemda:       tujuanPemdaText,
+				TematikId:         tematikId,
+				JenisPohon:        jenisPohon,
+				PeriodeId:         periodeId,
+				IdVisi:            idVisi,
+				IdMisi:            idMisi,
+				TahunAwalPeriode:  tahunAwal,
+				TahunAkhirPeriode: tahunAkhir,
+				JenisPeriode:      jenisPeriode,
 				Periode: domain.Periode{
 					TahunAwal:    tahunAwal,
 					TahunAkhir:   tahunAkhir,
@@ -542,6 +551,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
         tp.id as tujuan_id,
         tp.tujuan_pemda,
         tp.id_visi,
+		tp.id_misi,
         tp.tahun_awal_periode,
         tp.tahun_akhir_periode,
         tp.jenis_periode,
@@ -590,7 +600,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
 			levelPohon                                             int
 			tujuanId                                               sql.NullInt64
 			tujuanPemda                                            sql.NullString
-			idVisi                                                 sql.NullInt64
+			idVisi, idMisi                                         sql.NullInt64
 			tahunAwalPeriode, tahunAkhirPeriode, jenisPeriodeVal   sql.NullString
 			indikatorId, indikatorText                             sql.NullString
 			rumusPerhitungan, sumberData                           sql.NullString
@@ -608,6 +618,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
 			&tujuanId,
 			&tujuanPemda,
 			&idVisi,
+			&idMisi,
 			&tahunAwalPeriode,
 			&tahunAkhirPeriode,
 			&jenisPeriodeVal,
@@ -656,6 +667,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
 					TujuanPemda: tujuanPemda.String,
 					TematikId:   pokinId,
 					IdVisi:      int(idVisi.Int64),
+					IdMisi:      int(idMisi.Int64),
 					Indikator:   []domain.Indikator{},
 				}
 				pokin.TujuanPemda = append(pokin.TujuanPemda, newTujuanPemda)

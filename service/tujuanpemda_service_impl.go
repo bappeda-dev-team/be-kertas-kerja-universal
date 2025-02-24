@@ -749,7 +749,7 @@ func (service *TujuanPemdaServiceImpl) FindAllWithPokin(ctx context.Context, tah
 	return result, nil
 }
 
-func (service *TujuanPemdaServiceImpl) FindPokinWithPeriode(ctx context.Context, pokinId int) (tujuanpemda.PokinWithPeriodeResponse, error) {
+func (service *TujuanPemdaServiceImpl) FindPokinWithPeriode(ctx context.Context, pokinId int, jenisPeriode string) (tujuanpemda.PokinWithPeriodeResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return tujuanpemda.PokinWithPeriodeResponse{}, err
@@ -762,8 +762,13 @@ func (service *TujuanPemdaServiceImpl) FindPokinWithPeriode(ctx context.Context,
 		return tujuanpemda.PokinWithPeriodeResponse{}, err
 	}
 
+	// Validasi jenis periode
+	if jenisPeriode == "" {
+		return tujuanpemda.PokinWithPeriodeResponse{}, fmt.Errorf("jenis periode tidak boleh kosong")
+	}
+
 	// Ambil data pokin dengan periode
-	pokin, err := service.PohonKinerjaRepository.FindPokinWithPeriode(ctx, tx, pokinId)
+	pokin, periode, err := service.PohonKinerjaRepository.FindPokinWithPeriode(ctx, tx, pokinId, jenisPeriode)
 	if err != nil {
 		return tujuanpemda.PokinWithPeriodeResponse{}, err
 	}
@@ -776,6 +781,12 @@ func (service *TujuanPemdaServiceImpl) FindPokinWithPeriode(ctx context.Context,
 		LevelPohon: pokin.LevelPohon,
 		Tahun:      pokin.Tahun,
 		Status:     pokin.Status,
+		Periode: tujuanpemda.PokinPeriodeResponse{
+			Id:         periode.Id,
+			TahunAwal:  periode.TahunAwal,
+			TahunAkhir: periode.TahunAkhir,
+		},
+		Indikator: []tujuanpemda.PokinIndikatorResponse{},
 	}
 
 	// Transform indikator dan target
@@ -785,9 +796,9 @@ func (service *TujuanPemdaServiceImpl) FindPokinWithPeriode(ctx context.Context,
 			Indikator:        indikator.Indikator,
 			RumusPerhitungan: indikator.RumusPerhitungan.String,
 			SumberData:       indikator.SumberData.String,
+			Target:           []tujuanpemda.PokinTargetResponse{},
 		}
 
-		// Transform target untuk setiap tahun dalam periode
 		for _, target := range indikator.Target {
 			targetResponse := tujuanpemda.PokinTargetResponse{
 				Id:     target.Id,
@@ -799,24 +810,6 @@ func (service *TujuanPemdaServiceImpl) FindPokinWithPeriode(ctx context.Context,
 		}
 
 		response.Indikator = append(response.Indikator, indikatorResponse)
-	}
-
-	// Cari periode yang sesuai dengan tahun pokin
-	periode, err := service.PeriodeRepository.FindByTahun(ctx, tx, pokin.Tahun)
-	if err == nil {
-		// Jika periode ditemukan
-		response.Periode = tujuanpemda.PokinPeriodeResponse{
-			Id:         periode.Id,
-			TahunAwal:  periode.TahunAwal,
-			TahunAkhir: periode.TahunAkhir,
-		}
-	} else {
-		// Jika periode tidak ditemukan, set nilai default
-		response.Periode = tujuanpemda.PokinPeriodeResponse{
-			Id:         0,
-			TahunAwal:  "",
-			TahunAkhir: "",
-		}
 	}
 
 	return response, nil

@@ -230,6 +230,7 @@ func (controller *TujuanPemdaControllerImpl) FindAllWithPokin(writer http.Respon
 
 func (controller *TujuanPemdaControllerImpl) FindPokinWithPeriode(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	pokinId := params.ByName("pokin_id")
+	jenisPeriode := params.ByName("jenis_periode")
 	id, err := strconv.Atoi(pokinId)
 	if err != nil {
 		webResponse := web.WebResponse{
@@ -241,7 +242,7 @@ func (controller *TujuanPemdaControllerImpl) FindPokinWithPeriode(writer http.Re
 		return
 	}
 
-	pokinWithPeriodeResponse, err := controller.TujuanPemdaService.FindPokinWithPeriode(request.Context(), id)
+	pokinWithPeriodeResponse, err := controller.TujuanPemdaService.FindPokinWithPeriode(request.Context(), id, jenisPeriode)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   http.StatusInternalServerError,

@@ -15,14 +15,9 @@ func NewIkuRepositoryImpl() *IkuRepositoryImpl {
 	return &IkuRepositoryImpl{}
 }
 
-func (repository *IkuRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, tahun string) ([]domain.Indikator, error) {
+func (repository *IkuRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, tahunAwal string, tahunAkhir string, jenisPeriode string) ([]domain.Indikator, error) {
 	query := `
-      WITH tahun_periode AS (
-        SELECT DISTINCT p.id as periode_id, p.tahun_awal, p.tahun_akhir
-        FROM tb_periode p
-        WHERE CAST(? AS SIGNED) BETWEEN CAST(p.tahun_awal AS SIGNED) AND CAST(p.tahun_akhir AS SIGNED)
-    ),
-    indikator_tujuan AS (
+    WITH indikator_tujuan AS (
         SELECT 
             i.id as indikator_id,
             i.indikator,
@@ -36,14 +31,15 @@ func (repository *IkuRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, ta
             'tujuan_pemda' as sumber,
             tp.id as parent_id,
             tp.tujuan_pemda as parent_name,
-            p.tahun_awal,
-            p.tahun_akhir,
-            p.id as periode_id
+            tp.tahun_awal_periode,
+            tp.tahun_akhir_periode,
+            tp.jenis_periode
         FROM tb_indikator i
         INNER JOIN tb_tujuan_pemda tp ON i.tujuan_pemda_id = tp.id
-        INNER JOIN tb_periode p ON tp.periode_id = p.id
-        INNER JOIN tahun_periode tp_filter ON p.id = tp_filter.periode_id
         LEFT JOIN tb_target t ON t.indikator_id = i.id
+        WHERE tp.tahun_awal_periode = ? 
+        AND tp.tahun_akhir_periode = ?
+        AND tp.jenis_periode = ?
     ),
     indikator_sasaran AS (
         SELECT 
@@ -59,14 +55,15 @@ func (repository *IkuRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, ta
             'sasaran_pemda' as sumber,
             sp.id as parent_id,
             sp.sasaran_pemda as parent_name,
-            p.tahun_awal,
-            p.tahun_akhir,
-            p.id as periode_id
+            sp.tahun_awal,
+            sp.tahun_akhir,
+            sp.jenis_periode
         FROM tb_indikator i
         INNER JOIN tb_sasaran_pemda sp ON i.sasaran_pemda_id = sp.id
-        INNER JOIN tb_periode p ON sp.periode_id = p.id
-        INNER JOIN tahun_periode tp_filter ON p.id = tp_filter.periode_id
         LEFT JOIN tb_target t ON t.indikator_id = i.id
+        WHERE sp.tahun_awal = ? 
+        AND sp.tahun_akhir = ?
+        AND sp.jenis_periode = ?
     )
     SELECT * FROM (
         SELECT * FROM indikator_tujuan
@@ -76,7 +73,10 @@ func (repository *IkuRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, ta
     WHERE indikator IS NOT NULL
     ORDER BY indikator_created_at ASC`
 
-	rows, err := tx.QueryContext(ctx, query, tahun)
+	rows, err := tx.QueryContext(ctx, query,
+		tahunAwal, tahunAkhir, jenisPeriode,
+		tahunAwal, tahunAkhir, jenisPeriode,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,8 @@ func (repository *IkuRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, ta
 			parentName         sql.NullString
 			tahunAwal          string
 			tahunAkhir         string
-			periodeId          int
+			// periodeId          int
+			jenisPeriodeData string
 		)
 
 		err := rows.Scan(
@@ -118,7 +119,8 @@ func (repository *IkuRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, ta
 			&parentName,
 			&tahunAwal,
 			&tahunAkhir,
-			&periodeId,
+			// &periodeId,
+			&jenisPeriodeData,
 		)
 		if err != nil {
 			return nil, err

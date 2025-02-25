@@ -23,6 +23,9 @@ type Indikator struct {
 	ParentName       string
 	ManualIK         *ManualIKSasaranOpd
 	CreatedAt        time.Time
+	TahunAwal        string
+	TahunAkhir       string
+	JenisPeriode     string
 	Target           []Target
 	RencanaKinerja   RencanaKinerja
 	RumusPerhitungan sql.NullString

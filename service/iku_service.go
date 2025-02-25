@@ -6,5 +6,5 @@ import (
 )
 
 type IkuService interface {
-	FindAll(ctx context.Context, tahun string) ([]iku.IkuResponse, error)
+	FindAll(ctx context.Context, tahunAwal string, tahunAkhir string, jenisPeriode string) ([]iku.IkuResponse, error)
 }

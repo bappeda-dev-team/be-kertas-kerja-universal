@@ -20,15 +20,15 @@ func NewIkuServiceImpl(ikuRepository repository.IkuRepository, db *sql.DB) *IkuS
 	}
 }
 
-func (service *IkuServiceImpl) FindAll(ctx context.Context, tahun string) ([]iku.IkuResponse, error) {
+func (service *IkuServiceImpl) FindAll(ctx context.Context, tahunAwal string, tahunAkhir string, jenisPeriode string) ([]iku.IkuResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return nil, err
 	}
 	defer helper.CommitOrRollback(tx)
 
-	// Ambil data dari repository
-	indikatorTargets, err := service.IkuRepository.FindAll(ctx, tx, tahun)
+	// Ambil data dari repository dengan parameter baru
+	indikatorTargets, err := service.IkuRepository.FindAll(ctx, tx, tahunAwal, tahunAkhir, jenisPeriode)
 	if err != nil {
 		return nil, err
 	}
@@ -46,11 +46,14 @@ func (service *IkuServiceImpl) FindAll(ctx context.Context, tahun string) ([]iku
 		}
 
 		responses = append(responses, iku.IkuResponse{
-			IndikatorId: item.Id,
-			Sumber:      item.Sumber,
-			Indikator:   item.Indikator,
-			CreatedAt:   item.CreatedAt,
-			Target:      targetResponses,
+			IndikatorId:  item.Id,
+			Sumber:       item.Sumber,
+			Indikator:    item.Indikator,
+			CreatedAt:    item.CreatedAt,
+			TahunAwal:    item.TahunAwal,
+			TahunAkhir:   item.TahunAkhir,
+			JenisPeriode: item.JenisPeriode,
+			Target:       targetResponses,
 		})
 	}
 

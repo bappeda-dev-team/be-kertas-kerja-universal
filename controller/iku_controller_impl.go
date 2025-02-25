@@ -20,14 +20,17 @@ func NewIkuControllerImpl(ikuService service.IkuService) *IkuControllerImpl {
 }
 
 func (controller *IkuControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	tahun := params.ByName("tahun")
-	if tahun == "" {
+	tahunAwal := params.ByName("tahun_awal")
+	tahunAkhir := params.ByName("tahun_akhir")
+	jenisPeriode := params.ByName("jenis_periode")
+
+	if tahunAwal == "" {
 		// Handle error jika tahun tidak ada
 		helper.WriteToResponseBody(writer, "Tahun harus diisi")
 		return
 	}
 
-	ikuResponses, err := controller.IkuService.FindAll(request.Context(), tahun)
+	ikuResponses, err := controller.IkuService.FindAll(request.Context(), tahunAwal, tahunAkhir, jenisPeriode)
 	if err != nil {
 		helper.WriteToResponseBody(writer, err.Error())
 		return

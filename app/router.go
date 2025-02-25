@@ -335,7 +335,7 @@ func NewRouter(
 	router.DELETE("/permasalahan_rekin/delete/:id", permasalahanRekinController.Delete)
 
 	//iku
-	router.GET("/indikator_utama/findall/:tahun", ikuController.FindAll)
+	router.GET("/indikator_utama/periode/:tahun_awal/:tahun_akhir/:jenis_periode", ikuController.FindAll)
 
 	//sasaran opd
 	router.GET("/sasaran_opd/findall/:kode_opd/:tahun_awal/:tahun_akhir", sasaranOpdController.FindAll)

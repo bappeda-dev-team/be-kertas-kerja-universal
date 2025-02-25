@@ -881,3 +881,127 @@ func (service *RencanaKinerjaServiceImpl) FindAllRincianKak(ctx context.Context,
 
 	return responses, nil
 }
+
+func (service *RencanaKinerjaServiceImpl) RekinsasaranOpd(ctx context.Context, pegawaiId string, kodeOPD string, tahun string) ([]rencanakinerja.RencanaKinerjaResponse, error) {
+	log.Println("Memulai proses RekinsasaranOpd")
+
+	tx, err := service.DB.Begin()
+	if err != nil {
+		log.Printf("Gagal memulai transaksi: %v", err)
+		return nil, fmt.Errorf("gagal memulai transaksi: %v", err)
+	}
+	defer helper.CommitOrRollback(tx)
+
+	log.Printf("Mencari RencanaKinerja dengan pegawaiId: %s, kodeOPD: %s, tahun: %s", pegawaiId, kodeOPD, tahun)
+	rencanaKinerjaList, err := service.rencanaKinerjaRepository.RekinsasaranOpd(ctx, tx, pegawaiId, kodeOPD, tahun)
+	if err != nil {
+		log.Printf("Gagal mencari RencanaKinerja: %v", err)
+		return nil, fmt.Errorf("gagal mencari RencanaKinerja: %v", err)
+	}
+	log.Printf("Ditemukan %d RencanaKinerja", len(rencanaKinerjaList))
+
+	var responses []rencanakinerja.RencanaKinerjaResponse
+	for _, rencana := range rencanaKinerjaList {
+		log.Printf("Memproses RencanaKinerja dengan ID: %s", rencana.Id)
+
+		indikators, err := service.rencanaKinerjaRepository.FindIndikatorSasaranbyRekinId(ctx, tx, rencana.Id)
+		if err != nil && err != sql.ErrNoRows {
+			log.Printf("Gagal mencari Indikator: %v", err)
+			return nil, fmt.Errorf("gagal mencari Indikator: %v", err)
+		}
+
+		var indikatorResponses []rencanakinerja.IndikatorResponse
+		for _, indikator := range indikators {
+			targets, err := service.rencanaKinerjaRepository.FindTargetByIndikatorIdAndTahun(ctx, tx, indikator.Id, tahun)
+			if err != nil && err != sql.ErrNoRows {
+				log.Printf("Gagal mencari Target: %v", err)
+				return nil, fmt.Errorf("gagal mencari Target: %v", err)
+			}
+
+			var targetResponses []rencanakinerja.TargetResponse
+			if len(targets) > 0 {
+				for _, target := range targets {
+					targetResponses = append(targetResponses, rencanakinerja.TargetResponse{
+						Id:              target.Id,
+						IndikatorId:     target.IndikatorId,
+						TargetIndikator: target.Target,
+						SatuanIndikator: target.Satuan,
+						Tahun:           target.Tahun,
+					})
+				}
+			} else {
+				// Jika tidak ada target untuk tahun tersebut, tambahkan target kosong
+				targetResponses = append(targetResponses, rencanakinerja.TargetResponse{
+					Id:              "",
+					IndikatorId:     indikator.Id,
+					TargetIndikator: "",
+					SatuanIndikator: "",
+					Tahun:           tahun,
+				})
+			}
+
+			indikatorResponses = append(indikatorResponses, rencanakinerja.IndikatorResponse{
+				Id:               indikator.Id,
+				RencanaKinerjaId: indikator.RencanaKinerjaId,
+				NamaIndikator:    indikator.Indikator,
+				Target:           targetResponses,
+			})
+		}
+
+		ActionButton := []web.ActionButton{
+			{
+				NameAction: "Find By Id Rencana Kinerja",
+				Method:     "GET",
+				Url:        "/detail-rencana_kinerja/:rencana_kinerja_id",
+			},
+			{
+				NameAction: "Update Rencana Kinerja",
+				Method:     "PUT",
+				Url:        "/rencana_kinerja/update/:id",
+			},
+			{
+				NameAction: "Delete Rencana Kinerja",
+				Method:     "DELETE",
+				Url:        "/rencana_kinerja/delete/:id",
+			},
+		}
+
+		opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, rencana.KodeOpd)
+		if err != nil {
+			log.Printf("Gagal mencari OPD: %v", err)
+			return nil, fmt.Errorf("gagal mencari OPD: %v", err)
+		}
+
+		pegawai, err := service.pegawaiRepository.FindByNip(ctx, tx, rencana.PegawaiId)
+		if err != nil {
+			log.Printf("Gagal mencari Pegawai: %v", err)
+			return nil, fmt.Errorf("gagal mencari Pegawai: %v", err)
+		}
+
+		pohon, err := service.pohonKinerjaRepository.FindById(ctx, tx, rencana.IdPohon)
+		if err != nil {
+			log.Printf("Gagal mencari Pohon Kinerja: %v", err)
+			return nil, fmt.Errorf("gagal mencari Pohon Kinerja: %v", err)
+		}
+
+		responses = append(responses, rencanakinerja.RencanaKinerjaResponse{
+			Id:                   rencana.Id,
+			NamaRencanaKinerja:   rencana.NamaRencanaKinerja,
+			StatusRencanaKinerja: rencana.StatusRencanaKinerja,
+			Catatan:              rencana.Catatan,
+			KodeOpd: opdmaster.OpdResponseForAll{
+				KodeOpd: opd.KodeOpd,
+				NamaOpd: opd.NamaOpd,
+			},
+			PegawaiId:   rencana.PegawaiId,
+			NamaPegawai: pegawai.NamaPegawai,
+			IdPohon:     rencana.IdPohon,
+			NamaPohon:   pohon.NamaPohon,
+			Indikator:   indikatorResponses,
+			Action:      ActionButton,
+		})
+		log.Printf("RencanaKinerja Response ditambahkan untuk ID: %s", rencana.Id)
+	}
+
+	return responses, nil
+}

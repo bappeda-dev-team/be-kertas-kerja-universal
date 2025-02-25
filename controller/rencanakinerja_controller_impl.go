@@ -216,3 +216,28 @@ func (controller *RencanaKinerjaControllerImpl) FindAllRincianKak(writer http.Re
 
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *RencanaKinerjaControllerImpl) FindRekinSasaranOpd(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	pegawaiId := params.ByName("pegawai_id")
+	tahun := params.ByName("tahun")
+	kodeOPD := params.ByName("kode_opd")
+
+	rencanaKinerjaResponses, err := controller.rencanaKinerjaService.RekinsasaranOpd(request.Context(), pegawaiId, kodeOPD, tahun)
+	if err != nil {
+		webResponse := web.WebRencanaKinerjaResponse{
+			Code:   http.StatusBadRequest,
+			Status: "failed get rekin sasaran opd",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebRencanaKinerjaResponse{
+		Code:   http.StatusOK,
+		Status: "success get rekin sasaran opd",
+		Data:   rencanaKinerjaResponses,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}

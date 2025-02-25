@@ -338,7 +338,9 @@ func NewRouter(
 	router.GET("/indikator_utama/periode/:tahun_awal/:tahun_akhir/:jenis_periode", ikuController.FindAll)
 
 	//sasaran opd
-	router.GET("/sasaran_opd/findall/:kode_opd/:tahun_awal/:tahun_akhir", sasaranOpdController.FindAll)
+	router.GET("/sasaran_opd/findall/:kode_opd/:tahun_awal/:tahun_akhir/:jenis_periode", sasaranOpdController.FindAll)
+	router.GET("/sasaran_opd/detail/:id_rencana_kinerja", sasaranOpdController.FindByIdRencanaKinerja)
+	router.GET("/rencana_kinerja_sasaran_opd/pegawai_level1/:pegawai_id/tahun/:tahun", rencanaKinerjaController.FindRekinSasaranOpd)
 
 	//visi pemda
 	router.POST("/visi_pemda/create", visiPemdaController.Create)

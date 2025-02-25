@@ -273,3 +273,158 @@ func (repository *RencanaKinerjaRepositoryImpl) FindAllRincianKak(ctx context.Co
 	log.Printf("Found %d rencana kinerja records", len(rencanaKinerjas))
 	return rencanaKinerjas, nil
 }
+
+func (repository *RencanaKinerjaRepositoryImpl) RekinsasaranOpd(ctx context.Context, tx *sql.Tx, pegawaiId string, kodeOPD string, tahun string) ([]domain.RencanaKinerja, error) {
+	script := `
+        SELECT DISTINCT 
+            rk.id, 
+            rk.id_pohon, 
+            rk.nama_rencana_kinerja, 
+            COALESCE(rk.tahun, ''), 
+            rk.status_rencana_kinerja, 
+            COALESCE(rk.catatan, ''), 
+            rk.kode_opd, 
+            rk.pegawai_id,
+            rk.created_at
+        FROM tb_rencana_kinerja rk
+        INNER JOIN tb_pegawai p ON rk.pegawai_id = p.nip
+        INNER JOIN tb_pohon_kinerja pk ON rk.id_pohon = pk.id
+        INNER JOIN tb_pelaksana_pokin pl ON pk.id = pl.pohon_kinerja_id
+        INNER JOIN tb_pegawai pp ON pl.pegawai_id = pp.id
+        INNER JOIN tb_indikator i ON rk.id = i.rencana_kinerja_id
+        WHERE 1=1
+    `
+	params := []interface{}{}
+
+	if pegawaiId != "" {
+		script += " AND pp.nip = ?"
+		params = append(params, pegawaiId)
+	}
+	if kodeOPD != "" {
+		script += " AND rk.kode_opd = ?"
+		params = append(params, kodeOPD)
+	}
+
+	script += " ORDER BY rk.created_at ASC"
+
+	// Hapus join dan filter dengan tb_target di query utama
+
+	rows, err := tx.QueryContext(ctx, script, params...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var rencanaKinerjas []domain.RencanaKinerja
+	seenIds := make(map[string]bool)
+
+	for rows.Next() {
+		var rencanaKinerja domain.RencanaKinerja
+		err := rows.Scan(
+			&rencanaKinerja.Id,
+			&rencanaKinerja.IdPohon,
+			&rencanaKinerja.NamaRencanaKinerja,
+			&rencanaKinerja.Tahun,
+			&rencanaKinerja.StatusRencanaKinerja,
+			&rencanaKinerja.Catatan,
+			&rencanaKinerja.KodeOpd,
+			&rencanaKinerja.PegawaiId,
+			&rencanaKinerja.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if !seenIds[rencanaKinerja.Id] {
+			seenIds[rencanaKinerja.Id] = true
+			rencanaKinerjas = append(rencanaKinerjas, rencanaKinerja)
+		}
+	}
+
+	return rencanaKinerjas, nil
+}
+
+func (repository *RencanaKinerjaRepositoryImpl) FindIndikatorSasaranbyRekinId(ctx context.Context, tx *sql.Tx, rekinId string) ([]domain.Indikator, error) {
+	script := `
+        SELECT 
+            id,
+            rencana_kinerja_id,
+            indikator,
+            COALESCE(tahun, ''),
+            created_at
+        FROM tb_indikator 
+        WHERE rencana_kinerja_id = ?
+    `
+
+	rows, err := tx.QueryContext(ctx, script, rekinId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var indikators []domain.Indikator
+	for rows.Next() {
+		var indikator domain.Indikator
+		err := rows.Scan(
+			&indikator.Id,
+			&indikator.RencanaKinerjaId,
+			&indikator.Indikator,
+			&indikator.Tahun,
+			&indikator.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		indikators = append(indikators, indikator)
+	}
+
+	return indikators, nil
+}
+
+func (repository *RencanaKinerjaRepositoryImpl) FindTargetByIndikatorIdAndTahun(ctx context.Context, tx *sql.Tx, indikatorId string, tahun string) ([]domain.Target, error) {
+	script := `
+        SELECT 
+            id,
+            indikator_id,
+            COALESCE(target, ''),
+            COALESCE(satuan, ''),
+            COALESCE(tahun, '')
+        FROM tb_target 
+        WHERE indikator_id = ?
+    `
+	params := []interface{}{indikatorId}
+
+	if tahun != "" {
+		script += " AND tahun = ?"
+		params = append(params, tahun)
+	}
+
+	rows, err := tx.QueryContext(ctx, script, params...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var targets []domain.Target
+	for rows.Next() {
+		var target domain.Target
+		err := rows.Scan(
+			&target.Id,
+			&target.IndikatorId,
+			&target.Target,
+			&target.Satuan,
+			&target.Tahun,
+		)
+		if err != nil {
+			return nil, err
+		}
+		targets = append(targets, target)
+	}
+
+	// Jika tidak ada target ditemukan, kembalikan slice kosong
+	if len(targets) == 0 {
+		return []domain.Target{}, nil
+	}
+
+	return targets, nil
+}

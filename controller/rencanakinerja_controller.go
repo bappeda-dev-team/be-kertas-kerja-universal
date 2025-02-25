@@ -14,4 +14,5 @@ type RencanaKinerjaController interface {
 	FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindAllRencanaKinerja(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindAllRincianKak(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	FindRekinSasaranOpd(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 }

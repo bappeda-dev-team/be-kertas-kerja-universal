@@ -6,10 +6,9 @@ type TujuanOpd struct {
 	NamaOpd          string
 	KodeBidangUrusan string
 	Tujuan           string
-	// RumusPerhitungan string
-	// SumberData       string
-	PeriodeId  Periode
-	TahunAwal  string
-	TahunAkhir string
-	Indikator  []Indikator
+	PeriodeId        Periode
+	TahunAwal        string
+	TahunAkhir       string
+	JenisPeriode     string
+	Indikator        []Indikator
 }

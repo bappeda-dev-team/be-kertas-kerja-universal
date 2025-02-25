@@ -530,7 +530,7 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 	}
 
 	// Ambil data tujuan OPD
-	tujuanOpds, err := service.tujuanOpdRepository.FindTujuanOpdByTahun(ctx, tx, kodeOpd, tahun)
+	tujuanOpds, err := service.tujuanOpdRepository.FindTujuanOpdByTahun(ctx, tx, kodeOpd, tahun, "RPJMD")
 	if err != nil {
 		log.Printf("Error getting tujuan OPD: %v", err)
 		// Kembalikan response dengan array kosong jika terjadi error
@@ -553,14 +553,9 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 		}
 
 		response.TujuanOpd = append(response.TujuanOpd, pohonkinerja.TujuanOpdResponse{
-			Id:      tujuan.Id,
-			KodeOpd: tujuan.KodeOpd,
-			Tujuan:  tujuan.Tujuan,
-			Periode: pohonkinerja.PeriodeResponse{
-				Id:         tujuan.PeriodeId.Id,
-				TahunAwal:  tujuan.PeriodeId.TahunAwal,
-				TahunAkhir: tujuan.PeriodeId.TahunAkhir,
-			},
+			Id:        tujuan.Id,
+			KodeOpd:   tujuan.KodeOpd,
+			Tujuan:    tujuan.Tujuan,
 			Indikator: indikatorResponses,
 		})
 	}

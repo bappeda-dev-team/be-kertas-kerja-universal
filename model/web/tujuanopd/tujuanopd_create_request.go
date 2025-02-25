@@ -5,6 +5,9 @@ type TujuanOpdCreateRequest struct {
 	KodeBidangUrusan string                   `json:"kode_bidang_urusan"`
 	Tujuan           string                   `json:"tujuan"`
 	PeriodeId        int                      `json:"periode_id"`
+	TahunAwal        string                   `json:"tahun_awal"`
+	TahunAkhir       string                   `json:"tahun_akhir"`
+	JenisPeriode     string                   `json:"jenis_periode"`
 	Indikator        []IndikatorCreateRequest `json:"indikator"`
 }
 

@@ -10,5 +10,5 @@ type TujuanOpdService interface {
 	Update(ctx context.Context, request tujuanopd.TujuanOpdUpdateRequest) (tujuanopd.TujuanOpdResponse, error)
 	Delete(ctx context.Context, tujuanOpdId int) error
 	FindById(ctx context.Context, tujuanOpdId int) (tujuanopd.TujuanOpdResponse, error)
-	FindAll(ctx context.Context, kodeOpd string, tahun string) ([]tujuanopd.TujuanOpdwithBidangUrusanResponse, error)
+	FindAll(ctx context.Context, kodeOpd string, tahunAwal string, tahunAkhir string, jenisPeriode string) ([]tujuanopd.TujuanOpdwithBidangUrusanResponse, error)
 }

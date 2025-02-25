@@ -277,7 +277,7 @@ func NewRouter(
 	router.PUT("/tujuan_opd/update/:tujuanOpdId", tujuanOpdController.Update)
 	router.GET("/tujuan_opd/detail/:tujuanOpdId", tujuanOpdController.FindById)
 	router.DELETE("/tujuan_opd/delete/:tujuanOpdId", tujuanOpdController.Delete)
-	router.GET("/tujuan_opd/findall/:kode_opd/:tahun", tujuanOpdController.FindAll)
+	router.GET("/tujuan_opd/findall/:kode_opd/tahunawal/:tahun_awal/tahunakhir/:tahun_akhir/jenisperiode/:jenis_periode", tujuanOpdController.FindAll)
 
 	//crosscutting opd
 	router.POST("/crosscutting_opd/create/:parentId", crosscuttingOpdController.Create)

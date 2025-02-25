@@ -9,7 +9,10 @@ type TujuanOpdResponse struct {
 	Tujuan           string              `json:"tujuan,omitempty"`
 	RumusPerhitungan string              `json:"rumus_perhitungan,omitempty"`
 	SumberData       string              `json:"sumber_data,omitempty"`
-	Periode          PeriodeResponse     `json:"periode"`
+	TahunAwal        string              `json:"tahun_awal,omitempty"`
+	TahunAkhir       string              `json:"tahun_akhir,omitempty"`
+	JenisPeriode     string              `json:"jenis_periode,omitempty"`
+	Periode          PeriodeResponse     `json:"periode,omitempty"`
 	Indikator        []IndikatorResponse `json:"indikator"`
 }
 
@@ -31,9 +34,10 @@ type TargetResponse struct {
 }
 
 type PeriodeResponse struct {
-	Id         int    `json:"id"`
-	TahunAwal  string `json:"tahun_awal"`
-	TahunAkhir string `json:"tahun_akhir"`
+	Id           int    `json:"id"`
+	TahunAwal    string `json:"tahun_awal"`
+	TahunAkhir   string `json:"tahun_akhir"`
+	JenisPeriode string `json:"jenis_periode"`
 }
 
 type TujuanOpdwithBidangUrusanResponse struct {

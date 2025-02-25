@@ -11,9 +11,9 @@ type TujuanOpdRepository interface {
 	Update(ctx context.Context, tx *sql.Tx, tujuanOpd domain.TujuanOpd) error
 	Delete(ctx context.Context, tx *sql.Tx, id int) error
 	FindById(ctx context.Context, tx *sql.Tx, id int) (domain.TujuanOpd, error)
-	FindAll(ctx context.Context, tx *sql.Tx, kodeOpd string, tahun string) ([]domain.TujuanOpd, error)
+	FindAll(ctx context.Context, tx *sql.Tx, kodeOpd string, tahunAwal string, tahunAkhir string, jenisPeriode string) ([]domain.TujuanOpd, error)
 	FindIndikatorByTujuanId(ctx context.Context, tx *sql.Tx, tujuanOpdId int) ([]domain.Indikator, error)
 	FindTargetByIndikatorId(ctx context.Context, tx *sql.Tx, indikatorId string, tahun string) ([]domain.Target, error)
-	FindTujuanOpdByTahun(ctx context.Context, tx *sql.Tx, kodeOpd string, tahun string) ([]domain.TujuanOpd, error)
+	FindTujuanOpdByTahun(ctx context.Context, tx *sql.Tx, kodeOpd string, tahun string, jenisPeriode string) ([]domain.TujuanOpd, error)
 	FindIndikatorByTujuanOpdId(ctx context.Context, tx *sql.Tx, tujuanOpdId int) ([]domain.Indikator, error)
 }

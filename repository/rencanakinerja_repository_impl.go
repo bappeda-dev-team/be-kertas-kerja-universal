@@ -428,3 +428,66 @@ func (repository *RencanaKinerjaRepositoryImpl) FindTargetByIndikatorIdAndTahun(
 
 	return targets, nil
 }
+
+func (repository *RencanaKinerjaRepositoryImpl) CreateSasaranOpd(ctx context.Context, tx *sql.Tx, rencanaKinerja domain.RencanaKinerja) (domain.RencanaKinerja, error) {
+	script := "INSERT INTO tb_rencana_kinerja (id, id_pohon, nama_rencana_kinerja, tahun, status_rencana_kinerja, catatan, kode_opd, pegawai_id, kode_subkegiatan, periode_id, tahun_awal, tahun_akhir, jenis_periode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	_, err := tx.ExecContext(ctx, script, rencanaKinerja.Id, rencanaKinerja.IdPohon, rencanaKinerja.NamaRencanaKinerja, rencanaKinerja.Tahun, rencanaKinerja.StatusRencanaKinerja, rencanaKinerja.Catatan, rencanaKinerja.KodeOpd, rencanaKinerja.PegawaiId, rencanaKinerja.KodeSubKegiatan, rencanaKinerja.PeriodeId, rencanaKinerja.TahunAwal, rencanaKinerja.TahunAkhir, rencanaKinerja.JenisPeriode)
+	if err != nil {
+		return domain.RencanaKinerja{}, fmt.Errorf("error saat menyimpan rencana kinerja: %v", err)
+	}
+
+	for _, indikator := range rencanaKinerja.Indikator {
+		queryIndikator := "INSERT INTO tb_indikator (id, rencana_kinerja_id, indikator) VALUES (?, ?, ?)"
+		_, err := tx.ExecContext(ctx, queryIndikator, indikator.Id, rencanaKinerja.Id, indikator.Indikator)
+		if err != nil {
+			return domain.RencanaKinerja{}, fmt.Errorf("error saat menyimpan indikator: %v", err)
+		}
+
+		for _, target := range indikator.Target {
+			queryTarget := "INSERT INTO tb_target (id, indikator_id, target, satuan, tahun) VALUES (?, ?, ?, ?, ?)"
+			_, err := tx.ExecContext(ctx, queryTarget, target.Id, indikator.Id, target.Target, target.Satuan, target.Tahun)
+			if err != nil {
+				return domain.RencanaKinerja{}, fmt.Errorf("error saat menyimpan target: %v", err)
+			}
+		}
+	}
+
+	return rencanaKinerja, nil
+}
+
+func (repository *RencanaKinerjaRepositoryImpl) UpdateSasaranOpd(ctx context.Context, tx *sql.Tx, rencanaKinerja domain.RencanaKinerja) (domain.RencanaKinerja, error) {
+	script := "UPDATE tb_rencana_kinerja SET id_pohon = ?, nama_rencana_kinerja = ?, tahun = ?, status_rencana_kinerja = ?, catatan = ?, kode_opd = ?, pegawai_id = ?, periode_id = ?, tahun_awal = ?, tahun_akhir = ?, jenis_periode = ? WHERE id = ?"
+	_, err := tx.ExecContext(ctx, script, rencanaKinerja.IdPohon, rencanaKinerja.NamaRencanaKinerja, rencanaKinerja.Tahun, rencanaKinerja.StatusRencanaKinerja, rencanaKinerja.Catatan, rencanaKinerja.KodeOpd, rencanaKinerja.PegawaiId, rencanaKinerja.PeriodeId, rencanaKinerja.TahunAwal, rencanaKinerja.TahunAkhir, rencanaKinerja.JenisPeriode, rencanaKinerja.Id)
+	if err != nil {
+		return domain.RencanaKinerja{}, err
+	}
+
+	scriptDeleteTarget := "DELETE FROM tb_target WHERE indikator_id IN (SELECT id FROM tb_indikator WHERE rencana_kinerja_id = ?)"
+	_, err = tx.ExecContext(ctx, scriptDeleteTarget, rencanaKinerja.Id)
+	if err != nil {
+		return domain.RencanaKinerja{}, err
+	}
+
+	queryDeleteIndikator := "DELETE FROM tb_indikator WHERE rencana_kinerja_id = ?"
+	_, err = tx.ExecContext(ctx, queryDeleteIndikator, rencanaKinerja.Id)
+	if err != nil {
+		return domain.RencanaKinerja{}, err
+	}
+	for _, indikator := range rencanaKinerja.Indikator {
+		scriptIndikator := "INSERT INTO tb_indikator (id, rencana_kinerja_id, indikator, tahun) VALUES (?, ?, ?, ?)"
+		_, err := tx.ExecContext(ctx, scriptIndikator, indikator.Id, rencanaKinerja.Id, indikator.Indikator, indikator.Tahun)
+		if err != nil {
+			return domain.RencanaKinerja{}, err
+		}
+
+		for _, target := range indikator.Target {
+			queryTarget := "INSERT INTO tb_target (id, indikator_id, target, satuan, tahun) VALUES (?, ?, ?, ?, ?)"
+			_, err := tx.ExecContext(ctx, queryTarget, target.Id, indikator.Id, target.Target, target.Satuan, target.Tahun)
+			if err != nil {
+				return domain.RencanaKinerja{}, err
+			}
+		}
+	}
+
+	return rencanaKinerja, nil
+}

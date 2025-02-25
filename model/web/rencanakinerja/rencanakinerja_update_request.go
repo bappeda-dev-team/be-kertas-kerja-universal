@@ -9,6 +9,10 @@ type RencanaKinerjaUpdateRequest struct {
 	Catatan              string                   `json:"catatan"`
 	KodeOpd              string                   `json:"kode_opd"`
 	PegawaiId            string                   `json:"pegawai_id"`
+	PeriodeId            int                      `json:"periode_id" validate:"required"`
+	TahunAwal            string                   `json:"tahun_awal"`
+	TahunAkhir           string                   `json:"tahun_akhir"`
+	JenisPeriode         string                   `json:"jenis_periode"`
 	Indikator            []IndikatorUpdateRequest `json:"indikator"`
 }
 

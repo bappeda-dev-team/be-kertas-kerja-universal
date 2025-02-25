@@ -19,7 +19,7 @@ func NewSasaranOpdRepositoryImpl() *SasaranOpdRepositoryImpl {
 
 func (repository *SasaranOpdRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, KodeOpd string, tahunAwal string, tahunAkhir string, jenisPeriode string) ([]domain.SasaranOpd, error) {
 	script := `
-      WITH RECURSIVE periode_tahun AS (
+     WITH RECURSIVE periode_tahun AS (
         SELECT CAST(? AS CHAR(4)) as tahun
         UNION ALL
         SELECT CAST(CAST(tahun AS UNSIGNED) + 1 AS CHAR(4))
@@ -58,6 +58,7 @@ func (repository *SasaranOpdRepositoryImpl) FindAll(ctx context.Context, tx *sql
         AND rk.tahun_awal = ?
         AND rk.tahun_akhir = ?
         AND rk.jenis_periode = ?
+        AND rk.pegawai_id = p.nip  -- Tambahkan kondisi ini untuk memastikan pegawai_id di rencana_kinerja sesuai dengan nip pelaksana
     LEFT JOIN tb_indikator i ON rk.id = i.rencana_kinerja_id
     LEFT JOIN tb_manual_ik mik ON i.id = mik.indikator_id
     LEFT JOIN tb_target t ON i.id = t.indikator_id

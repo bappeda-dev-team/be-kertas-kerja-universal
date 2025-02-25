@@ -19,6 +19,7 @@ type RencanaKinerja struct {
 	TahunAwal            string
 	TahunAkhir           string
 	JenisPeriode         string
+	PeriodeId            int
 	CreatedAt            time.Time
 	Indikator            []Indikator
 	KodeSubKegiatan      string

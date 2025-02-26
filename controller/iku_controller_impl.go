@@ -44,3 +44,31 @@ func (controller *IkuControllerImpl) FindAll(writer http.ResponseWriter, request
 
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *IkuControllerImpl) FindAllIkuOpd(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	kodeOpd := params.ByName("kode_opd")
+	tahunAwal := params.ByName("tahun_awal")
+	tahunAkhir := params.ByName("tahun_akhir")
+	jenisPeriode := params.ByName("jenis_periode")
+
+	ikuOpdResponses, err := controller.IkuService.FindAllIkuOpd(request.Context(), kodeOpd, tahunAwal, tahunAkhir, jenisPeriode)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   500,
+			Status: "Internal Server Error",
+			Data:   err.Error(),
+		}
+
+		helper.WriteToResponseBody(writer, webResponse)
+
+	}
+
+	webResponse := web.WebResponse{
+		Code:   200,
+		Status: "OK",
+		Data:   ikuOpdResponses,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+
+}

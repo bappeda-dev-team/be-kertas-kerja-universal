@@ -18,6 +18,7 @@ type RencanaKinerjaOpd struct {
 	JenisPeriode       string              `json:"jenis_periode"`
 	NamaRencanaKinerja string              `json:"nama_rencana_kinerja"`
 	Nip                string              `json:"nip"`
+	NamaPegawai        string              `json:"nama_pegawai"`
 	Indikator          []IndikatorResponse `json:"indikator"`
 }
 

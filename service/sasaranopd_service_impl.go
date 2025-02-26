@@ -13,8 +13,8 @@ type SasaranOpdServiceImpl struct {
 	opdRepository             repository.OpdRepository
 	rencanaKinerjaRepository  repository.RencanaKinerjaRepository
 	manualIndikatorRepository repository.ManualIKRepository
-
-	DB *sql.DB
+	pegawaiRepository         repository.PegawaiRepository
+	DB                        *sql.DB
 }
 
 func NewSasaranOpdServiceImpl(
@@ -22,12 +22,14 @@ func NewSasaranOpdServiceImpl(
 	opdRepository repository.OpdRepository,
 	rencanaKinerjaRepository repository.RencanaKinerjaRepository,
 	manualIndikatorRepository repository.ManualIKRepository,
+	pegawaiRepository repository.PegawaiRepository,
 	db *sql.DB) *SasaranOpdServiceImpl {
 	return &SasaranOpdServiceImpl{
 		sasaranOpdRepository:      sasaranOpdRepository,
 		opdRepository:             opdRepository,
 		rencanaKinerjaRepository:  rencanaKinerjaRepository,
 		manualIndikatorRepository: manualIndikatorRepository,
+		pegawaiRepository:         pegawaiRepository,
 		DB:                        db,
 	}
 }
@@ -69,10 +71,15 @@ func (service *SasaranOpdServiceImpl) FindAll(ctx context.Context, KodeOpd strin
 
 		// Convert RencanaKinerja
 		for _, rekin := range sasaranOpd.RencanaKinerja {
+			pegawai, err := service.pegawaiRepository.FindByNip(ctx, tx, rekin.PegawaiId)
+			if err != nil {
+				return nil, err
+			}
 			rencanaKinerjaResponse := sasaranopd.RencanaKinerjaOpd{
 				Id:                 rekin.Id,
 				NamaRencanaKinerja: rekin.NamaRencanaKinerja,
 				Nip:                rekin.PegawaiId,
+				NamaPegawai:        pegawai.NamaPegawai,
 				TahunAwal:          rekin.TahunAwal,
 				TahunAkhir:         rekin.TahunAkhir,
 				JenisPeriode:       rekin.JenisPeriode,
@@ -149,10 +156,15 @@ func (service *SasaranOpdServiceImpl) FindByIdRencanaKinerja(ctx context.Context
 
 	// Convert RencanaKinerja
 	for _, rekin := range sasaranOpd.RencanaKinerja {
+		pegawai, err := service.pegawaiRepository.FindByNip(ctx, tx, rekin.PegawaiId)
+		if err != nil {
+			return nil, err
+		}
 		rencanaKinerjaResponse := sasaranopd.RencanaKinerjaOpd{
 			Id:                 rekin.Id,
 			NamaRencanaKinerja: rekin.NamaRencanaKinerja,
 			Nip:                rekin.PegawaiId,
+			NamaPegawai:        pegawai.NamaPegawai,
 			TahunAwal:          rekin.TahunAwal,
 			TahunAkhir:         rekin.TahunAkhir,
 			JenisPeriode:       rekin.JenisPeriode,

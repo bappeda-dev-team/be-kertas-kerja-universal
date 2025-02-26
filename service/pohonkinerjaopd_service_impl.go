@@ -454,6 +454,7 @@ func (service *PohonKinerjaOpdServiceImpl) FindById(ctx context.Context, id int)
 		pelaksanaResponses = append(pelaksanaResponses, pohonkinerja.PelaksanaOpdResponse{
 			Id:          pelaksana.Id,
 			PegawaiId:   pegawaiPelaksana.Id,
+			Nip:         pegawaiPelaksana.Nip,
 			NamaPegawai: pegawaiPelaksana.NamaPegawai,
 		})
 	}

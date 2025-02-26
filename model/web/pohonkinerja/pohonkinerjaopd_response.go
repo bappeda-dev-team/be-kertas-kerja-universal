@@ -101,6 +101,7 @@ type PelaksanaOpdResponse struct {
 	Id             string `json:"id_pelaksana"`
 	PohonKinerjaId string `json:"pohon_kinerja_id,omitempty"`
 	PegawaiId      string `json:"pegawai_id"`
+	Nip            string `json:"nip"`
 	NamaPegawai    string `json:"nama_pegawai"`
 }
 

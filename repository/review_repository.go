@@ -12,4 +12,5 @@ type ReviewRepository interface {
 	Delete(ctx context.Context, tx *sql.Tx, id int) error
 	FindById(ctx context.Context, tx *sql.Tx, id int) (domain.Review, error)
 	FindByPohonKinerja(ctx context.Context, tx *sql.Tx, idPohonKinerja int) ([]domain.Review, error)
+	CountReviewByPohonKinerja(ctx context.Context, tx *sql.Tx, idPohonKinerja int) (int, error)
 }

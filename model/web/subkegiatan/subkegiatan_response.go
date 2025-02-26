@@ -3,18 +3,19 @@ package subkegiatan
 import "ekak_kabupaten_madiun/model/web"
 
 type SubKegiatanResponse struct {
-	Id                   string                         `json:"id,omitempty"`
-	RekinId              string                         `json:"rekin_id,omitempty"`
-	Status               string                         `json:"status,omitempty"`
-	KodeSubKegiatan      string                         `json:"kode_subkegiatan,omitempty"`
-	NamaSubKegiatan      string                         `json:"nama_sub_kegiatan,omitempty"`
-	KodeOpd              string                         `json:"kode_opd,omitempty"`
-	NamaOpd              string                         `json:"nama_opd,omitempty"`
-	Tahun                string                         `json:"tahun,omitempty"`
-	Indikator            []IndikatorResponse            `json:"indikator,omitempty"`
-	IndikatorSubkegiatan []IndikatorSubKegiatanResponse `json:"indikator_subkegiatan,omitempty"`
-	PaguSubKegiatan      []PaguSubKegiatanResponse      `json:"pagu,omitempty"`
-	Action               []web.ActionButton             `json:"action,omitempty"`
+	SubKegiatanTerpilihId string                         `json:"subkegiatanterpilih_id"`
+	Id                    string                         `json:"id,omitempty"`
+	RekinId               string                         `json:"rekin_id,omitempty"`
+	Status                string                         `json:"status,omitempty"`
+	KodeSubKegiatan       string                         `json:"kode_subkegiatan,omitempty"`
+	NamaSubKegiatan       string                         `json:"nama_sub_kegiatan,omitempty"`
+	KodeOpd               string                         `json:"kode_opd,omitempty"`
+	NamaOpd               string                         `json:"nama_opd,omitempty"`
+	Tahun                 string                         `json:"tahun,omitempty"`
+	Indikator             []IndikatorResponse            `json:"indikator,omitempty"`
+	IndikatorSubkegiatan  []IndikatorSubKegiatanResponse `json:"indikator_subkegiatan,omitempty"`
+	PaguSubKegiatan       []PaguSubKegiatanResponse      `json:"pagu,omitempty"`
+	Action                []web.ActionButton             `json:"action,omitempty"`
 }
 
 type IndikatorResponse struct {

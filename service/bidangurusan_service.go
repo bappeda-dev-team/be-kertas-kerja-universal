@@ -11,4 +11,5 @@ type BidangUrusanService interface {
 	Delete(ctx context.Context, id string) error
 	FindById(ctx context.Context, id string) (bidangurusanresponse.BidangUrusanResponse, error)
 	FindAll(ctx context.Context) ([]bidangurusanresponse.BidangUrusanResponse, error)
+	FindByKodeOpd(ctx context.Context, kodeOpd string) ([]bidangurusanresponse.BidangUrusanResponse, error)
 }

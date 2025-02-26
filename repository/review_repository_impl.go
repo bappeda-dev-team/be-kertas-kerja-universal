@@ -70,3 +70,13 @@ func (repository *ReviewRepositoryImpl) FindByPohonKinerja(ctx context.Context, 
 	}
 	return reviews, nil
 }
+
+func (repository *ReviewRepositoryImpl) CountReviewByPohonKinerja(ctx context.Context, tx *sql.Tx, idPohonKinerja int) (int, error) {
+	script := "SELECT COUNT(*) FROM tb_review WHERE id_pohon_kinerja = ?"
+	var count int
+	err := tx.QueryRowContext(ctx, script, idPohonKinerja).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}

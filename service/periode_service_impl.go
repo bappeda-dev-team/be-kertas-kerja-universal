@@ -36,28 +36,28 @@ func (service *PeriodeServiceImpl) generateRandomId(ctx context.Context, tx *sql
 	}
 }
 
-func (service *PeriodeServiceImpl) validatePeriodeOverlap(ctx context.Context, tx *sql.Tx, tahunAwal, tahunAkhir string) error {
-	existingPeriodes, err := service.PeriodeRepository.FindOverlappingPeriodes(ctx, tx, tahunAwal, tahunAkhir)
+func (service *PeriodeServiceImpl) validatePeriodeOverlap(ctx context.Context, tx *sql.Tx, tahunAwal, tahunAkhir, jenisPeriode string) error {
+	existingPeriodes, err := service.PeriodeRepository.FindOverlappingPeriodes(ctx, tx, tahunAwal, tahunAkhir, jenisPeriode)
 	if err != nil {
 		return err
 	}
 
 	if len(existingPeriodes) > 0 {
-		return fmt.Errorf("periode tahun %s-%s overlap dengan periode yang sudah ada: %s-%s",
-			tahunAwal, tahunAkhir, existingPeriodes[0].TahunAwal, existingPeriodes[0].TahunAkhir)
+		return fmt.Errorf("periode tahun %s-%s dengan jenis periode %s overlap dengan periode yang sudah ada: %s-%s (jenis periode: %s)",
+			tahunAwal, tahunAkhir, jenisPeriode, existingPeriodes[0].TahunAwal, existingPeriodes[0].TahunAkhir, existingPeriodes[0].JenisPeriode)
 	}
 	return nil
 }
 
-func (service *PeriodeServiceImpl) validatePeriodeOverlapExcludeCurrent(ctx context.Context, tx *sql.Tx, currentId int, tahunAwal, tahunAkhir string) error {
-	existingPeriodes, err := service.PeriodeRepository.FindOverlappingPeriodesExcludeCurrent(ctx, tx, currentId, tahunAwal, tahunAkhir)
+func (service *PeriodeServiceImpl) validatePeriodeOverlapExcludeCurrent(ctx context.Context, tx *sql.Tx, currentId int, tahunAwal, tahunAkhir, jenisPeriode string) error {
+	existingPeriodes, err := service.PeriodeRepository.FindOverlappingPeriodesExcludeCurrent(ctx, tx, currentId, tahunAwal, tahunAkhir, jenisPeriode)
 	if err != nil {
 		return err
 	}
 
 	if len(existingPeriodes) > 0 {
-		return fmt.Errorf("periode tahun %s-%s overlap dengan periode yang sudah ada: %s-%s",
-			tahunAwal, tahunAkhir, existingPeriodes[0].TahunAwal, existingPeriodes[0].TahunAkhir)
+		return fmt.Errorf("periode tahun %s-%s dengan jenis periode %s overlap dengan periode yang sudah ada: %s-%s (jenis periode: %s)",
+			tahunAwal, tahunAkhir, jenisPeriode, existingPeriodes[0].TahunAwal, existingPeriodes[0].TahunAkhir, existingPeriodes[0].JenisPeriode)
 	}
 	return nil
 }
@@ -69,17 +69,18 @@ func (service *PeriodeServiceImpl) Create(ctx context.Context, request periodeta
 	}
 	defer helper.CommitOrRollback(tx)
 
-	// Validasi overlap periode
-	if err := service.validatePeriodeOverlap(ctx, tx, request.TahunAwal, request.TahunAkhir); err != nil {
+	// Validasi overlap periode dengan mempertimbangkan jenis periode
+	if err := service.validatePeriodeOverlap(ctx, tx, request.TahunAwal, request.TahunAkhir, request.JenisPeriode); err != nil {
 		return periodetahun.PeriodeResponse{}, err
 	}
 
 	randomId := service.generateRandomId(ctx, tx)
 
 	periode := domain.Periode{
-		Id:         randomId,
-		TahunAwal:  request.TahunAwal,
-		TahunAkhir: request.TahunAkhir,
+		Id:           randomId,
+		TahunAwal:    request.TahunAwal,
+		TahunAkhir:   request.TahunAkhir,
+		JenisPeriode: request.JenisPeriode,
 	}
 
 	// Simpan periode
@@ -118,10 +119,11 @@ func (service *PeriodeServiceImpl) Create(ctx context.Context, request periodeta
 	}
 
 	response := periodetahun.PeriodeResponse{
-		Id:         newPeriode.Id,
-		TahunAwal:  newPeriode.TahunAwal,
-		TahunAkhir: newPeriode.TahunAkhir,
-		TahunList:  tahunList,
+		Id:           newPeriode.Id,
+		TahunAwal:    newPeriode.TahunAwal,
+		TahunAkhir:   newPeriode.TahunAkhir,
+		JenisPeriode: newPeriode.JenisPeriode,
+		TahunList:    tahunList,
 	}
 
 	return response, nil
@@ -140,16 +142,17 @@ func (service *PeriodeServiceImpl) Update(ctx context.Context, request periodeta
 		return periodetahun.PeriodeResponse{}, err
 	}
 
-	// Validasi overlap periode (exclude periode yang sedang diupdate)
-	if err := service.validatePeriodeOverlapExcludeCurrent(ctx, tx, request.Id, request.TahunAwal, request.TahunAkhir); err != nil {
+	// Validasi overlap periode dengan mempertimbangkan jenis periode
+	if err := service.validatePeriodeOverlapExcludeCurrent(ctx, tx, request.Id, request.TahunAwal, request.TahunAkhir, request.JenisPeriode); err != nil {
 		return periodetahun.PeriodeResponse{}, err
 	}
 
-	// Update periode
+	// Update periode dengan menyertakan jenis_periode
 	periode := domain.Periode{
-		Id:         request.Id,
-		TahunAwal:  request.TahunAwal,
-		TahunAkhir: request.TahunAkhir,
+		Id:           request.Id,
+		TahunAwal:    request.TahunAwal,
+		TahunAkhir:   request.TahunAkhir,
+		JenisPeriode: request.JenisPeriode,
 	}
 
 	updatedPeriode, err := service.PeriodeRepository.Update(ctx, tx, periode)
@@ -192,10 +195,11 @@ func (service *PeriodeServiceImpl) Update(ctx context.Context, request periodeta
 	}
 
 	return periodetahun.PeriodeResponse{
-		Id:         updatedPeriode.Id,
-		TahunAwal:  updatedPeriode.TahunAwal,
-		TahunAkhir: updatedPeriode.TahunAkhir,
-		TahunList:  tahunList,
+		Id:           updatedPeriode.Id,
+		TahunAwal:    updatedPeriode.TahunAwal,
+		TahunAkhir:   updatedPeriode.TahunAkhir,
+		JenisPeriode: updatedPeriode.JenisPeriode,
+		TahunList:    tahunList,
 	}, nil
 }
 
@@ -227,30 +231,50 @@ func (service *PeriodeServiceImpl) FindByTahun(ctx context.Context, tahun string
 	}
 
 	return periodetahun.PeriodeResponse{
-		Id:         periode.Id,
-		TahunAwal:  periode.TahunAwal,
-		TahunAkhir: periode.TahunAkhir,
-		TahunList:  tahunList,
+		Id:           periode.Id,
+		TahunAwal:    periode.TahunAwal,
+		TahunAkhir:   periode.TahunAkhir,
+		JenisPeriode: periode.JenisPeriode,
+		TahunList:    tahunList,
 	}, nil
 }
 
-func (service *PeriodeServiceImpl) FindAll(ctx context.Context) ([]periodetahun.PeriodeResponse, error) {
+func (service *PeriodeServiceImpl) FindAll(ctx context.Context, jenis_periode string) ([]periodetahun.PeriodeResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return nil, err
 	}
+	defer helper.CommitOrRollback(tx)
 
-	periodes, err := service.PeriodeRepository.FindAll(ctx, tx)
+	periodes, err := service.PeriodeRepository.FindAll(ctx, tx, jenis_periode)
 	if err != nil {
 		return nil, err
 	}
 
 	var periodesResponse []periodetahun.PeriodeResponse
 	for _, periode := range periodes {
+		// Generate tahunList seperti di FindByTahun
+		tahunAwal, err := strconv.Atoi(periode.TahunAwal)
+		if err != nil {
+			return nil, fmt.Errorf("invalid tahun awal format: %v", err)
+		}
+
+		tahunAkhir, err := strconv.Atoi(periode.TahunAkhir)
+		if err != nil {
+			return nil, fmt.Errorf("invalid tahun akhir format: %v", err)
+		}
+
+		var tahunList []string
+		for tahun := tahunAwal; tahun <= tahunAkhir; tahun++ {
+			tahunList = append(tahunList, strconv.Itoa(tahun))
+		}
+
 		periodesResponse = append(periodesResponse, periodetahun.PeriodeResponse{
-			Id:         periode.Id,
-			TahunAwal:  periode.TahunAwal,
-			TahunAkhir: periode.TahunAkhir,
+			Id:           periode.Id,
+			TahunAwal:    periode.TahunAwal,
+			TahunAkhir:   periode.TahunAkhir,
+			JenisPeriode: periode.JenisPeriode,
+			TahunList:    tahunList,
 		})
 	}
 
@@ -270,9 +294,10 @@ func (service *PeriodeServiceImpl) FindById(ctx context.Context, id int) (period
 	}
 
 	return periodetahun.PeriodeResponse{
-		Id:         periode.Id,
-		TahunAwal:  periode.TahunAwal,
-		TahunAkhir: periode.TahunAkhir,
+		Id:           periode.Id,
+		TahunAwal:    periode.TahunAwal,
+		TahunAkhir:   periode.TahunAkhir,
+		JenisPeriode: periode.JenisPeriode,
 	}, nil
 }
 

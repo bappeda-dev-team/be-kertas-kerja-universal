@@ -46,13 +46,8 @@ func (service *RencanaAksiServiceImpl) Create(ctx context.Context, request renca
 	}
 	defer helper.CommitOrRollback(tx)
 
-	// Cek apakah urutan sudah ada untuk RencanaKinerjaId yang sama
-	exists, err := service.rencanaAksiRepository.IsUrutanExistsForRencanaKinerja(ctx, tx, request.RencanaKinerjaId, request.Urutan)
-	if err != nil {
-		return rencanaaksi.RencanaAksiResponse{}, fmt.Errorf("gagal memeriksa urutan: %v", err)
-	}
-	if exists {
-		return rencanaaksi.RencanaAksiResponse{}, fmt.Errorf("urutan %d sudah ada untuk Rencana Kinerja yang sama", request.Urutan)
+	if request.Urutan <= 0 {
+		return rencanaaksi.RencanaAksiResponse{}, fmt.Errorf("urutan tidak boleh kurang dari atau sama dengan 0")
 	}
 
 	// Buat UUID baru dengan format yang diinginkan
@@ -100,21 +95,14 @@ func (service *RencanaAksiServiceImpl) Update(ctx context.Context, request renca
 	}
 	defer helper.CommitOrRollback(tx)
 
+	if request.Urutan <= 0 {
+		return rencanaaksi.RencanaAksiResponse{}, fmt.Errorf("urutan tidak boleh kurang dari atau sama dengan 0")
+	}
+
 	// Cek apakah rencana aksi dengan ID tersebut ada
 	existingRencanaAksi, err := service.rencanaAksiRepository.FindById(ctx, tx, request.Id)
 	if err != nil {
 		return rencanaaksi.RencanaAksiResponse{}, fmt.Errorf("rencana aksi dengan ID %s tidak ditemukan", request.Id)
-	}
-
-	// Cek apakah urutan baru sudah ada untuk RencanaKinerjaId yang sama (kecuali untuk ID yang sedang diupdate)
-	if existingRencanaAksi.Urutan != request.Urutan {
-		exists, err := service.rencanaAksiRepository.IsUrutanExistsForRencanaKinerjaExcludingId(ctx, tx, existingRencanaAksi.RencanaKinerjaId, request.Urutan, request.Id)
-		if err != nil {
-			return rencanaaksi.RencanaAksiResponse{}, fmt.Errorf("gagal memeriksa urutan: %v", err)
-		}
-		if exists {
-			return rencanaaksi.RencanaAksiResponse{}, fmt.Errorf("urutan %d sudah ada untuk Rencana Kinerja yang sama", request.Urutan)
-		}
 	}
 
 	// Update data rencana aksi

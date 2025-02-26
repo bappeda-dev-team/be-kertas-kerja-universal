@@ -130,3 +130,47 @@ func (controller *UrusanControllerImpl) Delete(writer http.ResponseWriter, reque
 	}
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *UrusanControllerImpl) FindByKodeOpd(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	kodeOpd := params.ByName("kode_opd")
+
+	urusanResponses, err := controller.UrusanService.FindByKodeOpd(request.Context(), kodeOpd)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusInternalServerError,
+			Status: "INTERNAL SERVER ERROR",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "success find urusan by kode opd",
+		Data:   urusanResponses,
+	}
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *UrusanControllerImpl) FindUrusanAndBidangByKodeOpd(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	kodeOpd := params.ByName("kode_opd")
+
+	urusanResponses, err := controller.UrusanService.FindUrusanAndBidangByKodeOpd(request.Context(), kodeOpd)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   http.StatusInternalServerError,
+			Status: "INTERNAL SERVER ERROR",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   http.StatusOK,
+		Status: "success find urusan and bidang by kode opd",
+		Data:   urusanResponses,
+	}
+	helper.WriteToResponseBody(writer, webResponse)
+}

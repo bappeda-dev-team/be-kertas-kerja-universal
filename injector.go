@@ -333,6 +333,33 @@ var ikuSet = wire.NewSet(
 	wire.Bind(new(controller.IkuController), new(*controller.IkuControllerImpl)),
 )
 
+var sasaranOpdSet = wire.NewSet(
+	repository.NewSasaranOpdRepositoryImpl,
+	wire.Bind(new(repository.SasaranOpdRepository), new(*repository.SasaranOpdRepositoryImpl)),
+	service.NewSasaranOpdServiceImpl,
+	wire.Bind(new(service.SasaranOpdService), new(*service.SasaranOpdServiceImpl)),
+	controller.NewSasaranOpdControllerImpl,
+	wire.Bind(new(controller.SasaranOpdController), new(*controller.SasaranOpdControllerImpl)),
+)
+
+var visiPemdaSet = wire.NewSet(
+	repository.NewVisiPemdaRepositoryImpl,
+	wire.Bind(new(repository.VisiPemdaRepository), new(*repository.VisiPemdaRepositoryImpl)),
+	service.NewVisiPemdaServiceImpl,
+	wire.Bind(new(service.VisiPemdaService), new(*service.VisiPemdaServiceImpl)),
+	controller.NewVisiPemdaControllerImpl,
+	wire.Bind(new(controller.VisiPemdaController), new(*controller.VisiPemdaControllerImpl)),
+)
+
+var misiPemdaSet = wire.NewSet(
+	repository.NewMisiPemdaRepositoryImpl,
+	wire.Bind(new(repository.MisiPemdaRepository), new(*repository.MisiPemdaRepositoryImpl)),
+	service.NewMisiPemdaServiceImpl,
+	wire.Bind(new(service.MisiPemdaService), new(*service.MisiPemdaServiceImpl)),
+	controller.NewMisiPemdaControllerImpl,
+	wire.Bind(new(controller.MisiPemdaController), new(*controller.MisiPemdaControllerImpl)),
+)
+
 func InitializeServer() *http.Server {
 
 	wire.Build(
@@ -373,6 +400,9 @@ func InitializeServer() *http.Server {
 		sasaranPemdaSet,
 		permasalahanRekinSet,
 		ikuSet,
+		sasaranOpdSet,
+		visiPemdaSet,
+		misiPemdaSet,
 		app.NewRouter,
 		wire.Bind(new(http.Handler), new(*httprouter.Router)),
 		middleware.NewAuthMiddleware,

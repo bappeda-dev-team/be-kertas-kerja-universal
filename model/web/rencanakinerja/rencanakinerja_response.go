@@ -10,6 +10,9 @@ type RencanaKinerjaResponse struct {
 	IdPohon              int                         `json:"id_pohon,omitempty"`
 	NamaPohon            string                      `json:"nama_pohon,omitempty"`
 	NamaRencanaKinerja   string                      `json:"nama_rencana_kinerja,omitempty"`
+	TahunAwal            string                      `json:"tahun_awal,omitempty"`
+	TahunAkhir           string                      `json:"tahun_akhir,omitempty"`
+	JenisPeriode         string                      `json:"jenis_periode,omitempty"`
 	Tahun                string                      `json:"tahun,omitempty"`
 	StatusRencanaKinerja string                      `json:"status_rencana_kinerja,omitempty"`
 	Catatan              string                      `json:"catatan,omitempty"`
@@ -31,7 +34,8 @@ type IndikatorResponse struct {
 
 type TargetResponse struct {
 	Id              string `json:"id_target,omitempty"`
-	IndikatorId     string `json:"indikator_id,omitempty"`
-	TargetIndikator string `json:"target,omitempty"`
-	SatuanIndikator string `json:"satuan,omitempty"`
+	IndikatorId     string `json:"indikator_id"`
+	TargetIndikator string `json:"target"`
+	SatuanIndikator string `json:"satuan"`
+	Tahun           string `json:"tahun,omitempty"`
 }

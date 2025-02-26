@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"ekak_kabupaten_madiun/helper"
 	"ekak_kabupaten_madiun/model/domain/domainmaster"
+	"ekak_kabupaten_madiun/model/web/bidangurusanresponse"
 	"ekak_kabupaten_madiun/model/web/urusanrespon"
 	"ekak_kabupaten_madiun/repository"
 	"fmt"
@@ -134,4 +135,89 @@ func (service *UrusanServiceImpl) Delete(ctx context.Context, id string) error {
 	}
 
 	return service.UrusanRepository.Delete(ctx, tx, id)
+}
+
+func (service *UrusanServiceImpl) FindByKodeOpd(ctx context.Context, kodeOpd string) ([]urusanrespon.UrusanResponse, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return []urusanrespon.UrusanResponse{}, fmt.Errorf("gagal memulai transaksi: %v", err)
+	}
+	defer helper.CommitOrRollback(tx)
+
+	urusans, err := service.UrusanRepository.FindByKodeOpd(ctx, tx, kodeOpd)
+	if err != nil {
+		return []urusanrespon.UrusanResponse{}, err
+	}
+
+	var urusanResponses []urusanrespon.UrusanResponse
+	for _, urusan := range urusans {
+		urusanResponses = append(urusanResponses, urusanrespon.UrusanResponse{
+			Id:         urusan.Id,
+			KodeUrusan: urusan.KodeUrusan,
+			NamaUrusan: urusan.NamaUrusan,
+		})
+	}
+
+	return urusanResponses, nil
+}
+
+func (service *UrusanServiceImpl) FindUrusanAndBidangByKodeOpd(ctx context.Context, kodeOpd string) ([]urusanrespon.UrusanResponse, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("gagal memulai transaksi: %v", err)
+	}
+	defer helper.CommitOrRollback(tx)
+
+	// Debug: cetak kode OPD
+	fmt.Printf("Service - Mencari dengan kode OPD: %s\n", kodeOpd)
+
+	// Panggil repository untuk mendapatkan data
+	urusans, err := service.UrusanRepository.FindUrusanAndBidangByKodeOpd(ctx, tx, kodeOpd)
+	if err != nil {
+		return nil, fmt.Errorf("gagal mengambil data urusan dan bidang: %v", err)
+	}
+
+	// Debug: cetak hasil dari repository
+	fmt.Printf("Service - Data dari repository:\n")
+	for _, u := range urusans {
+		fmt.Printf("Urusan: %s - %s\n", u.KodeUrusan, u.NamaUrusan)
+		fmt.Printf("Jumlah Bidang Urusan: %d\n", len(u.BidangUrusan))
+		for _, b := range u.BidangUrusan {
+			fmt.Printf("  Bidang: %s - %s\n", b.KodeBidangUrusan, b.NamaBidangUrusan)
+		}
+	}
+
+	// Konversi ke response
+	var response []urusanrespon.UrusanResponse
+	for _, urusan := range urusans {
+		bidangResponses := make([]bidangurusanresponse.BidangUrusanResponse, 0)
+
+		// Debug: cetak bidang urusan sebelum konversi
+		fmt.Printf("Service - Converting bidang urusan for urusan %s\n", urusan.KodeUrusan)
+
+		for _, bidang := range urusan.BidangUrusan {
+			bidangResponses = append(bidangResponses, bidangurusanresponse.BidangUrusanResponse{
+				KodeBidangUrusan: bidang.KodeBidangUrusan,
+				NamaBidangUrusan: bidang.NamaBidangUrusan,
+			})
+			// Debug: cetak setiap bidang urusan yang dikonversi
+			fmt.Printf("  Added bidang: %s - %s\n", bidang.KodeBidangUrusan, bidang.NamaBidangUrusan)
+		}
+
+		response = append(response, urusanrespon.UrusanResponse{
+			Id:           urusan.Id,
+			KodeUrusan:   urusan.KodeUrusan,
+			NamaUrusan:   urusan.NamaUrusan,
+			BidangUrusan: bidangResponses,
+		})
+	}
+
+	// Debug: cetak hasil akhir
+	fmt.Printf("Service - Final response:\n")
+	for _, r := range response {
+		fmt.Printf("Response Urusan: %s - %s\n", r.KodeUrusan, r.NamaUrusan)
+		fmt.Printf("Response Jumlah Bidang: %d\n", len(r.BidangUrusan))
+	}
+
+	return response, nil
 }

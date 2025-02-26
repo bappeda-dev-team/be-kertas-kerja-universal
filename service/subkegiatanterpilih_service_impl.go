@@ -115,3 +115,69 @@ func (service *SubKegiatanTerpilihServiceImpl) Delete(ctx context.Context, id st
 
 	return nil
 }
+
+func (service *SubKegiatanTerpilihServiceImpl) CreateRekin(ctx context.Context, request subkegiatan.SubKegiatanCreateRekinRequest) ([]subkegiatan.SubKegiatanResponse, error) {
+	// Konversi single ID ke array
+	idSubKegiatanArray := []string{request.IdSubKegiatan}
+
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("gagal memulai transaksi: %v", err)
+	}
+	defer helper.CommitOrRollback(tx)
+
+	// Cek apakah rencana kinerja dengan ID yang diberikan ada
+	_, err = service.RencanaKinerjaRepository.FindById(ctx, tx, request.RekinId, "", "")
+	if err != nil {
+		return nil, fmt.Errorf("rencana kinerja dengan id %s tidak ditemukan: %v", request.RekinId, err)
+	}
+
+	var updatedSubKegiatans []domain.SubKegiatan
+
+	// Proses setiap ID usulan
+	for _, idSubKegiatan := range idSubKegiatanArray {
+		// Cek apakah usulan dengan ID yang diberikan ada
+		existingSubKegiatan, err := service.SubKegiatanRepository.FindById(ctx, tx, idSubKegiatan)
+		if err != nil {
+			return nil, fmt.Errorf("subkegiatan dengan id %s tidak ditemukan: %v", idSubKegiatan, err)
+		}
+
+		// Cek apakah usulan sudah memiliki rekin_id
+		if existingSubKegiatan.RekinId != "" {
+			return nil, fmt.Errorf("subkegiatan dengan id %s sudah memiliki rencana kinerja", idSubKegiatan)
+		}
+
+		// Update rekin_id dan status
+		err = service.SubKegiatanTerpilihRepository.CreateRekin(ctx, tx, idSubKegiatan, request.RekinId)
+		if err != nil {
+			return nil, fmt.Errorf("gagal mengupdate rekin untuk subkegiatan %s: %v", idSubKegiatan, err)
+		}
+
+		// Ambil data usulan yang sudah diupdate
+		updatedSubKegiatan, err := service.SubKegiatanRepository.FindById(ctx, tx, idSubKegiatan)
+		if err != nil {
+			return nil, fmt.Errorf("gagal mengambil data subkegiatan yang diupdate: %v", err)
+		}
+
+		updatedSubKegiatans = append(updatedSubKegiatans, updatedSubKegiatan)
+	}
+
+	// Konversi ke response
+	responses := helper.ToSubKegiatanResponses(updatedSubKegiatans)
+	return responses, nil
+}
+
+func (service *SubKegiatanTerpilihServiceImpl) DeleteSubKegiatanTerpilih(ctx context.Context, idSubKegiatan string) error {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("gagal memulai transaksi: %v", err)
+	}
+	defer helper.CommitOrRollback(tx)
+
+	err = service.SubKegiatanTerpilihRepository.DeleteSubKegiatanTerpilih(ctx, tx, idSubKegiatan)
+	if err != nil {
+		return fmt.Errorf("gagal menghapus subkegiatan terpilih: %v", err)
+	}
+
+	return nil
+}

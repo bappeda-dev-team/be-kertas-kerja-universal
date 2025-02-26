@@ -78,3 +78,27 @@ func (controller *ManualIKControllerImpl) FindManualIKByIndikatorId(writer http.
 
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *ManualIKControllerImpl) FindManualIKSasaranOpdByIndikatorId(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	indikatorId := params.ByName("indikatorId")
+	tahun := params.ByName("tahun")
+
+	manualIKResponses, err := controller.ManualIKService.FindManualIKSasaranOpdByIndikatorId(request.Context(), indikatorId, tahun)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   400,
+			Status: "BAD_REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:   200,
+		Status: "OK",
+		Data:   manualIKResponses,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}

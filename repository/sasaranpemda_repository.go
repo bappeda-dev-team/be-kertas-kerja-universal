@@ -17,6 +17,6 @@ type SasaranPemdaRepository interface {
 	DeleteIndikator(ctx context.Context, tx *sql.Tx, sasaranPemdaId int) error
 	IsIdExists(ctx context.Context, tx *sql.Tx, id int) bool
 	UpdatePeriode(ctx context.Context, tx *sql.Tx, sasaranPemda domain.SasaranPemda) (domain.SasaranPemda, error)
-	FindAllWithPokin(ctx context.Context, tx *sql.Tx, tahun string) ([]domain.SasaranPemdaWithPokin, error)
+	FindAllWithPokin(ctx context.Context, tx *sql.Tx, tahunAwal, tahunAkhir, jenisPeriode string) ([]domain.PohonKinerjaWithSasaran, error)
 	IsSubtemaIdExists(ctx context.Context, tx *sql.Tx, subtemaId int) bool
 }

@@ -2173,7 +2173,7 @@ func (repository *PohonKinerjaRepositoryImpl) ValidatePokinLevel(ctx context.Con
 	return nil
 }
 
-func (repository *PohonKinerjaRepositoryImpl) FindPokinWithPeriode(ctx context.Context, tx *sql.Tx, pokinId int) (domain.PohonKinerja, error) {
+func (repository *PohonKinerjaRepositoryImpl) FindPokinWithPeriode(ctx context.Context, tx *sql.Tx, pokinId int, jenisPeriode string) (domain.PohonKinerja, domain.Periode, error) {
 	query := `
         SELECT 
             pk.id,
@@ -2190,6 +2190,8 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinWithPeriode(ctx context.C
             COALESCE(p.tahun_akhir, '') as tahun_akhir,
             i.id as indikator_id,
             i.indikator as indikator_text,
+            i.rumus_perhitungan,
+            i.sumber_data,
             t.id as target_id,
             t.target as target_value,
             t.satuan as target_satuan
@@ -2197,6 +2199,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinWithPeriode(ctx context.C
             tb_pohon_kinerja pk
         LEFT JOIN 
             tb_periode p ON CAST(pk.tahun AS SIGNED) BETWEEN CAST(p.tahun_awal AS SIGNED) AND CAST(p.tahun_akhir AS SIGNED)
+            AND p.jenis_periode = ?
         LEFT JOIN 
             tb_indikator i ON pk.id = i.pokin_id
         LEFT JOIN 
@@ -2206,13 +2209,14 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinWithPeriode(ctx context.C
         ORDER BY 
             i.id`
 
-	rows, err := tx.QueryContext(ctx, query, pokinId)
+	rows, err := tx.QueryContext(ctx, query, jenisPeriode, pokinId)
 	if err != nil {
-		return domain.PohonKinerja{}, fmt.Errorf("error querying data: %v", err)
+		return domain.PohonKinerja{}, domain.Periode{}, fmt.Errorf("error querying data: %v", err)
 	}
 	defer rows.Close()
 
 	var pokin domain.PohonKinerja
+	var periode domain.Periode
 	indikatorMap := make(map[string]*domain.Indikator)
 	firstRow := true
 
@@ -2221,6 +2225,7 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinWithPeriode(ctx context.C
 			periodeId                           int
 			tahunAwal, tahunAkhir               string
 			indikatorId, indikatorText          sql.NullString
+			rumusPerhitungan, sumberData        sql.NullString
 			targetId, targetValue, targetSatuan sql.NullString
 		)
 
@@ -2239,15 +2244,22 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinWithPeriode(ctx context.C
 			&tahunAkhir,
 			&indikatorId,
 			&indikatorText,
+			&rumusPerhitungan,
+			&sumberData,
 			&targetId,
 			&targetValue,
 			&targetSatuan,
 		)
 		if err != nil {
-			return domain.PohonKinerja{}, fmt.Errorf("error scanning row: %v", err)
+			return domain.PohonKinerja{}, domain.Periode{}, fmt.Errorf("error scanning row: %v", err)
 		}
 
 		if firstRow {
+			periode = domain.Periode{
+				Id:         periodeId,
+				TahunAwal:  tahunAwal,
+				TahunAkhir: tahunAkhir,
+			}
 			firstRow = false
 		}
 
@@ -2256,37 +2268,47 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinWithPeriode(ctx context.C
 			indikator, exists := indikatorMap[indikatorId.String]
 			if !exists {
 				indikator = &domain.Indikator{
-					Id:        indikatorId.String,
-					PokinId:   fmt.Sprint(pokin.Id),
-					Indikator: indikatorText.String,
-					Target:    []domain.Target{},
+					Id:               indikatorId.String,
+					PokinId:          fmt.Sprint(pokin.Id),
+					Indikator:        indikatorText.String,
+					RumusPerhitungan: rumusPerhitungan,
+					SumberData:       sumberData,
+					Target:           []domain.Target{},
 				}
 				indikatorMap[indikatorId.String] = indikator
+
+				// Buat target untuk setiap tahun dalam periode
+				if periode.Id != 0 && periode.TahunAwal != "" && periode.TahunAkhir != "" {
+					tahunAwalInt, _ := strconv.Atoi(periode.TahunAwal)
+					tahunAkhirInt, _ := strconv.Atoi(periode.TahunAkhir)
+
+					for tahun := tahunAwalInt; tahun <= tahunAkhirInt; tahun++ {
+						tahunStr := strconv.Itoa(tahun)
+						target := domain.Target{
+							Id:          "-",
+							IndikatorId: indikatorId.String,
+							Target:      "",
+							Satuan:      "",
+							Tahun:       tahunStr,
+						}
+						indikator.Target = append(indikator.Target, target)
+					}
+				}
 			}
 
-			// Inisialisasi target untuk semua tahun dalam periode
-			if periodeId != 0 && tahunAwal != "" && tahunAkhir != "" {
-				tahunAwalInt, _ := strconv.Atoi(tahunAwal)
-				tahunAkhirInt, _ := strconv.Atoi(tahunAkhir)
-
-				for tahun := tahunAwalInt; tahun <= tahunAkhirInt; tahun++ {
-					tahunStr := strconv.Itoa(tahun)
-					target := domain.Target{
-						Id:          "",
-						IndikatorId: indikatorId.String,
-						Target:      "",
-						Satuan:      "",
-						Tahun:       tahunStr,
+			// Update target jika ada data
+			if targetId.Valid && targetValue.Valid && targetSatuan.Valid {
+				for i := range indikator.Target {
+					if indikator.Target[i].Tahun == pokin.Tahun {
+						indikator.Target[i] = domain.Target{
+							Id:          targetId.String,
+							IndikatorId: indikatorId.String,
+							Target:      targetValue.String,
+							Satuan:      targetSatuan.String,
+							Tahun:       pokin.Tahun,
+						}
+						break
 					}
-
-					// Jika ada target dan tahun sesuai dengan tahun pokin
-					if targetId.Valid && targetValue.Valid && targetSatuan.Valid && tahunStr == pokin.Tahun {
-						target.Id = targetId.String
-						target.Target = targetValue.String
-						target.Satuan = targetSatuan.String
-					}
-
-					indikator.Target = append(indikator.Target, target)
 				}
 			}
 		}
@@ -2296,7 +2318,9 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinWithPeriode(ctx context.C
 	for _, indikator := range indikatorMap {
 		// Sort target berdasarkan tahun
 		sort.Slice(indikator.Target, func(i, j int) bool {
-			return indikator.Target[i].Tahun < indikator.Target[j].Tahun
+			tahunI, _ := strconv.Atoi(indikator.Target[i].Tahun)
+			tahunJ, _ := strconv.Atoi(indikator.Target[j].Tahun)
+			return tahunI < tahunJ
 		})
 		pokin.Indikator = append(pokin.Indikator, *indikator)
 	}
@@ -2307,8 +2331,8 @@ func (repository *PohonKinerjaRepositoryImpl) FindPokinWithPeriode(ctx context.C
 	})
 
 	if pokin.Id == 0 {
-		return pokin, fmt.Errorf("pohon kinerja tidak ditemukan")
+		return pokin, periode, fmt.Errorf("pohon kinerja tidak ditemukan")
 	}
 
-	return pokin, nil
+	return pokin, periode, nil
 }

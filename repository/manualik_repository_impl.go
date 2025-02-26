@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"ekak_kabupaten_madiun/model/domain"
+	"fmt"
+	"strconv"
 )
 
 type ManualIKRepositoryImpl struct {
@@ -280,5 +282,151 @@ func (repository *ManualIKRepositoryImpl) FindByIndikatorId(ctx context.Context,
 	}
 
 	manualIK.IndikatorId = indikatorId
+	return manualIK, nil
+}
+
+func (repository *ManualIKRepositoryImpl) FindManualIKSasaranOpdByIndikatorId(ctx context.Context, tx *sql.Tx, indikatorId string, tahun string) (domain.ManualIK, error) {
+	var manualIK domain.ManualIK
+	var indikator domain.Indikator
+
+	// Query untuk data indikator dan rencana kinerja terlebih dahulu
+	scriptIndikator := `
+    SELECT 
+        i.id as indikator_id,
+        i.indikator,
+        rk.nama_rencana_kinerja,
+        rk.tahun_awal,
+        rk.tahun_akhir,
+        rk.jenis_periode
+    FROM tb_indikator i
+    JOIN tb_rencana_kinerja rk ON i.rencana_kinerja_id = rk.id
+    WHERE i.id = ?`
+
+	err := tx.QueryRowContext(ctx, scriptIndikator, indikatorId).Scan(
+		&indikator.Id,
+		&indikator.Indikator,
+		&indikator.RencanaKinerja.NamaRencanaKinerja,
+		&indikator.TahunAwal,
+		&indikator.TahunAkhir,
+		&indikator.JenisPeriode,
+	)
+
+	if err == sql.ErrNoRows {
+		return manualIK, fmt.Errorf("indikator tidak ditemukan")
+	}
+	if err != nil {
+		return manualIK, err
+	}
+
+	// Validasi tahun
+	tahunInt, _ := strconv.Atoi(tahun)
+	tahunAwalInt, _ := strconv.Atoi(indikator.TahunAwal)
+	tahunAkhirInt, _ := strconv.Atoi(indikator.TahunAkhir)
+
+	if tahunInt < tahunAwalInt || tahunInt > tahunAkhirInt {
+		return manualIK, fmt.Errorf("tahun %s diluar range (%s-%s)",
+			tahun, indikator.TahunAwal, indikator.TahunAkhir)
+	}
+
+	// Query untuk manual IK jika ada
+	scriptManualIK := `
+    SELECT 
+        m.id,
+        m.perspektif,
+        m.tujuan_rekin,
+        m.definisi,
+        m.key_activities,
+        m.formula,
+        m.jenis_indikator,
+        m.kinerja,
+        m.penduduk,
+        m.spasial,
+        m.unit_penanggung_jawab,
+        m.unit_penyedia_data,
+        m.sumber_data,
+        m.jangka_waktu_awal,
+        m.jangka_waktu_akhir,
+        m.periode_pelaporan
+    FROM tb_manual_ik m
+    WHERE m.indikator_id = ?`
+
+	err = tx.QueryRowContext(ctx, scriptManualIK, indikatorId).Scan(
+		&manualIK.Id,
+		&manualIK.Perspektif,
+		&manualIK.TujuanRekin,
+		&manualIK.Definisi,
+		&manualIK.KeyActivities,
+		&manualIK.Formula,
+		&manualIK.JenisIndikator,
+		&manualIK.Kinerja,
+		&manualIK.Penduduk,
+		&manualIK.Spatial,
+		&manualIK.UnitPenanggungJawab,
+		&manualIK.UnitPenyediaData,
+		&manualIK.SumberData,
+		&manualIK.JangkaWaktuAwal,
+		&manualIK.JangkaWaktuAkhir,
+		&manualIK.PeriodePelaporan,
+	)
+
+	// Jika manual IK tidak ditemukan, tetap lanjutkan dengan nilai default
+	if err == sql.ErrNoRows {
+		// Set nilai default untuk manual IK
+		manualIK = domain.ManualIK{
+			Id:                  0,
+			IndikatorId:         indikatorId,
+			Perspektif:          "",
+			TujuanRekin:         "",
+			Definisi:            "",
+			KeyActivities:       "",
+			Formula:             "",
+			JenisIndikator:      "",
+			Kinerja:             false,
+			Penduduk:            false,
+			Spatial:             false,
+			UnitPenanggungJawab: "",
+			UnitPenyediaData:    "",
+			SumberData:          "",
+			JangkaWaktuAwal:     "",
+			JangkaWaktuAkhir:    "",
+			PeriodePelaporan:    "",
+		}
+	} else if err != nil {
+		return manualIK, err
+	}
+
+	// Query untuk target
+	scriptTarget := `
+    SELECT 
+        target,
+        satuan,
+        tahun
+    FROM tb_target 
+    WHERE indikator_id = ? AND tahun = ?`
+
+	var target domain.Target
+	err = tx.QueryRowContext(ctx, scriptTarget, indikatorId, tahun).Scan(
+		&target.Target,
+		&target.Satuan,
+		&target.Tahun,
+	)
+
+	// Jika target tidak ditemukan, buat target kosong
+	if err == sql.ErrNoRows {
+		target = domain.Target{
+			IndikatorId: indikatorId,
+			Target:      "",
+			Satuan:      "",
+			Tahun:       tahun,
+		}
+	} else if err != nil {
+		return manualIK, err
+	}
+
+	// Set data indikator dan target
+	indikator.Target = []domain.Target{target}
+	manualIK.IndikatorId = indikatorId
+	manualIK.DataIndikator = indikator
+
 	return manualIK, nil
 }

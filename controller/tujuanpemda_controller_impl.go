@@ -149,7 +149,8 @@ func (controller *TujuanPemdaControllerImpl) FindById(writer http.ResponseWriter
 
 func (controller *TujuanPemdaControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	tahun := params.ByName("tahun")
-	tujuanPemdaResponses, err := controller.TujuanPemdaService.FindAll(request.Context(), tahun)
+	jenisPeriode := params.ByName("jenis_periode")
+	tujuanPemdaResponses, err := controller.TujuanPemdaService.FindAll(request.Context(), tahun, jenisPeriode)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   http.StatusInternalServerError,
@@ -206,8 +207,10 @@ func (controller *TujuanPemdaControllerImpl) UpdatePeriode(writer http.ResponseW
 }
 
 func (controller *TujuanPemdaControllerImpl) FindAllWithPokin(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	tahun := params.ByName("tahun")
-	tujuanPemdaResponses, err := controller.TujuanPemdaService.FindAllWithPokin(request.Context(), tahun)
+	tahunAwal := params.ByName("tahun_awal")
+	tahunAkhir := params.ByName("tahun_akhir")
+	jenisPeriode := params.ByName("jenis_periode")
+	tujuanPemdaResponses, err := controller.TujuanPemdaService.FindAllWithPokin(request.Context(), tahunAwal, tahunAkhir, jenisPeriode)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   http.StatusInternalServerError,
@@ -228,6 +231,7 @@ func (controller *TujuanPemdaControllerImpl) FindAllWithPokin(writer http.Respon
 
 func (controller *TujuanPemdaControllerImpl) FindPokinWithPeriode(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	pokinId := params.ByName("pokin_id")
+	jenisPeriode := params.ByName("jenis_periode")
 	id, err := strconv.Atoi(pokinId)
 	if err != nil {
 		webResponse := web.WebResponse{
@@ -239,7 +243,7 @@ func (controller *TujuanPemdaControllerImpl) FindPokinWithPeriode(writer http.Re
 		return
 	}
 
-	pokinWithPeriodeResponse, err := controller.TujuanPemdaService.FindPokinWithPeriode(request.Context(), id)
+	pokinWithPeriodeResponse, err := controller.TujuanPemdaService.FindPokinWithPeriode(request.Context(), id, jenisPeriode)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   http.StatusInternalServerError,

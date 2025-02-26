@@ -20,8 +20,14 @@ type Indikator struct {
 	CloneFrom        string
 	Sumber           string
 	ParentId         int
+	ParentOpdId      string
+	AsalIku          string
 	ParentName       string
+	ManualIK         *ManualIKSasaranOpd
 	CreatedAt        time.Time
+	TahunAwal        string
+	TahunAkhir       string
+	JenisPeriode     string
 	Target           []Target
 	RencanaKinerja   RencanaKinerja
 	RumusPerhitungan sql.NullString

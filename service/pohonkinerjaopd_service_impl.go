@@ -530,7 +530,7 @@ func (service *PohonKinerjaOpdServiceImpl) FindAll(ctx context.Context, kodeOpd,
 	}
 
 	// Ambil data tujuan OPD
-	tujuanOpds, err := service.tujuanOpdRepository.FindTujuanOpdByTahun(ctx, tx, kodeOpd, tahun)
+	tujuanOpds, err := service.tujuanOpdRepository.FindTujuanOpdByTahun(ctx, tx, kodeOpd, tahun, "RPJMD")
 	if err != nil {
 		log.Printf("Error getting tujuan OPD: %v", err)
 		// Kembalikan response dengan array kosong jika terjadi error
@@ -728,6 +728,9 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalNResponse(ctx context
 		operationalN.NamaOpd = opd.NamaOpd
 	}
 	//review
+	countReview, err := service.reviewRepository.CountReviewByPohonKinerja(ctx, tx, operationalN.Id)
+	helper.PanicIfError(err)
+
 	reviews, err := service.reviewRepository.FindByPohonKinerja(ctx, tx, operationalN.Id)
 	var reviewResponses []pohonkinerja.ReviewResponse
 	if err == nil {
@@ -757,9 +760,10 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalNResponse(ctx context
 			KodeOpd: operationalN.KodeOpd,
 			NamaOpd: operationalN.NamaOpd,
 		},
-		Pelaksana: pelaksanaMap[operationalN.Id],
-		Indikator: indikatorMap[operationalN.Id],
-		Review:    reviewResponses,
+		Pelaksana:   pelaksanaMap[operationalN.Id],
+		Indikator:   indikatorMap[operationalN.Id],
+		Review:      reviewResponses,
+		CountReview: countReview,
 	}
 
 	// Build child nodes secara rekursif
@@ -788,6 +792,9 @@ func (service *PohonKinerjaOpdServiceImpl) buildStrategicResponse(ctx context.Co
 	}
 
 	//review
+	countReview, err := service.reviewRepository.CountReviewByPohonKinerja(ctx, tx, strategic.Id)
+	helper.PanicIfError(err)
+
 	reviews, err := service.reviewRepository.FindByPohonKinerja(ctx, tx, strategic.Id)
 	var reviewResponses []pohonkinerja.ReviewResponse
 	if err == nil {
@@ -819,9 +826,10 @@ func (service *PohonKinerjaOpdServiceImpl) buildStrategicResponse(ctx context.Co
 			KodeOpd: strategic.KodeOpd,
 			NamaOpd: strategic.NamaOpd,
 		},
-		Pelaksana: pelaksanaMap[strategic.Id],
-		Indikator: indikatorMap[strategic.Id],
-		Review:    reviewResponses,
+		Pelaksana:   pelaksanaMap[strategic.Id],
+		Indikator:   indikatorMap[strategic.Id],
+		Review:      reviewResponses,
+		CountReview: countReview,
 	}
 
 	// Build tactical (level 5)
@@ -853,6 +861,8 @@ func (service *PohonKinerjaOpdServiceImpl) buildTacticalResponse(ctx context.Con
 		keteranganCrosscutting = tactical.KeteranganCrosscutting
 	}
 	//review
+	countReview, err := service.reviewRepository.CountReviewByPohonKinerja(ctx, tx, tactical.Id)
+	helper.PanicIfError(err)
 	reviews, err := service.reviewRepository.FindByPohonKinerja(ctx, tx, tactical.Id)
 	var reviewResponses []pohonkinerja.ReviewResponse
 	if err == nil {
@@ -883,9 +893,10 @@ func (service *PohonKinerjaOpdServiceImpl) buildTacticalResponse(ctx context.Con
 			KodeOpd: tactical.KodeOpd,
 			NamaOpd: tactical.NamaOpd,
 		},
-		Pelaksana: pelaksanaMap[tactical.Id],
-		Indikator: indikatorMap[tactical.Id],
-		Review:    reviewResponses,
+		Pelaksana:   pelaksanaMap[tactical.Id],
+		Indikator:   indikatorMap[tactical.Id],
+		Review:      reviewResponses,
+		CountReview: countReview,
 	}
 
 	// Build operational (level 6)
@@ -917,6 +928,9 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalResponse(ctx context.
 		keteranganCrosscutting = operational.KeteranganCrosscutting
 	}
 	//review
+	countReview, err := service.reviewRepository.CountReviewByPohonKinerja(ctx, tx, operational.Id)
+	helper.PanicIfError(err)
+
 	reviews, err := service.reviewRepository.FindByPohonKinerja(ctx, tx, operational.Id)
 	var reviewResponses []pohonkinerja.ReviewResponse
 	if err == nil {
@@ -947,9 +961,10 @@ func (service *PohonKinerjaOpdServiceImpl) buildOperationalResponse(ctx context.
 			KodeOpd: operational.KodeOpd,
 			NamaOpd: operational.NamaOpd,
 		},
-		Pelaksana: pelaksanaMap[operational.Id],
-		Indikator: indikatorMap[operational.Id],
-		Review:    reviewResponses,
+		Pelaksana:   pelaksanaMap[operational.Id],
+		Indikator:   indikatorMap[operational.Id],
+		Review:      reviewResponses,
+		CountReview: countReview,
 	}
 
 	// Build operational-n untuk level > 6

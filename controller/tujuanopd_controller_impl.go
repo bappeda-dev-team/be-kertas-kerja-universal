@@ -153,9 +153,11 @@ func (controller *TujuanOpdControllerImpl) FindById(writer http.ResponseWriter, 
 
 func (controller *TujuanOpdControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	kodeOpd := params.ByName("kode_opd")
-	tahun := params.ByName("tahun")
+	tahunAwal := params.ByName("tahun_awal")
+	tahunAkhir := params.ByName("tahun_akhir")
+	jenisPeriode := params.ByName("jenis_periode")
 
-	tujuanOpdResponses, err := controller.TujuanOpdService.FindAll(request.Context(), kodeOpd, tahun)
+	tujuanOpdResponses, err := controller.TujuanOpdService.FindAll(request.Context(), kodeOpd, tahunAwal, tahunAkhir, jenisPeriode)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   http.StatusInternalServerError,

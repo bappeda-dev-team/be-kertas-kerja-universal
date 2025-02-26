@@ -16,6 +16,7 @@ import (
 	"ekak_kabupaten_madiun/model/web/subkegiatan"
 	"ekak_kabupaten_madiun/model/web/tujuanopd"
 	"ekak_kabupaten_madiun/model/web/usulan"
+	visimisipemda "ekak_kabupaten_madiun/model/web/visimisi"
 	"fmt"
 	"os"
 )
@@ -578,23 +579,28 @@ func ToTujuanOpdResponse(tujuanOpd domain.TujuanOpd) tujuanopd.TujuanOpdResponse
 
 		// Konversi indikator
 		indikatorResponse := tujuanopd.IndikatorResponse{
-			Id:            indikator.Id,
-			NamaIndikator: indikator.Indikator,
-			Target:        targetResponses,
+			Id:               indikator.Id,
+			NamaIndikator:    indikator.Indikator,
+			RumusPerhitungan: indikator.RumusPerhitungan.String,
+			SumberData:       indikator.SumberData.String,
+			Target:           targetResponses,
 		}
 		indikatorResponses = append(indikatorResponses, indikatorResponse)
 	}
 
 	return tujuanopd.TujuanOpdResponse{
-		Id:               tujuanOpd.Id,
-		KodeOpd:          tujuanOpd.KodeOpd,
-		NamaOpd:          tujuanOpd.NamaOpd,
-		Tujuan:           tujuanOpd.Tujuan,
-		RumusPerhitungan: tujuanOpd.RumusPerhitungan,
-		SumberData:       tujuanOpd.SumberData,
-		TahunAwal:        tujuanOpd.TahunAwal,
-		TahunAkhir:       tujuanOpd.TahunAkhir,
-		Indikator:        indikatorResponses,
+		Id:      tujuanOpd.Id,
+		KodeOpd: tujuanOpd.KodeOpd,
+		NamaOpd: tujuanOpd.NamaOpd,
+		Tujuan:  tujuanOpd.Tujuan,
+
+		Periode: tujuanopd.PeriodeResponse{
+			Id:           tujuanOpd.PeriodeId.Id,
+			TahunAwal:    tujuanOpd.PeriodeId.TahunAwal,
+			TahunAkhir:   tujuanOpd.PeriodeId.TahunAkhir,
+			JenisPeriode: tujuanOpd.PeriodeId.JenisPeriode,
+		},
+		Indikator: indikatorResponses,
 	}
 }
 
@@ -682,4 +688,45 @@ func ToManualIKResponses(manualIKs []domain.ManualIK) []rencanakinerja.ManualIKR
 		manualIKResponses = append(manualIKResponses, ToManualIKResponse(manualIK))
 	}
 	return manualIKResponses
+}
+
+func ToVisiPemdaResponse(visiPemda domain.VisiPemda) visimisipemda.VisiPemdaResponse {
+	return visimisipemda.VisiPemdaResponse{
+		Id:                visiPemda.Id,
+		Visi:              visiPemda.Visi,
+		TahunAwalPeriode:  visiPemda.TahunAwalPeriode,
+		TahunAkhirPeriode: visiPemda.TahunAkhirPeriode,
+		JenisPeriode:      visiPemda.JenisPeriode,
+		Keterangan:        visiPemda.Keterangan,
+	}
+}
+
+func ToVisiPemdaResponses(visiPemdaList []domain.VisiPemda) []visimisipemda.VisiPemdaResponse {
+	var visiPemdaResponses []visimisipemda.VisiPemdaResponse
+	for _, visiPemda := range visiPemdaList {
+		visiPemdaResponses = append(visiPemdaResponses, ToVisiPemdaResponse(visiPemda))
+	}
+	return visiPemdaResponses
+}
+
+func ToMisiPemdaResponse(misiPemda domain.MisiPemda) visimisipemda.MisiPemdaResponse {
+	return visimisipemda.MisiPemdaResponse{
+		Id:                misiPemda.Id,
+		IdVisi:            misiPemda.IdVisi,
+		Visi:              misiPemda.Visi,
+		Misi:              misiPemda.Misi,
+		Urutan:            misiPemda.Urutan,
+		TahunAwalPeriode:  misiPemda.TahunAwalPeriode,
+		TahunAkhirPeriode: misiPemda.TahunAkhirPeriode,
+		JenisPeriode:      misiPemda.JenisPeriode,
+		Keterangan:        misiPemda.Keterangan,
+	}
+}
+
+func ToMisiPemdaResponses(misiPemdaList []domain.MisiPemda) []visimisipemda.MisiPemdaResponse {
+	var misiPemdaResponses []visimisipemda.MisiPemdaResponse
+	for _, misiPemda := range misiPemdaList {
+		misiPemdaResponses = append(misiPemdaResponses, ToMisiPemdaResponse(misiPemda))
+	}
+	return misiPemdaResponses
 }

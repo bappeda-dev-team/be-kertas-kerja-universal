@@ -121,11 +121,10 @@ func (controller *SubKegiatanControllerImpl) FindAll(writer http.ResponseWriter,
 	// Ambil parameter query
 
 	kodeOpd := params.ByName("kode_opd")
-	rekinId := params.ByName("rencana_kinerja_id")
 	status := request.URL.Query().Get("status")
 
 	// Panggil service untuk mendapatkan data sub kegiatan
-	subKegiatanResponses, err := controller.SubKegiatanService.FindAll(request.Context(), kodeOpd, rekinId, status)
+	subKegiatanResponses, err := controller.SubKegiatanService.FindAll(request.Context(), kodeOpd, status)
 
 	if err != nil {
 		helper.WriteToResponseBody(writer, web.WebSubKegiatanResponse{
@@ -166,10 +165,9 @@ func (controller *SubKegiatanControllerImpl) Delete(writer http.ResponseWriter, 
 func (controller *SubKegiatanControllerImpl) FindAllByRekin(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	// Ambil parameter query
 	kodeOpd := params.ByName("kode_opd")
-	rekinId := params.ByName("rencana_kinerja_id")
 	status := request.URL.Query().Get("status")
 	// Panggil service untuk mendapatkan data sub kegiatan
-	subKegiatanResponses, err := controller.SubKegiatanService.FindAll(request.Context(), kodeOpd, rekinId, status)
+	subKegiatanResponses, err := controller.SubKegiatanService.FindAll(request.Context(), kodeOpd, status)
 
 	if err != nil {
 		helper.WriteToResponseBody(writer, web.WebSubKegiatanResponse{
@@ -218,51 +216,4 @@ func (controller *SubKegiatanControllerImpl) FindAllByRekin(writer http.Response
 		Data:   subKegiatanResponses,
 		Action: buttonActions,
 	})
-}
-
-func (controller *SubKegiatanControllerImpl) CreateRekin(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	subKegiatanCreateRekinRequest := subkegiatan.SubKegiatanCreateRekinRequest{}
-	helper.ReadFromRequestBody(request, &subKegiatanCreateRekinRequest)
-
-	idRekin := params.ByName("rencana_kinerja_id")
-	subKegiatanCreateRekinRequest.RekinId = idRekin
-
-	subKegiatanResponse, err := controller.SubKegiatanService.CreateRekin(request.Context(), subKegiatanCreateRekinRequest)
-	if err != nil {
-		webResponse := web.WebSubKegiatanResponse{
-			Code:   http.StatusBadRequest,
-			Status: "BAD REQUEST",
-			Data:   err.Error(),
-		}
-		helper.WriteToResponseBody(writer, webResponse)
-		return
-	}
-
-	webResponse := web.WebSubKegiatanResponse{
-		Code:   http.StatusOK,
-		Status: "success create subkegiatan",
-		Data:   subKegiatanResponse,
-	}
-	helper.WriteToResponseBody(writer, webResponse)
-}
-
-func (controller *SubKegiatanControllerImpl) DeleteSubKegiatanTerpilih(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	idSubKegiatan := params.ByName("id")
-
-	err := controller.SubKegiatanService.DeleteSubKegiatanTerpilih(request.Context(), idSubKegiatan)
-	if err != nil {
-		webResponse := web.WebSubKegiatanResponse{
-			Code:   http.StatusBadRequest,
-			Status: "BAD REQUEST",
-			Data:   err.Error(),
-		}
-		helper.WriteToResponseBody(writer, webResponse)
-		return
-	}
-
-	webResponse := web.WebSubKegiatanResponse{
-		Code:   http.StatusOK,
-		Status: "success delete subkegiatan terpilih",
-	}
-	helper.WriteToResponseBody(writer, webResponse)
 }

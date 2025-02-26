@@ -8,40 +8,76 @@ import (
 	"ekak_kabupaten_madiun/model/web/tujuanopd"
 	"ekak_kabupaten_madiun/repository"
 	"fmt"
+	"sort"
 	"strconv"
 
 	"github.com/google/uuid"
 )
 
 type TujuanOpdServiceImpl struct {
-	TujuanOpdRepository repository.TujuanOpdRepository
-	OpdRepository       repository.OpdRepository
-	DB                  *sql.DB
+	TujuanOpdRepository    repository.TujuanOpdRepository
+	OpdRepository          repository.OpdRepository
+	PeriodeRepository      repository.PeriodeRepository
+	BidangUrusanRepository repository.BidangUrusanRepository
+	DB                     *sql.DB
 }
 
-func NewTujuanOpdServiceImpl(tujuanOpdRepository repository.TujuanOpdRepository, opdRepository repository.OpdRepository, DB *sql.DB) *TujuanOpdServiceImpl {
+func NewTujuanOpdServiceImpl(tujuanOpdRepository repository.TujuanOpdRepository, opdRepository repository.OpdRepository, periodeRepository repository.PeriodeRepository, bidangUrusanRepository repository.BidangUrusanRepository, DB *sql.DB) *TujuanOpdServiceImpl {
 	return &TujuanOpdServiceImpl{
-		TujuanOpdRepository: tujuanOpdRepository,
-		OpdRepository:       opdRepository,
-		DB:                  DB,
+		TujuanOpdRepository:    tujuanOpdRepository,
+		OpdRepository:          opdRepository,
+		PeriodeRepository:      periodeRepository,
+		BidangUrusanRepository: bidangUrusanRepository,
+		DB:                     DB,
 	}
 }
 
 func (service *TujuanOpdServiceImpl) Create(ctx context.Context, request tujuanopd.TujuanOpdCreateRequest) (tujuanopd.TujuanOpdResponse, error) {
-
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return tujuanopd.TujuanOpdResponse{}, err
 	}
 	defer helper.CommitOrRollback(tx)
 
+	// Validasi periode
+	periode, err := service.PeriodeRepository.FindById(ctx, tx, request.PeriodeId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return tujuanopd.TujuanOpdResponse{}, fmt.Errorf("periode dengan id %d tidak ditemukan", request.PeriodeId)
+		}
+		return tujuanopd.TujuanOpdResponse{}, err
+	}
+
+	// Convert tahun awal dan akhir ke integer untuk validasi
+	tahunAwal, err := strconv.Atoi(periode.TahunAwal)
+	if err != nil {
+		return tujuanopd.TujuanOpdResponse{}, fmt.Errorf("format tahun awal periode tidak valid: %s", periode.TahunAwal)
+	}
+
+	tahunAkhir, err := strconv.Atoi(periode.TahunAkhir)
+	if err != nil {
+		return tujuanopd.TujuanOpdResponse{}, fmt.Errorf("format tahun akhir periode tidak valid: %s", periode.TahunAkhir)
+	}
+
+	//validasi bidang urusan
+	_, err = service.BidangUrusanRepository.FindByKodeBidangUrusan(ctx, tx, request.KodeBidangUrusan)
+	if err != nil {
+		return tujuanopd.TujuanOpdResponse{}, err
+	}
+
 	tujuanOpdDomain := domain.TujuanOpd{
 		KodeOpd:          request.KodeOpd,
+		KodeBidangUrusan: request.KodeBidangUrusan,
 		Tujuan:           request.Tujuan,
-		RumusPerhitungan: request.RumusPerhitungan,
-		SumberData:       request.SumberData,
-		TahunAwal:        request.TahunAwal,
-		TahunAkhir:       request.TahunAkhir,
+		PeriodeId: domain.Periode{
+			Id:           request.PeriodeId,
+			TahunAwal:    periode.TahunAwal,
+			TahunAkhir:   periode.TahunAkhir,
+			JenisPeriode: periode.JenisPeriode,
+		},
+		TahunAwal:    periode.TahunAwal,
+		TahunAkhir:   periode.TahunAkhir,
+		JenisPeriode: periode.JenisPeriode,
 	}
 
 	// Convert indikator request to domain
@@ -51,12 +87,56 @@ func (service *TujuanOpdServiceImpl) Create(ctx context.Context, request tujuano
 		indikatorId := fmt.Sprintf("IND-TJN-%s", uuidInd)
 
 		indikatorDomain := domain.Indikator{
-			Id:        indikatorId,
-			Indikator: indikatorReq.Indikator,
+			Id:               indikatorId,
+			Indikator:        indikatorReq.Indikator,
+			RumusPerhitungan: sql.NullString{String: indikatorReq.RumusPerhitungan, Valid: true},
+			SumberData:       sql.NullString{String: indikatorReq.SumberData, Valid: true},
 		}
+
+		// Map untuk mengecek duplikasi tahun
+		tahunMap := make(map[string]bool)
 
 		// Convert target request to domain
 		for _, targetReq := range indikatorReq.Target {
+			// Validasi format tahun target
+			tahunTarget, err := strconv.Atoi(targetReq.Tahun)
+			if err != nil {
+				return tujuanopd.TujuanOpdResponse{}, fmt.Errorf("format tahun target tidak valid: %s", targetReq.Tahun)
+			}
+
+			// Validasi tahun target berada dalam range periode
+			if tahunTarget < tahunAwal || tahunTarget > tahunAkhir {
+				return tujuanopd.TujuanOpdResponse{}, fmt.Errorf(
+					"tahun target %d harus berada dalam rentang periode %d-%d",
+					tahunTarget,
+					tahunAwal,
+					tahunAkhir,
+				)
+			}
+
+			// Validasi duplikasi tahun
+			if tahunMap[targetReq.Tahun] {
+				return tujuanopd.TujuanOpdResponse{}, fmt.Errorf(
+					"tahun target %s duplikat dalam indikator yang sama",
+					targetReq.Tahun,
+				)
+			}
+			tahunMap[targetReq.Tahun] = true
+
+			// Validasi target dan satuan tidak boleh kosong
+			if targetReq.Target == "" {
+				return tujuanopd.TujuanOpdResponse{}, fmt.Errorf(
+					"target untuk tahun %s tidak boleh kosong",
+					targetReq.Tahun,
+				)
+			}
+			if targetReq.Satuan == "" {
+				return tujuanopd.TujuanOpdResponse{}, fmt.Errorf(
+					"satuan untuk tahun %s tidak boleh kosong",
+					targetReq.Tahun,
+				)
+			}
+
 			// Generate ID target dengan format TRG-TJN-XXXXX
 			uuidTrg := uuid.New().String()[:5]
 			targetId := fmt.Sprintf("TRG-TJN-%s", uuidTrg)
@@ -68,6 +148,15 @@ func (service *TujuanOpdServiceImpl) Create(ctx context.Context, request tujuano
 				Tahun:  targetReq.Tahun,
 			}
 			indikatorDomain.Target = append(indikatorDomain.Target, targetDomain)
+		}
+
+		// Validasi minimal harus ada 1 target
+		if len(indikatorReq.Target) == 0 {
+			return tujuanopd.TujuanOpdResponse{}, fmt.Errorf(
+				"indikator harus memiliki minimal 1 target dalam rentang periode %d-%d",
+				tahunAwal,
+				tahunAkhir,
+			)
 		}
 
 		tujuanOpdDomain.Indikator = append(tujuanOpdDomain.Indikator, indikatorDomain)
@@ -89,37 +178,56 @@ func (service *TujuanOpdServiceImpl) Update(ctx context.Context, request tujuano
 	}
 	defer helper.CommitOrRollback(tx)
 
-	// Cek apakah data exists dan ambil data lama
-	existingTujuanOpd, err := service.TujuanOpdRepository.FindById(ctx, tx, request.Id)
+	// Validasi periode
+	periode, err := service.PeriodeRepository.FindById(ctx, tx, request.PeriodeId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return tujuanopd.TujuanOpdResponse{}, fmt.Errorf("periode dengan id %d tidak ditemukan", request.PeriodeId)
+		}
+		return tujuanopd.TujuanOpdResponse{}, err
+	}
+
+	// Convert tahun awal dan akhir ke integer untuk validasi
+	tahunAwal, err := strconv.Atoi(periode.TahunAwal)
+	if err != nil {
+		return tujuanopd.TujuanOpdResponse{}, fmt.Errorf("format tahun awal periode tidak valid: %s", periode.TahunAwal)
+	}
+
+	tahunAkhir, err := strconv.Atoi(periode.TahunAkhir)
+	if err != nil {
+		return tujuanopd.TujuanOpdResponse{}, fmt.Errorf("format tahun akhir periode tidak valid: %s", periode.TahunAkhir)
+	}
+
+	// Cek apakah data exists
+	_, err = service.TujuanOpdRepository.FindById(ctx, tx, request.Id)
 	if err != nil {
 		return tujuanopd.TujuanOpdResponse{}, err
 	}
 
-	// Buat map untuk menyimpan ID lama
-	existingIndikatorMap := make(map[string]domain.Indikator)
-	existingTargetMap := make(map[string]domain.Target)
-
-	// Simpan ID lama ke map
-	for _, indikator := range existingTujuanOpd.Indikator {
-		existingIndikatorMap[indikator.Id] = indikator
-		for _, target := range indikator.Target {
-			existingTargetMap[target.Id] = target
-		}
+	//validasi bidang urusan
+	_, err = service.BidangUrusanRepository.FindByKodeBidangUrusan(ctx, tx, request.KodeBidangUrusan)
+	if err != nil {
+		return tujuanopd.TujuanOpdResponse{}, err
 	}
 
 	// Update data utama
 	tujuanOpd := domain.TujuanOpd{
 		Id:               request.Id,
 		KodeOpd:          request.KodeOpd,
+		KodeBidangUrusan: request.KodeBidangUrusan,
 		Tujuan:           request.Tujuan,
-		RumusPerhitungan: request.RumusPerhitungan,
-		SumberData:       request.SumberData,
-		TahunAwal:        request.TahunAwal,
-		TahunAkhir:       request.TahunAkhir,
-		Indikator:        []domain.Indikator{},
+		PeriodeId: domain.Periode{
+			Id:           request.PeriodeId,
+			TahunAwal:    periode.TahunAwal,
+			TahunAkhir:   periode.TahunAkhir,
+			JenisPeriode: periode.JenisPeriode,
+		},
+		TahunAwal:    periode.TahunAwal,
+		TahunAkhir:   periode.TahunAkhir,
+		JenisPeriode: periode.JenisPeriode,
 	}
 
-	// Convert indikator dan target request ke domain
+	// Convert indikator request to domain
 	for _, indikatorReq := range request.Indikator {
 		var indikatorId string
 
@@ -132,15 +240,57 @@ func (service *TujuanOpdServiceImpl) Update(ctx context.Context, request tujuano
 		}
 
 		indikatorDomain := domain.Indikator{
-			Id:        indikatorId,
-			Indikator: indikatorReq.Indikator,
-			Target:    []domain.Target{},
+			Id:               indikatorId,
+			Indikator:        indikatorReq.Indikator,
+			RumusPerhitungan: sql.NullString{String: indikatorReq.RumusPerhitungan, Valid: true},
+			SumberData:       sql.NullString{String: indikatorReq.SumberData, Valid: true},
 		}
 
-		// Convert target
-		for _, targetReq := range indikatorReq.Target {
-			var targetId string
+		// Map untuk mengecek duplikasi tahun
+		tahunMap := make(map[string]bool)
 
+		// Convert target request to domain
+		for _, targetReq := range indikatorReq.Target {
+			// Validasi format tahun target
+			tahunTarget, err := strconv.Atoi(targetReq.Tahun)
+			if err != nil {
+				return tujuanopd.TujuanOpdResponse{}, fmt.Errorf("format tahun target tidak valid: %s", targetReq.Tahun)
+			}
+
+			// Validasi tahun target berada dalam range periode
+			if tahunTarget < tahunAwal || tahunTarget > tahunAkhir {
+				return tujuanopd.TujuanOpdResponse{}, fmt.Errorf(
+					"tahun target %d harus berada dalam rentang periode %d-%d",
+					tahunTarget,
+					tahunAwal,
+					tahunAkhir,
+				)
+			}
+
+			// Validasi duplikasi tahun
+			if tahunMap[targetReq.Tahun] {
+				return tujuanopd.TujuanOpdResponse{}, fmt.Errorf(
+					"tahun target %s duplikat dalam indikator yang sama",
+					targetReq.Tahun,
+				)
+			}
+			tahunMap[targetReq.Tahun] = true
+
+			// Validasi target dan satuan tidak boleh kosong
+			if targetReq.Target == "" {
+				return tujuanopd.TujuanOpdResponse{}, fmt.Errorf(
+					"target untuk tahun %s tidak boleh kosong",
+					targetReq.Tahun,
+				)
+			}
+			if targetReq.Satuan == "" {
+				return tujuanopd.TujuanOpdResponse{}, fmt.Errorf(
+					"satuan untuk tahun %s tidak boleh kosong",
+					targetReq.Tahun,
+				)
+			}
+
+			var targetId string
 			// Gunakan ID lama jika ada, generate baru jika tidak ada
 			if targetReq.Id != "" {
 				targetId = targetReq.Id
@@ -157,6 +307,15 @@ func (service *TujuanOpdServiceImpl) Update(ctx context.Context, request tujuano
 				Tahun:       targetReq.Tahun,
 			}
 			indikatorDomain.Target = append(indikatorDomain.Target, targetDomain)
+		}
+
+		// Validasi minimal harus ada 1 target
+		if len(indikatorReq.Target) == 0 {
+			return tujuanopd.TujuanOpdResponse{}, fmt.Errorf(
+				"indikator harus memiliki minimal 1 target dalam rentang periode %d-%d",
+				tahunAwal,
+				tahunAkhir,
+			)
 		}
 
 		tujuanOpd.Indikator = append(tujuanOpd.Indikator, indikatorDomain)
@@ -193,51 +352,88 @@ func (service *TujuanOpdServiceImpl) FindById(ctx context.Context, tujuanOpdId i
 	}
 	defer helper.CommitOrRollback(tx)
 
-	// Ambil data tujuan OPD
 	tujuanOpd, err := service.TujuanOpdRepository.FindById(ctx, tx, tujuanOpdId)
 	if err != nil {
 		return tujuanopd.TujuanOpdResponse{}, err
 	}
 
-	// Ambil data indikator
-	indikators, err := service.TujuanOpdRepository.FindIndikatorByTujuanId(ctx, tx, tujuanOpdId)
+	// Ambil data OPD
+	opd, err := service.OpdRepository.FindByKodeOpd(ctx, tx, tujuanOpd.KodeOpd)
 	if err != nil {
 		return tujuanopd.TujuanOpdResponse{}, err
 	}
 
-	// Map untuk menyimpan indikator
-	indikatorMap := make(map[string]*domain.Indikator)
-
-	// Proses setiap indikator
-	for _, ind := range indikators {
-		indikatorMap[ind.Id] = &domain.Indikator{
-			Id:        ind.Id,
-			Indikator: ind.Indikator,
-			Target:    []domain.Target{},
-		}
-
-		targets, err := service.TujuanOpdRepository.FindTargetByIndikatorId(ctx, tx, ind.Id, "9999") // Gunakan tahun yang besar untuk mendapatkan semua target
-		if err != nil {
-			return tujuanopd.TujuanOpdResponse{}, err
-		}
-
-		// Tambahkan target ke indikator
-		indikatorMap[ind.Id].Target = targets // Langsung assign targets yang didapat
+	// Ambil data bidang urusan
+	bidangUrusan, err := service.BidangUrusanRepository.FindByKodeBidangUrusan(ctx, tx, tujuanOpd.KodeBidangUrusan)
+	if err != nil {
+		return tujuanopd.TujuanOpdResponse{}, err
 	}
 
-	// Convert map ke slice untuk response
-	var indikatorResponses []domain.Indikator
-	for _, indikator := range indikatorMap {
-		indikatorResponses = append(indikatorResponses, *indikator)
+	response := tujuanopd.TujuanOpdResponse{
+		Id:               tujuanOpd.Id,
+		KodeBidangUrusan: tujuanOpd.KodeBidangUrusan,
+		NamaBidangUrusan: bidangUrusan.NamaBidangUrusan,
+		KodeOpd:          tujuanOpd.KodeOpd,
+		NamaOpd:          opd.NamaOpd,
+		Tujuan:           tujuanOpd.Tujuan,
+		TahunAwal:        tujuanOpd.TahunAwal,
+		TahunAkhir:       tujuanOpd.TahunAkhir,
+		JenisPeriode:     tujuanOpd.JenisPeriode,
+		Indikator:        make([]tujuanopd.IndikatorResponse, 0),
 	}
 
-	// Set indikator ke tujuan OPD
-	tujuanOpd.Indikator = indikatorResponses
+	for _, indikator := range tujuanOpd.Indikator {
+		indikatorResponse := tujuanopd.IndikatorResponse{
+			Id:               indikator.Id,
+			IdTujuanOpd:      tujuanOpd.Id,
+			NamaIndikator:    indikator.Indikator,
+			RumusPerhitungan: indikator.RumusPerhitungan.String,
+			SumberData:       indikator.SumberData.String,
+			Target:           make([]tujuanopd.TargetResponse, 0),
+		}
 
-	return helper.ToTujuanOpdResponse(tujuanOpd), nil
+		tahunAwalInt, _ := strconv.Atoi(tujuanOpd.TahunAwal)
+		tahunAkhirInt, _ := strconv.Atoi(tujuanOpd.TahunAkhir)
+
+		// Buat map untuk target yang ada
+		targetMap := make(map[string]domain.Target)
+		for _, t := range indikator.Target {
+			if t.Id != "" {
+				targetMap[t.Tahun] = t
+			}
+		}
+
+		// Generate target untuk setiap tahun dalam range
+		for year := tahunAwalInt; year <= tahunAkhirInt; year++ {
+			tahunStr := strconv.Itoa(year)
+			if target, exists := targetMap[tahunStr]; exists {
+				targetResponse := tujuanopd.TargetResponse{
+					Id:              target.Id,
+					IndikatorId:     indikator.Id,
+					Tahun:           tahunStr,
+					TargetIndikator: target.Target,
+					SatuanIndikator: target.Satuan,
+				}
+				indikatorResponse.Target = append(indikatorResponse.Target, targetResponse)
+			} else {
+				targetResponse := tujuanopd.TargetResponse{
+					Id:              "",
+					IndikatorId:     indikator.Id,
+					Tahun:           tahunStr,
+					TargetIndikator: "",
+					SatuanIndikator: "",
+				}
+				indikatorResponse.Target = append(indikatorResponse.Target, targetResponse)
+			}
+		}
+
+		response.Indikator = append(response.Indikator, indikatorResponse)
+	}
+
+	return response, nil
 }
 
-func (service *TujuanOpdServiceImpl) FindAll(ctx context.Context, kodeOpd string, tahun string) ([]tujuanopd.TujuanOpdResponse, error) {
+func (service *TujuanOpdServiceImpl) FindAll(ctx context.Context, kodeOpd string, tahunAwal string, tahunAkhir string, jenisPeriode string) ([]tujuanopd.TujuanOpdwithBidangUrusanResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return nil, err
@@ -245,15 +441,15 @@ func (service *TujuanOpdServiceImpl) FindAll(ctx context.Context, kodeOpd string
 	defer helper.CommitOrRollback(tx)
 
 	// Validasi tahun
-	if len(tahun) != 4 {
-		return nil, fmt.Errorf("format tahun tidak valid: %s", tahun)
+	if len(tahunAwal) != 4 || len(tahunAkhir) != 4 {
+		return nil, fmt.Errorf("format tahun tidak valid")
 	}
-	if _, err := strconv.Atoi(tahun); err != nil {
-		return nil, fmt.Errorf("tahun harus berupa angka: %s", tahun)
+	if _, err := strconv.Atoi(tahunAwal); err != nil {
+		return nil, fmt.Errorf("tahun awal harus berupa angka")
 	}
-
-	// Inisialisasi response kosong
-	var responses []tujuanopd.TujuanOpdResponse
+	if _, err := strconv.Atoi(tahunAkhir); err != nil {
+		return nil, fmt.Errorf("tahun akhir harus berupa angka")
+	}
 
 	// Ambil data OPD
 	opd, err := service.OpdRepository.FindByKodeOpd(ctx, tx, kodeOpd)
@@ -262,69 +458,116 @@ func (service *TujuanOpdServiceImpl) FindAll(ctx context.Context, kodeOpd string
 	}
 
 	// Ambil semua tujuan OPD
-	tujuanOpds, err := service.TujuanOpdRepository.FindAll(ctx, tx, kodeOpd, tahun)
+	tujuanOpds, err := service.TujuanOpdRepository.FindAll(ctx, tx, kodeOpd, tahunAwal, tahunAkhir, jenisPeriode)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return responses, nil // Kembalikan array kosong jika tidak ada data
+			return make([]tujuanopd.TujuanOpdwithBidangUrusanResponse, 0), nil
 		}
 		return nil, err
 	}
 
-	// Proses setiap tujuan OPD
-	for _, tujuan := range tujuanOpds {
-		tujuanResponse := tujuanopd.TujuanOpdResponse{
-			Id:               tujuan.Id,
-			KodeOpd:          tujuan.KodeOpd,
-			NamaOpd:          opd.NamaOpd,
-			Tujuan:           tujuan.Tujuan,
-			RumusPerhitungan: tujuan.RumusPerhitungan,
-			SumberData:       tujuan.SumberData,
-			TahunAwal:        tujuan.TahunAwal,
-			TahunAkhir:       tujuan.TahunAkhir,
-			Indikator:        make([]tujuanopd.IndikatorResponse, 0), // Inisialisasi array kosong
-		}
+	// Buat map untuk mengelompokkan response berdasarkan kode_bidang_urusan
+	responseMap := make(map[string]*tujuanopd.TujuanOpdwithBidangUrusanResponse)
 
-		// Ambil indikator untuk tujuan ini
-		indikators, err := service.TujuanOpdRepository.FindIndikatorByTujuanId(ctx, tx, tujuan.Id)
-		if err != nil && err != sql.ErrNoRows {
+	for _, tujuan := range tujuanOpds {
+		// Ambil data bidang urusan
+		bidangUrusan, err := service.BidangUrusanRepository.FindByKodeBidangUrusan(ctx, tx, tujuan.KodeBidangUrusan)
+		if err != nil {
 			return nil, err
 		}
 
-		// Proses setiap indikator
-		for _, indikator := range indikators {
+		tujuanResponse := tujuanopd.TujuanOpdResponse{
+			Id: tujuan.Id,
+			// KodeBidangUrusan: tujuan.KodeBidangUrusan,
+			// KodeOpd:          tujuan.KodeOpd,
+			// NamaOpd:          opd.NamaOpd,
+			Tujuan:       tujuan.Tujuan,
+			TahunAwal:    tujuan.TahunAwal,
+			TahunAkhir:   tujuan.TahunAkhir,
+			JenisPeriode: tujuan.JenisPeriode,
+			Indikator:    make([]tujuanopd.IndikatorResponse, 0),
+		}
+
+		// Proses indikator dan target seperti sebelumnya
+		for _, indikator := range tujuan.Indikator {
 			indikatorResponse := tujuanopd.IndikatorResponse{
-				Id:            indikator.Id,
-				NamaIndikator: indikator.Indikator,
-				Target:        make([]tujuanopd.TargetResponse, 0), // Inisialisasi array kosong
+				Id:               indikator.Id,
+				IdTujuanOpd:      tujuan.Id,
+				NamaIndikator:    indikator.Indikator,
+				RumusPerhitungan: indikator.RumusPerhitungan.String,
+				SumberData:       indikator.SumberData.String,
+				Target:           make([]tujuanopd.TargetResponse, 0),
 			}
 
-			// Ambil target untuk indikator ini
-			targets, err := service.TujuanOpdRepository.FindTargetByIndikatorId(ctx, tx, indikator.Id, tahun)
-			if err != nil && err != sql.ErrNoRows {
-				return nil, err
-			}
+			tahunAwalInt, _ := strconv.Atoi(tujuan.TahunAwal)
+			tahunAkhirInt, _ := strconv.Atoi(tujuan.TahunAkhir)
 
-			// Proses setiap target
-			for _, target := range targets {
-				targetResponse := tujuanopd.TargetResponse{
-					Id:              target.Id,
-					IndikatorId:     target.IndikatorId,
-					TargetIndikator: target.Target,
-					SatuanIndikator: target.Satuan,
-					Tahun:           target.Tahun,
+			// Buat map untuk target yang ada
+			targetMap := make(map[string]domain.Target)
+			for _, t := range indikator.Target {
+				if t.Id != "" {
+					targetMap[t.Tahun] = t
 				}
-				indikatorResponse.Target = append(indikatorResponse.Target, targetResponse)
+			}
+
+			// Generate target untuk setiap tahun dalam range
+			for year := tahunAwalInt; year <= tahunAkhirInt; year++ {
+				tahunStr := strconv.Itoa(year)
+				if target, exists := targetMap[tahunStr]; exists {
+					targetResponse := tujuanopd.TargetResponse{
+						Id:              target.Id,
+						IndikatorId:     indikator.Id,
+						Tahun:           tahunStr,
+						TargetIndikator: target.Target,
+						SatuanIndikator: target.Satuan,
+					}
+					indikatorResponse.Target = append(indikatorResponse.Target, targetResponse)
+				} else {
+					targetResponse := tujuanopd.TargetResponse{
+						Id:              "",
+						IndikatorId:     indikator.Id,
+						Tahun:           tahunStr,
+						TargetIndikator: "",
+						SatuanIndikator: "",
+					}
+					indikatorResponse.Target = append(indikatorResponse.Target, targetResponse)
+				}
 			}
 
 			tujuanResponse.Indikator = append(tujuanResponse.Indikator, indikatorResponse)
 		}
 
-		responses = append(responses, tujuanResponse)
+		// Cek apakah sudah ada entry untuk kode_bidang_urusan ini
+		if existing, exists := responseMap[tujuan.KodeBidangUrusan]; exists {
+			// Jika sudah ada, tambahkan tujuan ke array tujuan yang ada
+			existing.TujuanOpd = append(existing.TujuanOpd, tujuanResponse)
+		} else {
+			// Jika belum ada, buat entry baru
+			responseMap[tujuan.KodeBidangUrusan] = &tujuanopd.TujuanOpdwithBidangUrusanResponse{
+				Urusan:           bidangUrusan.NamaUrusan,
+				KodeUrusan:       bidangUrusan.KodeBidangUrusan[:1],
+				KodeBidangUrusan: bidangUrusan.KodeBidangUrusan,
+				NamaBidangUrusan: bidangUrusan.NamaBidangUrusan,
+				KodeOpd:          tujuan.KodeOpd,
+				NamaOpd:          opd.NamaOpd,
+				TujuanOpd:        []tujuanopd.TujuanOpdResponse{tujuanResponse},
+			}
+		}
 	}
 
-	// Jika tidak ada data sama sekali, kembalikan array kosong
-	if responses == nil {
-		responses = make([]tujuanopd.TujuanOpdResponse, 0)
+	// Convert map to slice
+	var responses []tujuanopd.TujuanOpdwithBidangUrusanResponse
+	for _, response := range responseMap {
+		responses = append(responses, *response)
+	}
+
+	// Sort responses berdasarkan kode_bidang_urusan
+	sort.Slice(responses, func(i, j int) bool {
+		return responses[i].KodeBidangUrusan < responses[j].KodeBidangUrusan
+	})
+
+	if len(responses) == 0 {
+		responses = make([]tujuanopd.TujuanOpdwithBidangUrusanResponse, 0)
 	}
 
 	return responses, nil

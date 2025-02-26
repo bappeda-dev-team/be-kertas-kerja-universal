@@ -58,5 +58,5 @@ type PohonKinerjaRepository interface {
 	FindPokinByCrosscuttingStatus(ctx context.Context, tx *sql.Tx, kodeOpd string, tahun string) ([]domain.PohonKinerja, error)
 
 	//pokin for tujuan and sasaran pemda
-	FindPokinWithPeriode(ctx context.Context, tx *sql.Tx, pokinId int) (domain.PohonKinerja, error)
+	FindPokinWithPeriode(ctx context.Context, tx *sql.Tx, pokinId int, jenisPeriode string) (domain.PohonKinerja, domain.Periode, error)
 }

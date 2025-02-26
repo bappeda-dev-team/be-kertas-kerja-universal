@@ -216,3 +216,76 @@ func (controller *RencanaKinerjaControllerImpl) FindAllRincianKak(writer http.Re
 
 	helper.WriteToResponseBody(writer, webResponse)
 }
+
+func (controller *RencanaKinerjaControllerImpl) FindRekinSasaranOpd(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	pegawaiId := params.ByName("pegawai_id")
+	tahun := params.ByName("tahun")
+	kodeOPD := params.ByName("kode_opd")
+
+	rencanaKinerjaResponses, err := controller.rencanaKinerjaService.RekinsasaranOpd(request.Context(), pegawaiId, kodeOPD, tahun)
+	if err != nil {
+		webResponse := web.WebRencanaKinerjaResponse{
+			Code:   http.StatusBadRequest,
+			Status: "failed get rekin sasaran opd",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+
+	webResponse := web.WebRencanaKinerjaResponse{
+		Code:   http.StatusOK,
+		Status: "success get rekin sasaran opd",
+		Data:   rencanaKinerjaResponses,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *RencanaKinerjaControllerImpl) CreateSasaranOpd(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	rencanaKinerjaCreateRequest := rencanakinerja.RencanaKinerjaCreateRequest{}
+	helper.ReadFromRequestBody(request, &rencanaKinerjaCreateRequest)
+
+	rencanaKinerjaResponse, err := controller.rencanaKinerjaService.CreateSasaranOpd(request.Context(), rencanaKinerjaCreateRequest)
+	if err != nil {
+		webResponse := web.WebRencanaKinerjaResponse{
+			Code:   400,
+			Status: "failed create sasaran opd",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+	webResponse := web.WebRencanaKinerjaResponse{
+		Code:   http.StatusCreated,
+		Status: "success create sasaran opd",
+		Data:   rencanaKinerjaResponse,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (controller *RencanaKinerjaControllerImpl) UpdateSasaranOpd(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	rencanaKinerjaUpdateRequest := rencanakinerja.RencanaKinerjaUpdateRequest{}
+	helper.ReadFromRequestBody(request, &rencanaKinerjaUpdateRequest)
+
+	rencanaKinerjaUpdateRequest.Id = params.ByName("id")
+
+	rencanaKinerjaResponse, err := controller.rencanaKinerjaService.UpdateSasaranOpd(request.Context(), rencanaKinerjaUpdateRequest)
+	if err != nil {
+		webResponse := web.WebRencanaKinerjaResponse{
+			Code:   400,
+			Status: "failed update sasaran opd",
+			Data:   nil,
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+		return
+	}
+	webResponse := web.WebRencanaKinerjaResponse{
+		Code:   200,
+		Status: "success update sasaran opd",
+		Data:   rencanaKinerjaResponse,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}

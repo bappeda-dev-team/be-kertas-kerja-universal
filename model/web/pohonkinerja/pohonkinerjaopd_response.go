@@ -36,6 +36,7 @@ type StrategicOpdResponse struct {
 	Keterangan             string                      `json:"keterangan"`
 	KeteranganCrosscutting *string                     `json:"keterangan_crosscutting,omitempty"`
 	Status                 string                      `json:"status"`
+	CountReview            int                         `json:"jumlah_review"`
 	KodeOpd                opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
 	Pelaksana              []PelaksanaOpdResponse      `json:"pelaksana"`
 	Indikator              []IndikatorResponse         `json:"indikator"`
@@ -53,6 +54,7 @@ type TacticalOpdResponse struct {
 	Keterangan             string                      `json:"keterangan"`
 	KeteranganCrosscutting *string                     `json:"keterangan_crosscutting,omitempty"`
 	Status                 string                      `json:"status"`
+	CountReview            int                         `json:"jumlah_review"`
 	KodeOpd                opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
 	Pelaksana              []PelaksanaOpdResponse      `json:"pelaksana"`
 	Indikator              []IndikatorResponse         `json:"indikator"`
@@ -70,6 +72,7 @@ type OperationalOpdResponse struct {
 	Keterangan             string                      `json:"keterangan"`
 	KeteranganCrosscutting *string                     `json:"keterangan_crosscutting,omitempty"`
 	Status                 string                      `json:"status"`
+	CountReview            int                         `json:"jumlah_review"`
 	KodeOpd                opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
 	Pelaksana              []PelaksanaOpdResponse      `json:"pelaksana"`
 	Indikator              []IndikatorResponse         `json:"indikator"`
@@ -79,18 +82,19 @@ type OperationalOpdResponse struct {
 }
 
 type OperationalNOpdResponse struct {
-	Id         int                         `json:"id"`
-	Parent     int                         `json:"parent"`
-	Strategi   string                      `json:"nama_pohon"`
-	JenisPohon string                      `json:"jenis_pohon"`
-	LevelPohon int                         `json:"level_pohon"`
-	Keterangan string                      `json:"keterangan"`
-	Status     string                      `json:"status"`
-	KodeOpd    opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
-	Pelaksana  []PelaksanaOpdResponse      `json:"pelaksana"`
-	Indikator  []IndikatorResponse         `json:"indikator"`
-	Childs     []OperationalNOpdResponse   `json:"childs,omitempty"`
-	Review     []ReviewResponse            `json:"review,omitempty"`
+	Id          int                         `json:"id"`
+	Parent      int                         `json:"parent"`
+	Strategi    string                      `json:"nama_pohon"`
+	JenisPohon  string                      `json:"jenis_pohon"`
+	LevelPohon  int                         `json:"level_pohon"`
+	Keterangan  string                      `json:"keterangan"`
+	Status      string                      `json:"status"`
+	CountReview int                         `json:"jumlah_review"`
+	KodeOpd     opdmaster.OpdResponseForAll `json:"perangkat_daerah"`
+	Pelaksana   []PelaksanaOpdResponse      `json:"pelaksana"`
+	Indikator   []IndikatorResponse         `json:"indikator"`
+	Childs      []OperationalNOpdResponse   `json:"childs,omitempty"`
+	Review      []ReviewResponse            `json:"review,omitempty"`
 }
 
 type PelaksanaOpdResponse struct {
@@ -101,12 +105,19 @@ type PelaksanaOpdResponse struct {
 }
 
 type TujuanOpdResponse struct {
-	Id        int                       `json:"id"`
-	KodeOpd   string                    `json:"kode_opd"`
-	Tujuan    string                    `json:"tujuan"`
+	Id      int    `json:"id"`
+	KodeOpd string `json:"kode_opd"`
+	Tujuan  string `json:"tujuan"`
+	// Periode   PeriodeResponse           `json:"periode,omitempty"`
 	Indikator []IndikatorTujuanResponse `json:"indikator"`
 }
 
 type IndikatorTujuanResponse struct {
 	Indikator string `json:"indikator"`
+}
+
+type PeriodeResponse struct {
+	Id         int    `json:"id"`
+	TahunAwal  string `json:"tahun_awal"`
+	TahunAkhir string `json:"tahun_akhir"`
 }

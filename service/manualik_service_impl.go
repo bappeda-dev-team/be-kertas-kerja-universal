@@ -117,18 +117,6 @@ func (service *ManualIKServiceImpl) Update(ctx context.Context, request rencanak
 	return helper.ToManualIKResponse(manualIK), nil
 }
 
-// Fungsi untuk mendapatkan data manual IK
-// func (service *ManualIKServiceImpl) getManualIKData(ctx context.Context, tx *sql.Tx, indikatorId string) ([]domain.ManualIK, error) {
-// 	manualIKs, err := service.ManualIKRepository.GetManualIK(ctx, tx, indikatorId)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("gagal mengambil data manual IK: %v", err)
-// 	}
-// 	if len(manualIKs) == 0 {
-// 		return nil, fmt.Errorf("manual IK dengan indikator ID %s tidak ditemukan", indikatorId)
-// 	}
-// 	return manualIKs, nil
-// }
-
 // Fungsi untuk mendapatkan data rencana kinerja
 func (service *ManualIKServiceImpl) getRencanaKinerjaWithTargetData(ctx context.Context, tx *sql.Tx, indikatorId string) (domain.Indikator, error) {
 	indikator, rencanaKinerja, targets, err := service.ManualIKRepository.GetRencanaKinerjaWithTarget(ctx, tx, indikatorId)
@@ -142,15 +130,6 @@ func (service *ManualIKServiceImpl) getRencanaKinerjaWithTargetData(ctx context.
 
 	return indikator, nil
 }
-
-// Fungsi untuk mendapatkan data target
-// func (service *ManualIKServiceImpl) getTargetData(ctx context.Context, tx *sql.Tx, indikatorId string) ([]domain.Target, error) {
-// 	targets, err := service.ManualIKRepository.GetTargets(ctx, tx, indikatorId)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("gagal mengambil data target: %v", err)
-// 	}
-// 	return targets, nil
-// }
 
 func (service *ManualIKServiceImpl) FindManualIKByIndikatorId(ctx context.Context, indikatorId string) (rencanakinerja.ManualIKResponse, error) {
 	tx, err := service.DB.Begin()
@@ -177,5 +156,59 @@ func (service *ManualIKServiceImpl) FindManualIKByIndikatorId(ctx context.Contex
 
 	// Convert ke response
 	response := helper.ToManualIKResponse(manualIK)
+	return response, nil
+}
+
+func (service *ManualIKServiceImpl) FindManualIKSasaranOpdByIndikatorId(ctx context.Context, indikatorId string, tahun string) (rencanakinerja.ManualIKResponse, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return rencanakinerja.ManualIKResponse{}, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	manualIK, err := service.ManualIKRepository.FindManualIKSasaranOpdByIndikatorId(ctx, tx, indikatorId, tahun)
+	if err != nil {
+		return rencanakinerja.ManualIKResponse{}, err
+	}
+
+	// Buat response
+	response := rencanakinerja.ManualIKResponse{
+		Id:             manualIK.Id,
+		IndikatorId:    manualIK.IndikatorId,
+		Perspektif:     manualIK.Perspektif,
+		TujuanRekin:    manualIK.TujuanRekin,
+		Definisi:       manualIK.Definisi,
+		KeyActivities:  manualIK.KeyActivities,
+		Formula:        manualIK.Formula,
+		JenisIndikator: manualIK.JenisIndikator,
+		OutputData: rencanakinerja.OutputData{
+			Kinerja:  manualIK.Kinerja,
+			Penduduk: manualIK.Penduduk,
+			Spatial:  manualIK.Spatial,
+		},
+		UnitPenanggungJawab: manualIK.UnitPenanggungJawab,
+		UnitPenyediaData:    manualIK.UnitPenyediaData,
+		SumberData:          manualIK.SumberData,
+		JangkaWaktuAwal:     manualIK.JangkaWaktuAwal,
+		JangkaWaktuAkhir:    manualIK.JangkaWaktuAkhir,
+		PeriodePelaporan:    manualIK.PeriodePelaporan,
+		DataIndikator: rencanakinerja.RekinResponse{
+			RencanaKinerja: manualIK.DataIndikator.RencanaKinerja.NamaRencanaKinerja,
+			Indikator: []rencanakinerja.IndikatorResponse{
+				{
+					Id:            manualIK.DataIndikator.Id,
+					NamaIndikator: manualIK.DataIndikator.Indikator,
+					Target: []rencanakinerja.TargetResponse{
+						{
+							TargetIndikator: helper.GetNullStringValue(sql.NullString{String: manualIK.DataIndikator.Target[0].Target, Valid: true}),
+							SatuanIndikator: helper.GetNullStringValue(sql.NullString{String: manualIK.DataIndikator.Target[0].Satuan, Valid: true}),
+							Tahun:           tahun,
+						},
+					},
+				},
+			},
+		},
+	}
+
 	return response, nil
 }

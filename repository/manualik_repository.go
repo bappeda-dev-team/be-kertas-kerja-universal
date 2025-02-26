@@ -15,4 +15,5 @@ type ManualIKRepository interface {
 	GetManualIK(ctx context.Context, tx *sql.Tx, indikatorId string) ([]domain.ManualIK, error)
 	GetRencanaKinerjaWithTarget(ctx context.Context, tx *sql.Tx, indikatorId string) (domain.Indikator, domain.RencanaKinerja, []domain.Target, error)
 	FindByIndikatorId(ctx context.Context, tx *sql.Tx, indikatorId string) (domain.ManualIK, error)
+	FindManualIKSasaranOpdByIndikatorId(ctx context.Context, tx *sql.Tx, indikatorId string, tahun string) (domain.ManualIK, error)
 }

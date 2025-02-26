@@ -293,6 +293,7 @@ func NewRouter(
 	router.POST("/manual_ik/create/:indikatorId", manualIKController.Create)
 	router.PUT("/manual_ik/update/:indikatorId", manualIKController.Update)
 	router.GET("/manual_ik/detail/:indikatorId", manualIKController.FindManualIKByIndikatorId)
+	router.GET("/manual_ik/sasaran_opd/:indikatorId/:tahun", manualIKController.FindManualIKSasaranOpdByIndikatorId)
 
 	//review
 	router.POST("/review_pokin/create/:pokinId", reviewController.Create)

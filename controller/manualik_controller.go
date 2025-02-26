@@ -10,4 +10,5 @@ type ManualIKController interface {
 	Create(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	Update(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindManualIKByIndikatorId(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	FindManualIKSasaranOpdByIndikatorId(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 }

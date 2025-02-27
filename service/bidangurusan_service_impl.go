@@ -37,6 +37,7 @@ func (service *BidangUrusanServiceImpl) Create(ctx context.Context, request bida
 		Id:               uuId,
 		KodeBidangUrusan: request.KodeBidangUrusan,
 		NamaBidangUrusan: request.NamaBidangUrusan,
+		Tahun:            request.Tahun,
 	}
 
 	bidangurusan = service.BidangUrusanRepository.Create(ctx, tx, bidangurusan)
@@ -45,6 +46,7 @@ func (service *BidangUrusanServiceImpl) Create(ctx context.Context, request bida
 		Id:               bidangurusan.Id,
 		KodeBidangUrusan: bidangurusan.KodeBidangUrusan,
 		NamaBidangUrusan: bidangurusan.NamaBidangUrusan,
+		Tahun:            bidangurusan.Tahun,
 	}, nil
 }
 
@@ -64,6 +66,7 @@ func (service *BidangUrusanServiceImpl) Update(ctx context.Context, request bida
 		Id:               request.Id,
 		KodeBidangUrusan: request.KodeBidangUrusan,
 		NamaBidangUrusan: request.NamaBidangUrusan,
+		Tahun:            request.Tahun,
 	}
 
 	bidangurusan = service.BidangUrusanRepository.Update(ctx, tx, bidangurusan)
@@ -72,6 +75,7 @@ func (service *BidangUrusanServiceImpl) Update(ctx context.Context, request bida
 		Id:               bidangurusan.Id,
 		KodeBidangUrusan: bidangurusan.KodeBidangUrusan,
 		NamaBidangUrusan: bidangurusan.NamaBidangUrusan,
+		Tahun:            bidangurusan.Tahun,
 	}, nil
 }
 
@@ -101,6 +105,7 @@ func (service *BidangUrusanServiceImpl) FindById(ctx context.Context, id string)
 		Id:               bidangurusan.Id,
 		KodeBidangUrusan: bidangurusan.KodeBidangUrusan,
 		NamaBidangUrusan: bidangurusan.NamaBidangUrusan,
+		Tahun:            bidangurusan.Tahun,
 	}, nil
 }
 
@@ -122,6 +127,7 @@ func (service *BidangUrusanServiceImpl) FindAll(ctx context.Context) ([]bidangur
 			Id:               bidangurusan.Id,
 			KodeBidangUrusan: bidangurusan.KodeBidangUrusan,
 			NamaBidangUrusan: bidangurusan.NamaBidangUrusan,
+			Tahun:            bidangurusan.Tahun,
 		})
 	}
 

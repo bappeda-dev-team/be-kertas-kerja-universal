@@ -153,6 +153,7 @@ func (repository *MisiPemdaRepositoryImpl) FindByIdWithDefault(ctx context.Conte
 }
 
 func (repository *MisiPemdaRepositoryImpl) CheckUrutanExists(ctx context.Context, tx *sql.Tx, idVisi int, urutan int) (bool, error) {
+	// Ubah query untuk hanya mengecek urutan yang sama pada id_visi yang sama
 	script := "SELECT EXISTS(SELECT 1 FROM tb_misi_pemda WHERE id_visi = ? AND urutan = ?)"
 	var exists bool
 	err := tx.QueryRowContext(ctx, script, idVisi, urutan).Scan(&exists)
@@ -163,6 +164,7 @@ func (repository *MisiPemdaRepositoryImpl) CheckUrutanExists(ctx context.Context
 }
 
 func (repository *MisiPemdaRepositoryImpl) CheckUrutanExistsExcept(ctx context.Context, tx *sql.Tx, idVisi int, urutan int, id int) (bool, error) {
+	// Ubah query untuk hanya mengecek urutan yang sama pada id_visi yang sama, kecuali untuk id yang sedang diupdate
 	script := "SELECT EXISTS(SELECT 1 FROM tb_misi_pemda WHERE id_visi = ? AND urutan = ? AND id != ?)"
 	var exists bool
 	err := tx.QueryRowContext(ctx, script, idVisi, urutan, id).Scan(&exists)

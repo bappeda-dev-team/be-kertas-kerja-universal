@@ -31,7 +31,7 @@ func (repository *IkuRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, ta
             t.target,
             t.satuan,
             t.tahun as target_tahun,
-            'tujuan_pemda' as sumber,
+            'Tujuan Pemda' as sumber,
             tp.id as parent_id,
             tp.tujuan_pemda as parent_name,
             tp.tahun_awal_periode,
@@ -55,7 +55,7 @@ func (repository *IkuRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, ta
             t.target,
             t.satuan,
             t.tahun as target_tahun,
-            'sasaran_pemda' as sumber,
+            'Sasaran Pemda' as sumber,
             sp.id as parent_id,
             sp.sasaran_pemda as parent_name,
             sp.tahun_awal,
@@ -202,7 +202,7 @@ func (repository *IkuRepositoryImpl) FindAllIkuOpd(ctx context.Context, tx *sql.
 	// Query untuk mengambil indikator dari tujuan OPD
 	scriptTujuan := `
         SELECT 
-            'TUJUAN' as jenis,
+            'Tujuan OPD' as jenis,
             t.id as parent_id,
             t.tujuan as nama_parent,
             i.id as indikator_id,
@@ -236,7 +236,7 @@ func (repository *IkuRepositoryImpl) FindAllIkuOpd(ctx context.Context, tx *sql.
             )
         )
         SELECT 
-            'SASARAN' as jenis,
+            'Sasaran OPD' as jenis,
             pk.id as parent_id,
             pk.nama_pohon as nama_parent,
             i.id as indikator_id,

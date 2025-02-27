@@ -139,6 +139,10 @@ func (service *RencanaKinerjaServiceImpl) Create(ctx context.Context, request re
 		KodeOpd:              request.KodeOpd,
 		PegawaiId:            pegawais.Nip,
 		KodeSubKegiatan:      "",
+		TahunAwal:            "",
+		TahunAkhir:           "",
+		JenisPeriode:         "",
+		PeriodeId:            0,
 		Indikator:            make([]domain.Indikator, len(request.Indikator)),
 	}
 

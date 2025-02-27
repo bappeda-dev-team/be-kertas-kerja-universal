@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"ekak_kabupaten_madiun/model/domain/domainmaster"
-	"fmt"
 )
 
 type BidangUrusanRepositoryImpl struct {
@@ -15,8 +14,8 @@ func NewBidangUrusanRepositoryImpl() *BidangUrusanRepositoryImpl {
 }
 
 func (repository *BidangUrusanRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, bidangurusan domainmaster.BidangUrusan) domainmaster.BidangUrusan {
-	script := "INSERT INTO tb_bidang_urusan (id, kode_bidang_urusan, nama_bidang_urusan) VALUES (?, ?, ?)"
-	_, err := tx.ExecContext(ctx, script, bidangurusan.Id, bidangurusan.KodeBidangUrusan, bidangurusan.NamaBidangUrusan)
+	script := "INSERT INTO tb_bidang_urusan (id, kode_bidang_urusan, nama_bidang_urusan, tahun) VALUES (?, ?, ?, ?)"
+	_, err := tx.ExecContext(ctx, script, bidangurusan.Id, bidangurusan.KodeBidangUrusan, bidangurusan.NamaBidangUrusan, bidangurusan.Tahun)
 	if err != nil {
 		return bidangurusan
 	}
@@ -24,8 +23,8 @@ func (repository *BidangUrusanRepositoryImpl) Create(ctx context.Context, tx *sq
 }
 
 func (repository *BidangUrusanRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, bidangurusan domainmaster.BidangUrusan) domainmaster.BidangUrusan {
-	script := "UPDATE tb_bidang_urusan SET kode_bidang_urusan = ?, nama_bidang_urusan = ? WHERE id = ?"
-	_, err := tx.ExecContext(ctx, script, bidangurusan.KodeBidangUrusan, bidangurusan.NamaBidangUrusan, bidangurusan.Id)
+	script := "UPDATE tb_bidang_urusan SET kode_bidang_urusan = ?, nama_bidang_urusan = ?, tahun = ? WHERE id = ?"
+	_, err := tx.ExecContext(ctx, script, bidangurusan.KodeBidangUrusan, bidangurusan.NamaBidangUrusan, bidangurusan.Tahun, bidangurusan.Id)
 	if err != nil {
 		return bidangurusan
 	}
@@ -42,7 +41,7 @@ func (repository *BidangUrusanRepositoryImpl) Delete(ctx context.Context, tx *sq
 }
 
 func (repository *BidangUrusanRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, id string) (domainmaster.BidangUrusan, error) {
-	script := "SELECT id, kode_bidang_urusan, nama_bidang_urusan FROM tb_bidang_urusan WHERE id = ?"
+	script := "SELECT id, kode_bidang_urusan, nama_bidang_urusan, tahun FROM tb_bidang_urusan WHERE id = ?"
 	rows, err := tx.QueryContext(ctx, script, id)
 	if err != nil {
 		return domainmaster.BidangUrusan{}, err
@@ -51,13 +50,13 @@ func (repository *BidangUrusanRepositoryImpl) FindById(ctx context.Context, tx *
 
 	bidangurusan := domainmaster.BidangUrusan{}
 	if rows.Next() {
-		rows.Scan(&bidangurusan.Id, &bidangurusan.KodeBidangUrusan, &bidangurusan.NamaBidangUrusan)
+		rows.Scan(&bidangurusan.Id, &bidangurusan.KodeBidangUrusan, &bidangurusan.NamaBidangUrusan, &bidangurusan.Tahun)
 	}
 	return bidangurusan, nil
 }
 
 func (repository *BidangUrusanRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]domainmaster.BidangUrusan, error) {
-	script := "SELECT id, kode_bidang_urusan, nama_bidang_urusan FROM tb_bidang_urusan"
+	script := "SELECT id, kode_bidang_urusan, nama_bidang_urusan, tahun FROM tb_bidang_urusan"
 	rows, err := tx.QueryContext(ctx, script)
 	if err != nil {
 		return []domainmaster.BidangUrusan{}, err
@@ -67,7 +66,7 @@ func (repository *BidangUrusanRepositoryImpl) FindAll(ctx context.Context, tx *s
 	var bidangurusans []domainmaster.BidangUrusan
 	for rows.Next() {
 		bidangurusan := domainmaster.BidangUrusan{}
-		rows.Scan(&bidangurusan.Id, &bidangurusan.KodeBidangUrusan, &bidangurusan.NamaBidangUrusan)
+		rows.Scan(&bidangurusan.Id, &bidangurusan.KodeBidangUrusan, &bidangurusan.NamaBidangUrusan, &bidangurusan.Tahun)
 		bidangurusans = append(bidangurusans, bidangurusan)
 	}
 	return bidangurusans, nil
@@ -141,16 +140,58 @@ func (repository *BidangUrusanRepositoryImpl) FindByKodeOpd(ctx context.Context,
 }
 
 // Tambahkan method baru
+// func (repository *BidangUrusanRepositoryImpl) FindByKodeBidangUrusan(ctx context.Context, tx *sql.Tx, kodeBidangUrusan string) (domainmaster.BidangUrusan, error) {
+// 	script := `
+//         SELECT
+//             bu.id,
+//             bu.kode_bidang_urusan,
+//             bu.nama_bidang_urusan,
+//             u.nama_urusan
+//         FROM
+//             tb_bidang_urusan bu
+//             INNER JOIN tb_urusan u ON LEFT(bu.kode_bidang_urusan, 1) = u.kode_urusan
+//         WHERE
+//             bu.kode_bidang_urusan = ?
+//     `
+
+// 	var bidangUrusan domainmaster.BidangUrusan
+// 	err := tx.QueryRowContext(ctx, script, kodeBidangUrusan).Scan(
+// 		&bidangUrusan.Id,
+// 		&bidangUrusan.KodeBidangUrusan,
+// 		&bidangUrusan.NamaBidangUrusan,
+// 		&bidangUrusan.NamaUrusan,
+// 	)
+
+// 	if err != nil {
+// 		if err == sql.ErrNoRows {
+// 			return domainmaster.BidangUrusan{}, fmt.Errorf("bidang urusan dengan kode %s tidak ditemukan", kodeBidangUrusan)
+// 		}
+// 		return domainmaster.BidangUrusan{}, err
+// 	}
+
+// 	return bidangUrusan, nil
+// }
+
 func (repository *BidangUrusanRepositoryImpl) FindByKodeBidangUrusan(ctx context.Context, tx *sql.Tx, kodeBidangUrusan string) (domainmaster.BidangUrusan, error) {
+	// Jika kodeBidangUrusan kosong, kembalikan objek default tanpa error
+	if kodeBidangUrusan == "" {
+		return domainmaster.BidangUrusan{
+			Id:               "",
+			KodeBidangUrusan: "",
+			NamaBidangUrusan: "", // Memberikan label yang lebih bermakna
+			NamaUrusan:       "", // Memberikan label yang lebih bermakna
+		}, nil
+	}
+
 	script := `
         SELECT 
-            bu.id, 
-            bu.kode_bidang_urusan, 
-            bu.nama_bidang_urusan,
-            u.nama_urusan
+            COALESCE(bu.id, ''),
+            COALESCE(bu.kode_bidang_urusan, ''),
+            COALESCE(bu.nama_bidang_urusan, ''),
+            COALESCE(u.nama_urusan, '')
         FROM 
             tb_bidang_urusan bu
-            INNER JOIN tb_urusan u ON LEFT(bu.kode_bidang_urusan, 1) = u.kode_urusan
+            LEFT JOIN tb_urusan u ON LEFT(bu.kode_bidang_urusan, 1) = u.kode_urusan
         WHERE 
             bu.kode_bidang_urusan = ?
     `
@@ -165,7 +206,12 @@ func (repository *BidangUrusanRepositoryImpl) FindByKodeBidangUrusan(ctx context
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return domainmaster.BidangUrusan{}, fmt.Errorf("bidang urusan dengan kode %s tidak ditemukan", kodeBidangUrusan)
+			return domainmaster.BidangUrusan{
+				Id:               "",
+				KodeBidangUrusan: kodeBidangUrusan,
+				NamaBidangUrusan: "",
+				NamaUrusan:       "",
+			}, nil
 		}
 		return domainmaster.BidangUrusan{}, err
 	}

@@ -8,5 +8,6 @@ type BidangUrusan struct {
 	NamaBidangUrusan string
 	KodeUrusan       string
 	NamaUrusan       string
+	Tahun            string
 	CreatedAt        time.Time
 }

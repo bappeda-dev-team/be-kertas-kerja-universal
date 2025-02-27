@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"ekak_kabupaten_madiun/model/domain/domainmaster"
-	"fmt"
 )
 
 type BidangUrusanRepositoryImpl struct {
@@ -141,16 +140,58 @@ func (repository *BidangUrusanRepositoryImpl) FindByKodeOpd(ctx context.Context,
 }
 
 // Tambahkan method baru
+// func (repository *BidangUrusanRepositoryImpl) FindByKodeBidangUrusan(ctx context.Context, tx *sql.Tx, kodeBidangUrusan string) (domainmaster.BidangUrusan, error) {
+// 	script := `
+//         SELECT
+//             bu.id,
+//             bu.kode_bidang_urusan,
+//             bu.nama_bidang_urusan,
+//             u.nama_urusan
+//         FROM
+//             tb_bidang_urusan bu
+//             INNER JOIN tb_urusan u ON LEFT(bu.kode_bidang_urusan, 1) = u.kode_urusan
+//         WHERE
+//             bu.kode_bidang_urusan = ?
+//     `
+
+// 	var bidangUrusan domainmaster.BidangUrusan
+// 	err := tx.QueryRowContext(ctx, script, kodeBidangUrusan).Scan(
+// 		&bidangUrusan.Id,
+// 		&bidangUrusan.KodeBidangUrusan,
+// 		&bidangUrusan.NamaBidangUrusan,
+// 		&bidangUrusan.NamaUrusan,
+// 	)
+
+// 	if err != nil {
+// 		if err == sql.ErrNoRows {
+// 			return domainmaster.BidangUrusan{}, fmt.Errorf("bidang urusan dengan kode %s tidak ditemukan", kodeBidangUrusan)
+// 		}
+// 		return domainmaster.BidangUrusan{}, err
+// 	}
+
+// 	return bidangUrusan, nil
+// }
+
 func (repository *BidangUrusanRepositoryImpl) FindByKodeBidangUrusan(ctx context.Context, tx *sql.Tx, kodeBidangUrusan string) (domainmaster.BidangUrusan, error) {
+	// Jika kodeBidangUrusan kosong, kembalikan objek default tanpa error
+	if kodeBidangUrusan == "" {
+		return domainmaster.BidangUrusan{
+			Id:               "",
+			KodeBidangUrusan: "",
+			NamaBidangUrusan: "", // Memberikan label yang lebih bermakna
+			NamaUrusan:       "", // Memberikan label yang lebih bermakna
+		}, nil
+	}
+
 	script := `
         SELECT 
-            bu.id, 
-            bu.kode_bidang_urusan, 
-            bu.nama_bidang_urusan,
-            u.nama_urusan
+            COALESCE(bu.id, ''),
+            COALESCE(bu.kode_bidang_urusan, ''),
+            COALESCE(bu.nama_bidang_urusan, ''),
+            COALESCE(u.nama_urusan, '')
         FROM 
             tb_bidang_urusan bu
-            INNER JOIN tb_urusan u ON LEFT(bu.kode_bidang_urusan, 1) = u.kode_urusan
+            LEFT JOIN tb_urusan u ON LEFT(bu.kode_bidang_urusan, 1) = u.kode_urusan
         WHERE 
             bu.kode_bidang_urusan = ?
     `
@@ -165,7 +206,12 @@ func (repository *BidangUrusanRepositoryImpl) FindByKodeBidangUrusan(ctx context
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return domainmaster.BidangUrusan{}, fmt.Errorf("bidang urusan dengan kode %s tidak ditemukan", kodeBidangUrusan)
+			return domainmaster.BidangUrusan{
+				Id:               "",
+				KodeBidangUrusan: kodeBidangUrusan,
+				NamaBidangUrusan: "",
+				NamaUrusan:       "",
+			}, nil
 		}
 		return domainmaster.BidangUrusan{}, err
 	}

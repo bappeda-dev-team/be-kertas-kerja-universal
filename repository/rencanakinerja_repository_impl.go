@@ -276,11 +276,12 @@ func (repository *RencanaKinerjaRepositoryImpl) FindAllRincianKak(ctx context.Co
 
 func (repository *RencanaKinerjaRepositoryImpl) RekinsasaranOpd(ctx context.Context, tx *sql.Tx, pegawaiId string, kodeOPD string, tahun string) ([]domain.RencanaKinerja, error) {
 	script := `
-        SELECT DISTINCT 
+              SELECT DISTINCT 
             rk.id, 
             rk.id_pohon, 
-            rk.nama_rencana_kinerja, 
-            COALESCE(rk.tahun, ''), 
+            rk.nama_rencana_kinerja,
+            rk.tahun_awal,
+            rk.tahun_akhir, 
             rk.status_rencana_kinerja, 
             COALESCE(rk.catatan, ''), 
             rk.kode_opd, 
@@ -293,8 +294,9 @@ func (repository *RencanaKinerjaRepositoryImpl) RekinsasaranOpd(ctx context.Cont
         INNER JOIN tb_pegawai pp ON pl.pegawai_id = pp.id
         INNER JOIN tb_indikator i ON rk.id = i.rencana_kinerja_id
         WHERE 1=1
+        AND ? BETWEEN rk.tahun_awal AND rk.tahun_akhir
     `
-	params := []interface{}{}
+	params := []interface{}{tahun}
 
 	if pegawaiId != "" {
 		script += " AND pp.nip = ?"
@@ -324,7 +326,8 @@ func (repository *RencanaKinerjaRepositoryImpl) RekinsasaranOpd(ctx context.Cont
 			&rencanaKinerja.Id,
 			&rencanaKinerja.IdPohon,
 			&rencanaKinerja.NamaRencanaKinerja,
-			&rencanaKinerja.Tahun,
+			&rencanaKinerja.TahunAwal,
+			&rencanaKinerja.TahunAkhir,
 			&rencanaKinerja.StatusRencanaKinerja,
 			&rencanaKinerja.Catatan,
 			&rencanaKinerja.KodeOpd,
@@ -391,15 +394,9 @@ func (repository *RencanaKinerjaRepositoryImpl) FindTargetByIndikatorIdAndTahun(
             COALESCE(tahun, '')
         FROM tb_target 
         WHERE indikator_id = ?
+        AND tahun = ?
     `
-	params := []interface{}{indikatorId}
-
-	if tahun != "" {
-		script += " AND tahun = ?"
-		params = append(params, tahun)
-	}
-
-	rows, err := tx.QueryContext(ctx, script, params...)
+	rows, err := tx.QueryContext(ctx, script, indikatorId, tahun)
 	if err != nil {
 		return nil, err
 	}
@@ -421,9 +418,15 @@ func (repository *RencanaKinerjaRepositoryImpl) FindTargetByIndikatorIdAndTahun(
 		targets = append(targets, target)
 	}
 
-	// Jika tidak ada target ditemukan, kembalikan slice kosong
+	// Jika tidak ada target untuk tahun tersebut, kembalikan target kosong
 	if len(targets) == 0 {
-		return []domain.Target{}, nil
+		targets = append(targets, domain.Target{
+			Id:          "",
+			IndikatorId: indikatorId,
+			Target:      "",
+			Satuan:      "",
+			Tahun:       tahun,
+		})
 	}
 
 	return targets, nil

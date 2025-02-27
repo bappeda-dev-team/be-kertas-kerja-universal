@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -910,6 +911,14 @@ func (service *RencanaKinerjaServiceImpl) RekinsasaranOpd(ctx context.Context, p
 	for _, rencana := range rencanaKinerjaList {
 		log.Printf("Memproses RencanaKinerja dengan ID: %s", rencana.Id)
 
+		tahunInt, _ := strconv.Atoi(tahun)
+		tahunAwalInt, _ := strconv.Atoi(rencana.TahunAwal)
+		tahunAkhirInt, _ := strconv.Atoi(rencana.TahunAkhir)
+
+		if tahunInt < tahunAwalInt || tahunInt > tahunAkhirInt {
+			continue // Skip jika tahun di luar range
+		}
+
 		indikators, err := service.rencanaKinerjaRepository.FindIndikatorSasaranbyRekinId(ctx, tx, rencana.Id)
 		if err != nil && err != sql.ErrNoRows {
 			log.Printf("Gagal mencari Indikator: %v", err)
@@ -936,7 +945,7 @@ func (service *RencanaKinerjaServiceImpl) RekinsasaranOpd(ctx context.Context, p
 					})
 				}
 			} else {
-				// Jika tidak ada target untuk tahun tersebut, tambahkan target kosong
+				// Jika tidak ada target untuk tahun tersebut dan tahun dalam range, tambahkan target kosong
 				targetResponses = append(targetResponses, rencanakinerja.TargetResponse{
 					Id:              "",
 					IndikatorId:     indikator.Id,
@@ -952,24 +961,6 @@ func (service *RencanaKinerjaServiceImpl) RekinsasaranOpd(ctx context.Context, p
 				NamaIndikator:    indikator.Indikator,
 				Target:           targetResponses,
 			})
-		}
-
-		ActionButton := []web.ActionButton{
-			{
-				NameAction: "Find By Id Rencana Kinerja",
-				Method:     "GET",
-				Url:        "/detail-rencana_kinerja/:rencana_kinerja_id",
-			},
-			{
-				NameAction: "Update Rencana Kinerja",
-				Method:     "PUT",
-				Url:        "/rencana_kinerja/update/:id",
-			},
-			{
-				NameAction: "Delete Rencana Kinerja",
-				Method:     "DELETE",
-				Url:        "/rencana_kinerja/delete/:id",
-			},
 		}
 
 		opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, rencana.KodeOpd)
@@ -1004,7 +995,6 @@ func (service *RencanaKinerjaServiceImpl) RekinsasaranOpd(ctx context.Context, p
 			IdPohon:     rencana.IdPohon,
 			NamaPohon:   pohon.NamaPohon,
 			Indikator:   indikatorResponses,
-			Action:      ActionButton,
 		})
 		log.Printf("RencanaKinerja Response ditambahkan untuk ID: %s", rencana.Id)
 	}

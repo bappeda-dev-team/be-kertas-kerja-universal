@@ -567,76 +567,77 @@ func (repository *SasaranPemdaRepositoryImpl) UpdatePeriode(ctx context.Context,
 
 func (repository *SasaranPemdaRepositoryImpl) FindAllWithPokin(ctx context.Context, tx *sql.Tx, tahunAwal string, tahunAkhir string, jenisPeriode string) ([]domain.PohonKinerjaWithSasaran, error) {
 	query := `
-	WITH RECURSIVE pohon_hierarchy AS (
-		SELECT 
-			pk.id,
-			pk.nama_pohon,
-			pk.parent,
-			pk.level_pohon,
-			pk.jenis_pohon,
-			pk.keterangan,
-			pk.tahun,
-			CAST(pk.id AS CHAR(50)) as path,
-			pk.id as root_id,
-			pk.nama_pohon as root_nama  -- Ini adalah alias untuk nama_pohon di level root
-		FROM tb_pohon_kinerja pk
-		WHERE pk.level_pohon = 0
-		AND CAST(pk.tahun AS SIGNED) BETWEEN CAST(? AS SIGNED) AND CAST(? AS SIGNED)
-	
-		UNION ALL
-	
-		SELECT 
-			c.id,
-			c.nama_pohon,
-			c.parent,
-			c.level_pohon,
-			c.jenis_pohon,
-			c.keterangan,
-			c.tahun,
-			CONCAT(ph.path, ',', c.id),
-			ph.root_id,
-			ph.root_nama    -- Menggunakan root_nama dari parent
-		FROM tb_pohon_kinerja c
-		JOIN pohon_hierarchy ph ON c.parent = ph.id
-		WHERE CAST(c.tahun AS SIGNED) BETWEEN CAST(? AS SIGNED) AND CAST(? AS SIGNED)
-	)
-	SELECT DISTINCT
-		pk.id as subtematik_id,
-		pk.nama_pohon as nama_subtematik,
-		pk.jenis_pohon,
-		pk.level_pohon,
-		pk.keterangan,
-		pk.tahun as pohon_tahun,
-		pk.root_id as tematik_id,
-		pk.root_nama as nama_tematik,  -- Menggunakan root_nama dari CTE
-		sp.id as id_sasaran_pemda,
-		sp.sasaran_pemda,
-		sp.tahun_awal,
-		sp.tahun_akhir,
-		sp.jenis_periode,
-		i.id as indikator_id,
-		i.indikator,
-		i.rumus_perhitungan,
-		i.sumber_data,
-		t.id as target_id,
-		t.target,
-		t.satuan,
-		t.tahun as target_tahun
-	FROM pohon_hierarchy pk
-	LEFT JOIN tb_sasaran_pemda sp ON pk.id = sp.subtema_id
-	LEFT JOIN tb_indikator i ON sp.id = i.sasaran_pemda_id
-	LEFT JOIN tb_target t ON i.id = t.indikator_id
-	WHERE (pk.level_pohon BETWEEN 1 AND 3)
-	AND (
-		sp.id IS NULL 
-		OR (
-			sp.tahun_awal = ? 
-			AND sp.tahun_akhir = ?
-			AND sp.jenis_periode = ?
-		)
-	)
-	ORDER BY pk.root_id, pk.level_pohon, pk.id, sp.id, i.id, CAST(t.tahun AS SIGNED)`
-	rows, err := tx.QueryContext(ctx, query, tahunAwal, tahunAkhir, tahunAwal, tahunAkhir, tahunAwal, tahunAkhir, jenisPeriode)
+WITH RECURSIVE pohon_hierarchy AS (
+    SELECT 
+        pk.id,
+        pk.nama_pohon,
+        pk.parent,
+        pk.level_pohon,
+        pk.jenis_pohon,
+        pk.keterangan,
+        pk.tahun,
+        CAST(pk.id AS CHAR(50)) as path,
+        pk.id as root_id,
+        pk.nama_pohon as root_nama
+    FROM tb_pohon_kinerja pk
+    WHERE pk.level_pohon = 0
+    AND CAST(pk.tahun AS SIGNED) BETWEEN CAST(? AS SIGNED) AND CAST(? AS SIGNED)
+
+    UNION ALL
+
+    SELECT 
+        c.id,
+        c.nama_pohon,
+        c.parent,
+        c.level_pohon,
+        c.jenis_pohon,
+        c.keterangan,
+        c.tahun,
+        CONCAT(ph.path, ',', c.id),
+        ph.root_id,
+        ph.root_nama
+    FROM tb_pohon_kinerja c
+    JOIN pohon_hierarchy ph ON c.parent = ph.id
+    WHERE CAST(c.tahun AS SIGNED) BETWEEN CAST(? AS SIGNED) AND CAST(? AS SIGNED)
+)
+SELECT DISTINCT
+    pk.id as subtematik_id,
+    pk.nama_pohon as nama_subtematik,
+    pk.jenis_pohon,
+    pk.level_pohon,
+    pk.keterangan,
+    pk.tahun as pohon_tahun,
+    pk.root_id as tematik_id,
+    pk.root_nama as nama_tematik,
+    sp.id as id_sasaran_pemda,
+    sp.sasaran_pemda,
+    sp.tahun_awal,
+    sp.tahun_akhir,
+    sp.jenis_periode,
+    i.id as indikator_id,
+    i.indikator,
+    i.rumus_perhitungan,
+    i.sumber_data,
+    t.id as target_id,
+    t.target,
+    t.satuan,
+    t.tahun as target_tahun
+FROM pohon_hierarchy pk
+LEFT JOIN tb_sasaran_pemda sp ON pk.id = sp.subtema_id
+    AND sp.tahun_awal = ? 
+    AND sp.tahun_akhir = ?
+    AND sp.jenis_periode = ?
+LEFT JOIN tb_indikator i ON sp.id = i.sasaran_pemda_id
+LEFT JOIN tb_target t ON i.id = t.indikator_id
+    AND CAST(t.tahun AS SIGNED) BETWEEN CAST(? AS SIGNED) AND CAST(? AS SIGNED)
+WHERE pk.level_pohon BETWEEN 1 AND 3
+ORDER BY pk.root_id, pk.id, sp.id, i.id, CAST(t.tahun AS SIGNED)`
+
+	rows, err := tx.QueryContext(ctx, query,
+		tahunAwal, tahunAkhir,
+		tahunAwal, tahunAkhir,
+		tahunAwal, tahunAkhir, jenisPeriode,
+		tahunAwal, tahunAkhir)
 	if err != nil {
 		return nil, err
 	}

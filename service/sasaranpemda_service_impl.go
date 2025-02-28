@@ -596,6 +596,40 @@ func (service *SasaranPemdaServiceImpl) FindAllWithPokin(ctx context.Context, ta
 		}
 	}
 
+	// Sort berdasarkan ID di setiap level
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].TematikId < result[j].TematikId
+	})
+
+	for i := range result {
+		sort.Slice(result[i].Subtematik, func(x, y int) bool {
+			return result[i].Subtematik[x].SubtematikId < result[i].Subtematik[y].SubtematikId
+		})
+
+		for j := range result[i].Subtematik {
+			sort.Slice(result[i].Subtematik[j].SasaranPemda, func(x, y int) bool {
+				return result[i].Subtematik[j].SasaranPemda[x].IdSasaranPemda <
+					result[i].Subtematik[j].SasaranPemda[y].IdSasaranPemda
+			})
+
+			for k := range result[i].Subtematik[j].SasaranPemda {
+				sort.Slice(result[i].Subtematik[j].SasaranPemda[k].Indikator, func(x, y int) bool {
+					return result[i].Subtematik[j].SasaranPemda[k].Indikator[x].Id <
+						result[i].Subtematik[j].SasaranPemda[k].Indikator[y].Id
+				})
+
+				// Pastikan target terurut berdasarkan tahun
+				for l := range result[i].Subtematik[j].SasaranPemda[k].Indikator {
+					sort.Slice(result[i].Subtematik[j].SasaranPemda[k].Indikator[l].Target, func(x, y int) bool {
+						tahunX, _ := strconv.Atoi(result[i].Subtematik[j].SasaranPemda[k].Indikator[l].Target[x].Tahun)
+						tahunY, _ := strconv.Atoi(result[i].Subtematik[j].SasaranPemda[k].Indikator[l].Target[y].Tahun)
+						return tahunX < tahunY
+					})
+				}
+			}
+		}
+	}
+
 	return result, nil
 }
 func convertToIndikatorUpdateResponses(indikators []domain.Indikator) []sasaranpemda.IndikatorResponse {

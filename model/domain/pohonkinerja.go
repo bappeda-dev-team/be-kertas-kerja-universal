@@ -22,6 +22,7 @@ type PohonKinerja struct {
 	Crosscutting           []Crosscutting
 	PegawaiAction          interface{}
 	CrosscuttingTo         int
+	CountReview            int
 }
 
 type PegawaiAction struct {

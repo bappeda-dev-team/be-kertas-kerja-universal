@@ -82,7 +82,7 @@ func InitializeServer() *http.Server {
 	jabatanRepositoryImpl := repository.NewJabatanRepositoryImpl()
 	jabatanServiceImpl := service.NewJabatanServiceImpl(jabatanRepositoryImpl, opdRepositoryImpl, db)
 	jabatanControllerImpl := controller.NewJabatanControllerImpl(jabatanServiceImpl)
-	pohonKinerjaAdminServiceImpl := service.NewPohonKinerjaAdminServiceImpl(pohonKinerjaRepositoryImpl, opdRepositoryImpl, db, pegawaiRepositoryImpl)
+	pohonKinerjaAdminServiceImpl := service.NewPohonKinerjaAdminServiceImpl(pohonKinerjaRepositoryImpl, opdRepositoryImpl, db, pegawaiRepositoryImpl, reviewRepositoryImpl)
 	pohonKinerjaAdminControllerImpl := controller.NewPohonKinerjaAdminControllerImpl(pohonKinerjaAdminServiceImpl)
 	opdServiceImpl := service.NewOpdServiceImpl(opdRepositoryImpl, lembagaRepositoryImpl, db, validate)
 	opdControllerImpl := controller.NewOpdControllerImpl(opdServiceImpl)

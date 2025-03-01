@@ -10,13 +10,14 @@ import (
 
 func BuildTematikResponse(pohonMap map[int]map[int][]domain.PohonKinerja, tematik domain.PohonKinerja) pohonkinerja.TematikResponse {
 	tematikResp := pohonkinerja.TematikResponse{
-		Id:         tematik.Id,
-		Parent:     nil,
-		Tema:       tematik.NamaPohon,
-		JenisPohon: tematik.JenisPohon,
-		LevelPohon: tematik.LevelPohon,
-		Keterangan: tematik.Keterangan,
-		Indikators: ConvertToIndikatorResponses(tematik.Indikator),
+		Id:          tematik.Id,
+		Parent:      nil,
+		Tema:        tematik.NamaPohon,
+		JenisPohon:  tematik.JenisPohon,
+		LevelPohon:  tematik.LevelPohon,
+		Keterangan:  tematik.Keterangan,
+		CountReview: tematik.CountReview,
+		Indikators:  ConvertToIndikatorResponses(tematik.Indikator),
 	}
 
 	var childs []interface{}
@@ -43,13 +44,14 @@ func BuildTematikResponse(pohonMap map[int]map[int][]domain.PohonKinerja, temati
 
 func BuildSubTematikResponse(pohonMap map[int]map[int][]domain.PohonKinerja, subTematik domain.PohonKinerja) pohonkinerja.SubtematikResponse {
 	subTematikResp := pohonkinerja.SubtematikResponse{
-		Id:         subTematik.Id,
-		Parent:     subTematik.Parent,
-		Tema:       subTematik.NamaPohon,
-		JenisPohon: subTematik.JenisPohon,
-		LevelPohon: subTematik.LevelPohon,
-		Keterangan: subTematik.Keterangan,
-		Indikators: ConvertToIndikatorResponses(subTematik.Indikator),
+		Id:          subTematik.Id,
+		Parent:      subTematik.Parent,
+		Tema:        subTematik.NamaPohon,
+		JenisPohon:  subTematik.JenisPohon,
+		LevelPohon:  subTematik.LevelPohon,
+		Keterangan:  subTematik.Keterangan,
+		CountReview: subTematik.CountReview,
+		Indikators:  ConvertToIndikatorResponses(subTematik.Indikator),
 	}
 
 	var childs []interface{}
@@ -76,13 +78,14 @@ func BuildSubTematikResponse(pohonMap map[int]map[int][]domain.PohonKinerja, sub
 
 func BuildSubSubTematikResponse(pohonMap map[int]map[int][]domain.PohonKinerja, subSubTematik domain.PohonKinerja) pohonkinerja.SubSubTematikResponse {
 	subSubTematikResp := pohonkinerja.SubSubTematikResponse{
-		Id:         subSubTematik.Id,
-		Parent:     subSubTematik.Parent,
-		Tema:       subSubTematik.NamaPohon,
-		JenisPohon: subSubTematik.JenisPohon,
-		LevelPohon: subSubTematik.LevelPohon,
-		Keterangan: subSubTematik.Keterangan,
-		Indikators: ConvertToIndikatorResponses(subSubTematik.Indikator),
+		Id:          subSubTematik.Id,
+		Parent:      subSubTematik.Parent,
+		Tema:        subSubTematik.NamaPohon,
+		JenisPohon:  subSubTematik.JenisPohon,
+		LevelPohon:  subSubTematik.LevelPohon,
+		Keterangan:  subSubTematik.Keterangan,
+		CountReview: subSubTematik.CountReview,
+		Indikators:  ConvertToIndikatorResponses(subSubTematik.Indikator),
 	}
 
 	var childs []interface{}
@@ -109,13 +112,14 @@ func BuildSubSubTematikResponse(pohonMap map[int]map[int][]domain.PohonKinerja, 
 
 func BuildSuperSubTematikResponse(pohonMap map[int]map[int][]domain.PohonKinerja, superSubTematik domain.PohonKinerja) pohonkinerja.SuperSubTematikResponse {
 	superSubTematikResp := pohonkinerja.SuperSubTematikResponse{
-		Id:         superSubTematik.Id,
-		Parent:     superSubTematik.Parent,
-		Tema:       superSubTematik.NamaPohon,
-		JenisPohon: superSubTematik.JenisPohon,
-		LevelPohon: superSubTematik.LevelPohon,
-		Keterangan: superSubTematik.Keterangan,
-		Indikators: ConvertToIndikatorResponses(superSubTematik.Indikator),
+		Id:          superSubTematik.Id,
+		Parent:      superSubTematik.Parent,
+		Tema:        superSubTematik.NamaPohon,
+		JenisPohon:  superSubTematik.JenisPohon,
+		LevelPohon:  superSubTematik.LevelPohon,
+		Keterangan:  superSubTematik.Keterangan,
+		CountReview: superSubTematik.CountReview,
+		Indikators:  ConvertToIndikatorResponses(superSubTematik.Indikator),
 	}
 
 	var childs []interface{}
@@ -171,14 +175,15 @@ func BuildStrategicResponse(pohonMap map[int]map[int][]domain.PohonKinerja, stra
 	}
 
 	strategicResp := pohonkinerja.StrategicResponse{
-		Id:         strategic.Id,
-		Parent:     strategic.Parent,
-		Strategi:   strategic.NamaPohon,
-		JenisPohon: strategic.JenisPohon,
-		LevelPohon: strategic.LevelPohon,
-		Keterangan: strategic.Keterangan,
-		Status:     strategic.Status,
-		Indikators: uniqueIndikators,
+		Id:          strategic.Id,
+		Parent:      strategic.Parent,
+		Strategi:    strategic.NamaPohon,
+		JenisPohon:  strategic.JenisPohon,
+		LevelPohon:  strategic.LevelPohon,
+		Keterangan:  strategic.Keterangan,
+		Status:      strategic.Status,
+		Indikators:  uniqueIndikators,
+		CountReview: strategic.CountReview,
 		KodeOpd: &opdmaster.OpdResponseForAll{
 			KodeOpd: strategic.KodeOpd,
 			NamaOpd: strategic.NamaOpd,
@@ -242,15 +247,16 @@ func BuildTacticalResponse(pohonMap map[int]map[int][]domain.PohonKinerja, tacti
 	}
 
 	tacticalResp := pohonkinerja.TacticalResponse{
-		Id:         tactical.Id,
-		Parent:     tactical.Parent,
-		Strategi:   tactical.NamaPohon,
-		JenisPohon: tactical.JenisPohon,
-		LevelPohon: tactical.LevelPohon,
-		Keterangan: &tactical.Keterangan,
-		Status:     tactical.Status,
-		Indikators: uniqueIndikators,
-		Pelaksana:  ConvertToPelaksanaResponses(tactical.Pelaksana),
+		Id:          tactical.Id,
+		Parent:      tactical.Parent,
+		Strategi:    tactical.NamaPohon,
+		JenisPohon:  tactical.JenisPohon,
+		LevelPohon:  tactical.LevelPohon,
+		Keterangan:  &tactical.Keterangan,
+		Status:      tactical.Status,
+		Indikators:  uniqueIndikators,
+		CountReview: tactical.CountReview,
+		Pelaksana:   ConvertToPelaksanaResponses(tactical.Pelaksana),
 	}
 
 	// Tambahkan data OPD jika ada
@@ -312,15 +318,16 @@ func BuildOperationalResponse(pohonMap map[int]map[int][]domain.PohonKinerja, op
 	}
 
 	operationalResp := pohonkinerja.OperationalResponse{
-		Id:         operational.Id,
-		Parent:     operational.Parent,
-		Strategi:   operational.NamaPohon,
-		JenisPohon: operational.JenisPohon,
-		LevelPohon: operational.LevelPohon,
-		Keterangan: &operational.Keterangan,
-		Status:     operational.Status,
-		Indikators: uniqueIndikators,
-		Pelaksana:  ConvertToPelaksanaResponses(operational.Pelaksana),
+		Id:          operational.Id,
+		Parent:      operational.Parent,
+		Strategi:    operational.NamaPohon,
+		JenisPohon:  operational.JenisPohon,
+		LevelPohon:  operational.LevelPohon,
+		Keterangan:  &operational.Keterangan,
+		Status:      operational.Status,
+		Indikators:  uniqueIndikators,
+		CountReview: operational.CountReview,
+		Pelaksana:   ConvertToPelaksanaResponses(operational.Pelaksana),
 	}
 
 	// Tambahkan data OPD jika ada
@@ -388,15 +395,16 @@ func BuildOperationalNResponse(pohonMap map[int]map[int][]domain.PohonKinerja, o
 	}
 
 	operationalNResp := pohonkinerja.OperationalNResponse{
-		Id:         operationalN.Id,
-		Parent:     operationalN.Parent,
-		Strategi:   operationalN.NamaPohon,
-		JenisPohon: operationalN.JenisPohon,
-		LevelPohon: operationalN.LevelPohon,
-		Keterangan: &operationalN.Keterangan,
-		Status:     operationalN.Status,
-		Indikators: uniqueIndikators,
-		Pelaksana:  ConvertToPelaksanaResponses(operationalN.Pelaksana),
+		Id:          operationalN.Id,
+		Parent:      operationalN.Parent,
+		Strategi:    operationalN.NamaPohon,
+		JenisPohon:  operationalN.JenisPohon,
+		LevelPohon:  operationalN.LevelPohon,
+		Keterangan:  &operationalN.Keterangan,
+		Status:      operationalN.Status,
+		Indikators:  uniqueIndikators,
+		CountReview: operationalN.CountReview,
+		Pelaksana:   ConvertToPelaksanaResponses(operationalN.Pelaksana),
 	}
 
 	// Tambahkan data OPD jika ada
@@ -428,13 +436,14 @@ func BuildOperationalNResponse(pohonMap map[int]map[int][]domain.PohonKinerja, o
 
 func BuildSubTematikResponseLimited(pohonMap map[int]map[int][]domain.PohonKinerja, subTematik domain.PohonKinerja) pohonkinerja.SubtematikResponse {
 	subTematikResp := pohonkinerja.SubtematikResponse{
-		Id:         subTematik.Id,
-		Parent:     subTematik.Parent,
-		Tema:       subTematik.NamaPohon,
-		JenisPohon: subTematik.JenisPohon,
-		LevelPohon: subTematik.LevelPohon,
-		Keterangan: subTematik.Keterangan,
-		Indikators: ConvertToIndikatorResponses(subTematik.Indikator),
+		Id:          subTematik.Id,
+		Parent:      subTematik.Parent,
+		Tema:        subTematik.NamaPohon,
+		JenisPohon:  subTematik.JenisPohon,
+		LevelPohon:  subTematik.LevelPohon,
+		Keterangan:  subTematik.Keterangan,
+		CountReview: subTematik.CountReview,
+		Indikators:  ConvertToIndikatorResponses(subTematik.Indikator),
 	}
 
 	var childs []interface{}

@@ -207,15 +207,14 @@ func (repository *IkuRepositoryImpl) FindAllIkuOpd(ctx context.Context, tx *sql.
             t.tujuan as nama_parent,
             i.id as indikator_id,
             i.indikator,
-            COALESCE(m.formula, '') as rumus_perhitungan,
-            COALESCE(m.sumber_data, '') as sumber_data,
+           	i.rumus_perhitungan,
+          	i.sumber_data,
             tg.id as target_id,
             tg.target,
             tg.satuan,
             tg.tahun
         FROM tb_tujuan_opd t
         LEFT JOIN tb_indikator i ON t.id = i.tujuan_opd_id
-        LEFT JOIN tb_manual_ik m ON i.id = m.indikator_id
         LEFT JOIN tb_target tg ON i.id = tg.indikator_id
         WHERE t.kode_opd = ?
         AND t.tahun_awal = ?

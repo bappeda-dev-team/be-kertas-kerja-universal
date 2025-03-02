@@ -5,6 +5,7 @@ import (
 	"ekak_kabupaten_madiun/model/web"
 	"ekak_kabupaten_madiun/service"
 	"net/http"
+	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -47,6 +48,29 @@ func (controller *SasaranOpdControllerImpl) FindByIdRencanaKinerja(writer http.R
 	idRencanaKinerja := params.ByName("id_rencana_kinerja")
 
 	sasaranOpdResponse, err := controller.SasaranOpdService.FindByIdRencanaKinerja(request.Context(), idRencanaKinerja)
+	if err != nil {
+		webResponse := web.WebResponse{
+			Code:   400,
+			Status: "BAD_REQUEST",
+			Data:   err.Error(),
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+	} else {
+		webResponse := web.WebResponse{
+			Code:   200,
+			Status: "get all sasaran opd by id rencana kinerja",
+			Data:   sasaranOpdResponse,
+		}
+		helper.WriteToResponseBody(writer, webResponse)
+	}
+}
+
+func (controller *SasaranOpdControllerImpl) FindIdPokinSasaran(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	idPokinStr := params.ByName("id")
+	idPokin, err := strconv.Atoi(idPokinStr)
+	helper.PanicIfError(err)
+
+	sasaranOpdResponse, err := controller.SasaranOpdService.FindIdPokinSasaran(request.Context(), idPokin)
 	if err != nil {
 		webResponse := web.WebResponse{
 			Code:   400,

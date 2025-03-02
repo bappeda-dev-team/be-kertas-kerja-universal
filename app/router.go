@@ -345,6 +345,7 @@ func NewRouter(
 	router.GET("/rencana_kinerja_sasaran_opd/pegawai_level1/:pegawai_id/tahun/:tahun", rencanaKinerjaController.FindRekinSasaranOpd)
 	router.POST("/sasaran_opd/create", rencanaKinerjaController.CreateSasaranOpd)
 	router.PUT("/sasaran_opd/update/:id", rencanaKinerjaController.UpdateSasaranOpd)
+	router.GET("/sasaran_opd/pokin/:id", sasaranOpdController.FindIdPokinSasaran)
 
 	//visi pemda
 	router.POST("/visi_pemda/create", visiPemdaController.Create)

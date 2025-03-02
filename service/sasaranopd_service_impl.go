@@ -4,8 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"ekak_kabupaten_madiun/helper"
+	"ekak_kabupaten_madiun/model/domain"
+	"ekak_kabupaten_madiun/model/web/pohonkinerja"
 	"ekak_kabupaten_madiun/model/web/sasaranopd"
 	"ekak_kabupaten_madiun/repository"
+	"fmt"
+	"strconv"
 )
 
 type SasaranOpdServiceImpl struct {
@@ -14,6 +18,7 @@ type SasaranOpdServiceImpl struct {
 	rencanaKinerjaRepository  repository.RencanaKinerjaRepository
 	manualIndikatorRepository repository.ManualIKRepository
 	pegawaiRepository         repository.PegawaiRepository
+	pohonkinerjaRepository    repository.PohonKinerjaRepository
 	DB                        *sql.DB
 }
 
@@ -23,6 +28,7 @@ func NewSasaranOpdServiceImpl(
 	rencanaKinerjaRepository repository.RencanaKinerjaRepository,
 	manualIndikatorRepository repository.ManualIKRepository,
 	pegawaiRepository repository.PegawaiRepository,
+	pohonkinerjaRepository repository.PohonKinerjaRepository,
 	db *sql.DB) *SasaranOpdServiceImpl {
 	return &SasaranOpdServiceImpl{
 		sasaranOpdRepository:      sasaranOpdRepository,
@@ -30,6 +36,7 @@ func NewSasaranOpdServiceImpl(
 		rencanaKinerjaRepository:  rencanaKinerjaRepository,
 		manualIndikatorRepository: manualIndikatorRepository,
 		pegawaiRepository:         pegawaiRepository,
+		pohonkinerjaRepository:    pohonkinerjaRepository,
 		DB:                        db,
 	}
 }
@@ -198,6 +205,88 @@ func (service *SasaranOpdServiceImpl) FindByIdRencanaKinerja(ctx context.Context
 		}
 
 		response.RencanaKinerja = append(response.RencanaKinerja, rencanaKinerjaResponse)
+	}
+
+	return response, nil
+}
+
+func (service *SasaranOpdServiceImpl) FindIdPokinSasaran(ctx context.Context, id int) (pohonkinerja.PohonKinerjaOpdResponse, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return pohonkinerja.PohonKinerjaOpdResponse{}, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	// Ambil data pohon kinerja dengan sasaran
+	pokin, err := service.sasaranOpdRepository.FindIdPokinSasaran(ctx, tx, id)
+	if err != nil {
+		return pohonkinerja.PohonKinerjaOpdResponse{}, err
+	}
+
+	// Ambil data OPD jika ada
+	var namaOpd string
+	if pokin.KodeOpd != "" {
+		opd, err := service.opdRepository.FindByKodeOpd(ctx, tx, pokin.KodeOpd)
+		if err == nil {
+			namaOpd = opd.NamaOpd
+		}
+	}
+
+	// Konversi indikator dan target ke response
+	var indikatorResponses []pohonkinerja.IndikatorResponse
+	for _, ind := range pokin.Indikator {
+		var targetResponses []pohonkinerja.TargetResponse
+
+		// Cari target yang ada di database
+		var existingTarget *domain.Target
+		for _, t := range ind.Target {
+			if t.Id != fmt.Sprintf("TRG-%s-%s", ind.Id, pokin.Tahun) {
+				existingTarget = &t
+				break
+			}
+		}
+
+		// Jika ada target di database, gunakan itu
+		if existingTarget != nil {
+			targetResponses = append(targetResponses, pohonkinerja.TargetResponse{
+				Id:              existingTarget.Id,
+				IndikatorId:     existingTarget.IndikatorId,
+				TargetIndikator: existingTarget.Target,
+				SatuanIndikator: existingTarget.Satuan,
+				TahunSasaran:    pokin.Tahun,
+			})
+		} else {
+			// Jika tidak ada target di database, gunakan target default
+			targetResponses = append(targetResponses, pohonkinerja.TargetResponse{
+				Id:              fmt.Sprintf("TRG-%s-%s", ind.Id, pokin.Tahun),
+				IndikatorId:     ind.Id,
+				TargetIndikator: "-",
+				SatuanIndikator: "-",
+				TahunSasaran:    pokin.Tahun,
+			})
+		}
+
+		indikatorResponses = append(indikatorResponses, pohonkinerja.IndikatorResponse{
+			Id:            ind.Id,
+			IdPokin:       fmt.Sprint(pokin.Id),
+			NamaIndikator: ind.Indikator,
+			Target:        targetResponses,
+		})
+	}
+
+	response := pohonkinerja.PohonKinerjaOpdResponse{
+		Id:         pokin.Id,
+		Parent:     strconv.Itoa(pokin.Parent),
+		NamaPohon:  pokin.NamaPohon,
+		JenisPohon: pokin.JenisPohon,
+		LevelPohon: pokin.LevelPohon,
+		KodeOpd:    pokin.KodeOpd,
+		NamaOpd:    namaOpd,
+		Keterangan: pokin.Keterangan,
+		Tahun:      pokin.Tahun,
+		Status:     pokin.Status,
+
+		Indikator: indikatorResponses,
 	}
 
 	return response, nil

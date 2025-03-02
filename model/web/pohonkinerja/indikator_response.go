@@ -12,4 +12,5 @@ type TargetResponse struct {
 	IndikatorId     string `json:"indikator_id"`
 	TargetIndikator string `json:"target"`
 	SatuanIndikator string `json:"satuan"`
+	TahunSasaran    string `json:"tahun,omitempty"`
 }

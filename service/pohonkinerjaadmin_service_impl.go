@@ -23,15 +23,17 @@ type PohonKinerjaAdminServiceImpl struct {
 	pohonKinerjaRepository repository.PohonKinerjaRepository
 	opdRepository          repository.OpdRepository
 	pegawaiRepository      repository.PegawaiRepository
+	reviewRepository       repository.ReviewRepository
 	DB                     *sql.DB
 }
 
-func NewPohonKinerjaAdminServiceImpl(pohonKinerjaRepository repository.PohonKinerjaRepository, opdRepository repository.OpdRepository, DB *sql.DB, pegawaiRepository repository.PegawaiRepository) *PohonKinerjaAdminServiceImpl {
+func NewPohonKinerjaAdminServiceImpl(pohonKinerjaRepository repository.PohonKinerjaRepository, opdRepository repository.OpdRepository, DB *sql.DB, pegawaiRepository repository.PegawaiRepository, reviewRepository repository.ReviewRepository) *PohonKinerjaAdminServiceImpl {
 	return &PohonKinerjaAdminServiceImpl{
 		pohonKinerjaRepository: pohonKinerjaRepository,
 		opdRepository:          opdRepository,
 		pegawaiRepository:      pegawaiRepository,
 		DB:                     DB,
+		reviewRepository:       reviewRepository,
 	}
 }
 
@@ -156,19 +158,23 @@ func (service *PohonKinerjaAdminServiceImpl) Create(ctx context.Context, request
 		}
 	}
 
+	countReview, err := service.reviewRepository.CountReviewByPohonKinerja(ctx, tx, result.Id)
+	helper.PanicIfError(err)
+
 	response := pohonkinerja.PohonKinerjaAdminResponseData{
-		Id:         result.Id,
-		Parent:     result.Parent,
-		NamaPohon:  result.NamaPohon,
-		JenisPohon: result.JenisPohon,
-		LevelPohon: result.LevelPohon,
-		KodeOpd:    result.KodeOpd,
-		NamaOpd:    namaOpd,
-		Keterangan: result.Keterangan,
-		Tahun:      result.Tahun,
-		Status:     result.Status,
-		Pelaksana:  pelaksanaResponses,
-		Indikators: indikatorResponses,
+		Id:          result.Id,
+		Parent:      result.Parent,
+		NamaPohon:   result.NamaPohon,
+		JenisPohon:  result.JenisPohon,
+		LevelPohon:  result.LevelPohon,
+		KodeOpd:     result.KodeOpd,
+		NamaOpd:     namaOpd,
+		Keterangan:  result.Keterangan,
+		Tahun:       result.Tahun,
+		Status:      result.Status,
+		CountReview: countReview,
+		Pelaksana:   pelaksanaResponses,
+		Indikators:  indikatorResponses,
 	}
 
 	log.Printf("Proses pembuatan PohonKinerja selesai")
@@ -408,19 +414,23 @@ func (service *PohonKinerjaAdminServiceImpl) Update(ctx context.Context, request
 		}
 	}
 
+	countReview, err := service.reviewRepository.CountReviewByPohonKinerja(ctx, tx, updatedPokin.Id)
+	helper.PanicIfError(err)
+
 	response := pohonkinerja.PohonKinerjaAdminResponseData{
-		Id:         updatedPokin.Id,
-		Parent:     updatedPokin.Parent,
-		NamaPohon:  updatedPokin.NamaPohon,
-		JenisPohon: updatedPokin.JenisPohon,
-		LevelPohon: updatedPokin.LevelPohon,
-		KodeOpd:    updatedPokin.KodeOpd,
-		NamaOpd:    namaOpd,
-		Keterangan: updatedPokin.Keterangan,
-		Tahun:      updatedPokin.Tahun,
-		Status:     updatedPokin.Status,
-		Pelaksana:  pelaksanaResponses,
-		Indikators: indikatorResponses,
+		Id:          updatedPokin.Id,
+		Parent:      updatedPokin.Parent,
+		NamaPohon:   updatedPokin.NamaPohon,
+		JenisPohon:  updatedPokin.JenisPohon,
+		LevelPohon:  updatedPokin.LevelPohon,
+		KodeOpd:     updatedPokin.KodeOpd,
+		NamaOpd:     namaOpd,
+		Keterangan:  updatedPokin.Keterangan,
+		Tahun:       updatedPokin.Tahun,
+		Status:      updatedPokin.Status,
+		CountReview: countReview,
+		Pelaksana:   pelaksanaResponses,
+		Indikators:  indikatorResponses,
 	}
 
 	return response, nil
@@ -721,6 +731,11 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinAdminByIdHierarki(ctx cont
 			}
 		}
 
+		countReview, err := service.reviewRepository.CountReviewByPohonKinerja(ctx, tx, p.Id)
+		if err == nil {
+			p.CountReview = countReview
+		}
+
 		// Ambil data pelaksana untuk level 4 ke atas (strategic, tactical, operational)
 		if p.LevelPohon >= 4 {
 			pelaksanas, err := service.pohonKinerjaRepository.FindPelaksanaPokin(ctx, tx, fmt.Sprint(p.Id))
@@ -789,7 +804,7 @@ func (service *PohonKinerjaAdminServiceImpl) FindPokinAdminByIdHierarki(ctx cont
 			JenisPohon: tematik[0].JenisPohon,
 			LevelPohon: tematik[0].LevelPohon,
 			Keterangan: tematik[0].Keterangan,
-			Indikators: uniqueIndikators, // Gunakan indikator yang sudah difilter
+			Indikators: uniqueIndikators,
 			Child:      childs,
 		}
 	}

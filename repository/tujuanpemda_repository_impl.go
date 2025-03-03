@@ -435,7 +435,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
 	}
 
 	query := `
-    SELECT 
+      SELECT 
         pk.id as pokin_id,
         pk.nama_pohon,
         pk.jenis_pohon,
@@ -446,7 +446,7 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
         tp.id as tujuan_id,
         tp.tujuan_pemda,
         tp.id_visi,
-		tp.id_misi,
+        tp.id_misi,
         tp.tahun_awal_periode,
         tp.tahun_akhir_periode,
         tp.jenis_periode,
@@ -462,6 +462,9 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
         tb_pohon_kinerja pk
     LEFT JOIN 
         tb_tujuan_pemda tp ON pk.id = tp.tematik_id
+        AND tp.tahun_awal_periode = ? 
+        AND tp.tahun_akhir_periode = ? 
+        AND tp.jenis_periode = ?
     LEFT JOIN 
         tb_indikator i ON tp.id = i.tujuan_pemda_id
     LEFT JOIN 
@@ -469,17 +472,14 @@ func (repository *TujuanPemdaRepositoryImpl) FindAllWithPokin(ctx context.Contex
         AND CAST(t.tahun AS SIGNED) BETWEEN CAST(? AS SIGNED) AND CAST(? AS SIGNED)
     WHERE 
         pk.level_pohon = 0
-        AND (
-            (tp.id IS NOT NULL 
-            AND tp.tahun_awal_periode = ? 
-            AND tp.tahun_akhir_periode = ? 
-            AND tp.jenis_periode = ?)
-            OR (tp.id IS NULL)
-        )
+        AND CAST(pk.tahun AS SIGNED) BETWEEN CAST(? AS SIGNED) AND CAST(? AS SIGNED)
     ORDER BY 
         pk.id, tp.id, i.id, t.tahun`
 
-	rows, err := tx.QueryContext(ctx, query, tahunAwal, tahunAkhir, tahunAwal, tahunAkhir, jenisPeriode)
+	rows, err := tx.QueryContext(ctx, query,
+		tahunAwal, tahunAkhir, jenisPeriode,
+		tahunAwal, tahunAkhir,
+		tahunAwal, tahunAkhir)
 	if err != nil {
 		return nil, fmt.Errorf("error querying data: %v", err)
 	}

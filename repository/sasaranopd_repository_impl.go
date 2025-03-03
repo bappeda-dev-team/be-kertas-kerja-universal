@@ -451,3 +451,100 @@ func (repository *SasaranOpdRepositoryImpl) FindByIdRencanaKinerja(ctx context.C
 
 	return sasaranOpd, nil
 }
+
+func (repository *SasaranOpdRepositoryImpl) FindIdPokinSasaran(ctx context.Context, tx *sql.Tx, id int) (domain.PohonKinerja, error) {
+	scriptPokin := `
+    SELECT DISTINCT
+        pk.id, 
+        pk.parent, 
+        pk.nama_pohon, 
+        pk.jenis_pohon, 
+        pk.level_pohon, 
+        pk.kode_opd, 
+        pk.keterangan, 
+        pk.tahun,
+        pk.status,
+        i.id as indikator_id,
+        i.indikator as nama_indikator,
+        t.id as target_id,
+        t.target,
+        t.satuan,
+        t.tahun as tahun_target
+    FROM 
+        tb_pohon_kinerja pk 
+        LEFT JOIN tb_indikator i ON pk.id = i.pokin_id
+        LEFT JOIN tb_target t ON i.id = t.indikator_id
+    WHERE 
+        pk.id = ?
+    ORDER BY t.id DESC
+    LIMIT 1`
+
+	rows, err := tx.QueryContext(ctx, scriptPokin, id)
+	if err != nil {
+		return domain.PohonKinerja{}, fmt.Errorf("error querying pohon kinerja: %v", err)
+	}
+	defer rows.Close()
+
+	var pohonKinerja domain.PohonKinerja
+	indikatorMap := make(map[string]*domain.Indikator)
+	dataFound := false
+
+	for rows.Next() {
+		var (
+			indikatorId, namaIndikator            sql.NullString
+			targetId, target, satuan, tahunTarget sql.NullString
+		)
+
+		err := rows.Scan(
+			&pohonKinerja.Id,
+			&pohonKinerja.Parent,
+			&pohonKinerja.NamaPohon,
+			&pohonKinerja.JenisPohon,
+			&pohonKinerja.LevelPohon,
+			&pohonKinerja.KodeOpd,
+			&pohonKinerja.Keterangan,
+			&pohonKinerja.Tahun,
+			&pohonKinerja.Status,
+			&indikatorId,
+			&namaIndikator,
+			&targetId,
+			&target,
+			&satuan,
+			&tahunTarget,
+		)
+		if err != nil {
+			return domain.PohonKinerja{}, fmt.Errorf("error scanning row: %v", err)
+		}
+
+		dataFound = true
+
+		if indikatorId.Valid && namaIndikator.Valid {
+			ind := &domain.Indikator{
+				Id:        indikatorId.String,
+				Indikator: namaIndikator.String,
+				PokinId:   fmt.Sprint(pohonKinerja.Id),
+				Target:    []domain.Target{},
+			}
+
+			if targetId.Valid && target.Valid && satuan.Valid {
+				targetObj := domain.Target{
+					Id:          targetId.String,
+					IndikatorId: indikatorId.String,
+					Target:      target.String,
+					Satuan:      satuan.String,
+					Tahun:       tahunTarget.String,
+				}
+				ind.Target = append(ind.Target, targetObj)
+			}
+
+			indikatorMap[indikatorId.String] = ind
+			pohonKinerja.Indikator = append(pohonKinerja.Indikator, *ind)
+		}
+	}
+
+	if !dataFound {
+		return domain.PohonKinerja{}, fmt.Errorf("pohon kinerja with id %d not found", id)
+	}
+
+	return pohonKinerja, nil
+}

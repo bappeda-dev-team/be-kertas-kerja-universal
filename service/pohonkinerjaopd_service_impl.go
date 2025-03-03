@@ -156,19 +156,23 @@ func (service *PohonKinerjaOpdServiceImpl) Create(ctx context.Context, request p
 		return pohonkinerja.PohonKinerjaOpdResponse{}, err
 	}
 
+	countReview, err := service.reviewRepository.CountReviewByPohonKinerja(ctx, tx, result.Id)
+	helper.PanicIfError(err)
+
 	response := pohonkinerja.PohonKinerjaOpdResponse{
-		Id:         result.Id,
-		Parent:     strconv.Itoa(result.Parent),
-		NamaPohon:  result.NamaPohon,
-		JenisPohon: result.JenisPohon,
-		LevelPohon: result.LevelPohon,
-		KodeOpd:    result.KodeOpd,
-		NamaOpd:    opd.NamaOpd,
-		Keterangan: result.Keterangan,
-		Tahun:      result.Tahun,
-		Status:     result.Status,
-		Pelaksana:  pelaksanaResponses,
-		Indikator:  indikatorResponses,
+		Id:          result.Id,
+		Parent:      strconv.Itoa(result.Parent),
+		NamaPohon:   result.NamaPohon,
+		JenisPohon:  result.JenisPohon,
+		LevelPohon:  result.LevelPohon,
+		KodeOpd:     result.KodeOpd,
+		NamaOpd:     opd.NamaOpd,
+		Keterangan:  result.Keterangan,
+		Tahun:       result.Tahun,
+		Status:      result.Status,
+		CountReview: countReview,
+		Pelaksana:   pelaksanaResponses,
+		Indikator:   indikatorResponses,
 	}
 
 	return response, nil
@@ -370,19 +374,23 @@ func (service *PohonKinerjaOpdServiceImpl) Update(ctx context.Context, request p
 		}
 	}
 
+	countReview, err := service.reviewRepository.CountReviewByPohonKinerja(ctx, tx, updatedPokin.Id)
+	helper.PanicIfError(err)
+
 	return pohonkinerja.PohonKinerjaOpdResponse{
-		Id:         updatedPokin.Id,
-		Parent:     strconv.Itoa(updatedPokin.Parent),
-		NamaPohon:  updatedPokin.NamaPohon,
-		JenisPohon: updatedPokin.JenisPohon,
-		LevelPohon: updatedPokin.LevelPohon,
-		KodeOpd:    updatedPokin.KodeOpd,
-		NamaOpd:    opd.NamaOpd,
-		Keterangan: updatedPokin.Keterangan,
-		Tahun:      updatedPokin.Tahun,
-		Status:     updatedPokin.Status,
-		Pelaksana:  pelaksanaResponses,
-		Indikator:  indikatorResponses,
+		Id:          updatedPokin.Id,
+		Parent:      strconv.Itoa(updatedPokin.Parent),
+		NamaPohon:   updatedPokin.NamaPohon,
+		JenisPohon:  updatedPokin.JenisPohon,
+		LevelPohon:  updatedPokin.LevelPohon,
+		KodeOpd:     updatedPokin.KodeOpd,
+		NamaOpd:     opd.NamaOpd,
+		Keterangan:  updatedPokin.Keterangan,
+		Tahun:       updatedPokin.Tahun,
+		CountReview: countReview,
+		Status:      updatedPokin.Status,
+		Pelaksana:   pelaksanaResponses,
+		Indikator:   indikatorResponses,
 	}, nil
 }
 

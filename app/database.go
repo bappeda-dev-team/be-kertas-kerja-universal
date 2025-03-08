@@ -18,6 +18,7 @@ func GetConnection() *sql.DB {
 	}
 
 	dbUser := os.Getenv("DB_USER")
+	dbPass := os.Getenv("DB_PASS")
 	dbPort := os.Getenv("DB_PORT")
 	dbName := os.Getenv("DB_NAME")
 	dbHost := os.Getenv("DB_HOST")
@@ -26,7 +27,7 @@ func GetConnection() *sql.DB {
 		dbHost = "localhost"
 	}
 
-	connStr := fmt.Sprintf("%s@tcp(%s:%s)/%s?parseTime=true", dbUser, dbHost, dbPort, dbName)
+	connStr := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", dbUser, dbPass, dbHost, dbPort, dbName)
 
 	dbUrl := os.Getenv("DB_URL")
 

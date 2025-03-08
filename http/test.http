@@ -1,0 +1,38 @@
+# VARS
+:my-auth = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQG1hZGl1bmthYnRlc3QuY29tIiwiZXhwIjoxNzQxNDc4ODgxLCJpYXQiOjE3NDEzOTI0ODEsImlzcyI6IiIsImtvZGVfb3BkIjoiIiwibmlwIjoiYWRtaW4xIiwicGVnYXdhaV9pZCI6IkFETUlOLTgzMDQiLCJyb2xlcyI6WyJzdXBlcl9hZG1pbiJdLCJ1c2VyX2lkIjoxfQ.tBPFcPwGFw_IdTAlIirH-YqFxhRM5_NonMYKJwfiPdI
+:my-headers = <<
+Authorization: Bearer :my-auth
+Content-Type: application/json
+
+# LOGIN
+POST http://localhost:8080/user/login
+Content-Type: application/json
+
+{
+   "username": "admin1",
+   "password": "KabKabMadiun2024"
+}
+
+
+# CREATE USER
+POST http://localhost:8080/user/create
+Content-Type: application/json
+
+{
+   "nip": "admin1",
+   "email": "admin1@test.com",
+   "password": "KabKabMadiun2024",
+   "role": 1
+}
+
+# LIST ALL USER
+GET http://localhost:8080/user/findall
+:my-headers
+
+# LIST ALL ROLES
+GET http://localhost:8080/role/findall
+:my-headers
+
+# LIST ALL OPD
+GET http://localhost:8080/opd/findall
+:my-headers

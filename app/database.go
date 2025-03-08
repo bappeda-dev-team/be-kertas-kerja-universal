@@ -36,6 +36,9 @@ func GetConnection() *sql.DB {
 	}
 
 	db, err := sql.Open("mysql", connStr)
+
+	log.Printf("Mencoba konek ke database dsn: %s", connStr)
+
 	if err != nil {
 		log.Fatalf("Error opening database: %v", err)
 	}

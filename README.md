@@ -35,7 +35,7 @@ migrate -path db -database "mysql://root@tcp(localhost:3306)/db_ekak" up
 ketikkan perintah:
 
 ```sh
-go run main.go
+go run .
 ```
 
 untuk menjalankan seeder, ketikkan perintah:

@@ -520,6 +520,7 @@ func (service *PohonKinerjaAdminServiceImpl) FindById(ctx context.Context, id in
 			targetResponse := pohonkinerja.TargetResponse{
 				Id:              t.Id,
 				IndikatorId:     t.IndikatorId,
+				TahunSasaran:    t.Tahun,
 				TargetIndikator: t.Target,
 				SatuanIndikator: t.Satuan,
 			}

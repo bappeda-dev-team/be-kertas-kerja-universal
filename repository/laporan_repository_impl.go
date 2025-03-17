@@ -70,9 +70,11 @@ func (repo *LaporanRepositoryImpl) OpdSupportingPokin(ctx context.Context, tx *s
             tb_indikator i ON ph.id = i.pokin_id
 		LEFT JOIN
             tb_target t ON i.id = t.indikator_id
+        WHERE
+            i.tahun = ? AND t.tahun = ?
 		ORDER BY ph.id ASC;`
 
-	rows, err := tx.QueryContext(ctx, script, kodeOpd, tahun)
+	rows, err := tx.QueryContext(ctx, script, kodeOpd, tahun, tahun, tahun)
 	if err != nil {
 		return nil, err
 	}

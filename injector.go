@@ -360,6 +360,15 @@ var misiPemdaSet = wire.NewSet(
 	wire.Bind(new(controller.MisiPemdaController), new(*controller.MisiPemdaControllerImpl)),
 )
 
+var laporanSet = wire.NewSet(
+	repository.NewLaporanRepositoryImpl,
+	wire.Bind(new(repository.LaporanRepository), new(*repository.LaporanRepositoryImpl)),
+	service.NewLaporanServiceImpl,
+	wire.Bind(new(service.LaporanService), new(*service.LaporanServiceImpl)),
+	controller.NewLaporanControllerImpl,
+	wire.Bind(new(controller.LaporanController), new(*controller.LaporanControllerImpl)),
+)
+
 func InitializeServer() *http.Server {
 
 	wire.Build(
@@ -403,6 +412,7 @@ func InitializeServer() *http.Server {
 		sasaranOpdSet,
 		visiPemdaSet,
 		misiPemdaSet,
+		laporanSet,
 		app.NewRouter,
 		wire.Bind(new(http.Handler), new(*httprouter.Router)),
 		middleware.NewAuthMiddleware,

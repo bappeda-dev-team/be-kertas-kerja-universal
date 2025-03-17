@@ -47,6 +47,7 @@ func NewRouter(
 	sasaranOpdController controller.SasaranOpdController,
 	visiPemdaController controller.VisiPemdaController,
 	misiPemdaController controller.MisiPemdaController,
+	laporanController controller.LaporanController,
 ) *httprouter.Router {
 	router := httprouter.New()
 
@@ -363,6 +364,9 @@ func NewRouter(
 	router.GET("/misi_pemda/findall/tahun/:tahun_awal/jenisperiode/:jenis_periode", misiPemdaController.FindAll)
 	router.GET("/misi_pemda/detail/:id", misiPemdaController.FindById)
 	router.GET("/misi_pemda/findbyvisi/:id_visi", misiPemdaController.FindByIdVisi)
+
+	// Laporan
+	router.GET("/laporan/supporting_pokin/:kode_opd/:tahun", laporanController.OpdSupportingPokin)
 
 	return router
 }

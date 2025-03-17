@@ -7,6 +7,13 @@
 - MySQL versi 8.0.33
 - [golang-migrate](https://github.com/golang-migrate/migrate)
 
+### Development
+
+- install go wire
+
+``` sh
+go install github.com/google/wire/cmd/wire@latest
+```
 
 ### Cara install
 

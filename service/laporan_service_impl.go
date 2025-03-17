@@ -61,41 +61,59 @@ func (service *LaporanServiceImpl) OpdSupportingPokin(ctx context.Context, kodeO
 	}
 
 	var pohonKinerjas []laporan.PokinSupporting
-	for _, tematik := range pohonMap[0][0] {
-		tematikResp := laporan.PokinSupporting{
-			Id:         tematik.Id,
-			Parent:     tematik.Parent,
-			Tema:       tematik.NamaPohon,
-			JenisPohon: tematik.JenisPohon,
-			Keterangan: tematik.Keterangan,
-			LevelPohon: tematik.LevelPohon,
-			Indikators: []laporan.IndikatorResponse{},
-		}
+    var buildTree func(parentId int, level int) []laporan.PokinSupporting
 
-		for _, indikator := range tematik.Indikators {
-			indikatorResp := laporan.IndikatorResponse{
-				Id:            indikator.Id,
-				IdPokin:       indikator.PokinId,
-				NamaIndikator: indikator.Indikator,
-				Targets:       []laporan.TargetResponse{},
+buildTree = func(parentId int, level int) []laporan.PokinSupporting {
+	var childs []laporan.PokinSupporting
+
+	// Check if the current level exists in pohonMap and has children
+	if nodes, exists := pohonMap[level][parentId]; exists {
+		for _, node := range nodes {
+			nodeResp := laporan.PokinSupporting{
+				Id:         node.Id,
+				Parent:     node.Parent,
+				Tema:       node.NamaPohon,
+				JenisPohon: node.JenisPohon,
+				Keterangan: node.Keterangan,
+				LevelPohon: node.LevelPohon,
+				Indikators: []laporan.IndikatorResponse{},
+				Childs:     buildTree(node.Id, level+1), // Recursively fetch children
 			}
 
-			for _, target := range indikator.Target {
-				targetResp := laporan.TargetResponse{
-					Id:              target.Id,
-					IndikatorId:     target.IndikatorId,
-					TargetIndikator: target.Target,
-					SatuanIndikator: target.Satuan,
-					TahunSasaran:    target.Tahun,
+			// Add Indikators
+			for _, indikator := range node.Indikators {
+				indikatorResp := laporan.IndikatorResponse{
+					Id:            indikator.Id,
+					IdPokin:       indikator.PokinId,
+					NamaIndikator: indikator.Indikator,
+					Targets:       []laporan.TargetResponse{},
 				}
-				indikatorResp.Targets = append(indikatorResp.Targets, targetResp)
+
+				// Add Targets
+				for _, target := range indikator.Target {
+					targetResp := laporan.TargetResponse{
+						Id:              target.Id,
+						IndikatorId:     target.IndikatorId,
+						TargetIndikator: target.Target,
+						SatuanIndikator: target.Satuan,
+						TahunSasaran:    target.Tahun,
+					}
+					indikatorResp.Targets = append(indikatorResp.Targets, targetResp)
+				}
+
+				nodeResp.Indikators = append(nodeResp.Indikators, indikatorResp)
 			}
 
-			tematikResp.Indikators = append(tematikResp.Indikators, indikatorResp)
+			childs = append(childs, nodeResp)
 		}
-
-		pohonKinerjas = append(pohonKinerjas, tematikResp)
 	}
+
+	return childs
+}
+
+	// Build Parent-Child
+// Build the tree starting from level 0 (root nodes)
+pohonKinerjas = buildTree(0, 0)
 
 	return laporan.OpdSupportingPokinResponseData{
 		Tahun:         tahun,

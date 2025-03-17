@@ -1,7 +1,7 @@
 package laporan
 
 type OpdSupportingPokinResponseData struct {
-	Tahun        string            `json:"tahun"`
+	Tahun         string            `json:"tahun"`
 	PohonKinerjas []PokinSupporting `json:"pohon_kinerjas"`
 }
 
@@ -14,6 +14,7 @@ type PokinSupporting struct {
 	Tahun      string              `json:"tahun"`
 	LevelPohon int                 `json:"level_pohon"`
 	Indikators []IndikatorResponse `json:"indikator,omitempty"`
+	Childs     []PokinSupporting       `json:"childs,omitempty"`
 }
 
 type IndikatorResponse struct {

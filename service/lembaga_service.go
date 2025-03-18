@@ -11,4 +11,5 @@ type LembagaService interface {
 	FindById(ctx context.Context, id string) (lembaga.LembagaResponse, error)
 	FindAll(ctx context.Context) ([]lembaga.LembagaResponse, error)
 	Delete(ctx context.Context, id string) error
+	FindByKode(ctx context.Context, kodeLembaga string) (lembaga.LembagaResponse, error)
 }

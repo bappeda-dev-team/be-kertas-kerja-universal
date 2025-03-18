@@ -1,10 +1,12 @@
 package controller
 
 import (
+	"database/sql"
 	"ekak_kabupaten_madiun/helper"
 	"ekak_kabupaten_madiun/model/web"
 	"ekak_kabupaten_madiun/model/web/lembaga"
 	"ekak_kabupaten_madiun/service"
+	"fmt"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -103,6 +105,48 @@ func (controller *LembagaControllerImpl) FindById(writer http.ResponseWriter, re
 		Data:   lembagaResponse,
 	}
 	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (c *LembagaControllerImpl) FindByKode(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	kodeLembaga := params.ByName("kode_lembaga")
+
+	if kodeLembaga == "" {
+		webResponse := web.WebResponse{
+			Code:    http.StatusBadRequest,
+			Status:  http.StatusText(http.StatusBadRequest),
+			Message: "Missing requried parameter",
+		}
+		helper.WriteToResponseBody(w, webResponse)
+		return
+	}
+
+	lembagaResponse, err := c.LembagaService.FindByKode(r.Context(), kodeLembaga)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			webResponse := web.WebResponse{
+				Code:    http.StatusNoContent,
+				Status:  http.StatusText(http.StatusNoContent),
+				Message: fmt.Sprintf("Lembaga dengan kode: %s tidak ditemukan", kodeLembaga),
+			}
+			helper.WriteToResponseBody(w, webResponse)
+			return
+		}
+		webResponse := web.WebResponse{
+			Code:    http.StatusInternalServerError,
+			Status:  http.StatusText(http.StatusInternalServerError),
+			Message: "Terjadi kesalahan pada server. akan segera ditangani.",
+		}
+		helper.WriteToResponseBody(w, webResponse)
+		return
+	}
+
+	webResponse := web.WebResponse{
+		Code:    http.StatusOK,
+		Status:  http.StatusText(http.StatusOK),
+		Message: "Detail Lembaga by kode",
+		Data:    lembagaResponse,
+	}
+	helper.WriteToResponseBody(w, webResponse)
 }
 
 func (controller *LembagaControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {

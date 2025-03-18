@@ -122,6 +122,28 @@ func (service *LembagaServiceImpl) FindById(ctx context.Context, id string) (lem
 	return response, nil
 }
 
+func (s *LembagaServiceImpl) FindByKode(ctx context.Context, kodeLembaga string) (lembaga.LembagaResponse, error) {
+	tx, err := s.DB.Begin()
+	if err != nil {
+		return lembaga.LembagaResponse{}, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	result, err := s.LembagaRepository.FindByKode(ctx, tx, kodeLembaga)
+	if err != nil {
+		return lembaga.LembagaResponse{}, err
+	}
+
+	response := lembaga.LembagaResponse{
+		Id: result.Id,
+		KodeLembaga: result.KodeLembaga,
+		NamaLembaga: result.NamaLembaga,
+		IsActive:    result.IsActive,
+	}
+
+	return response, nil
+}
+
 func (service *LembagaServiceImpl) FindAll(ctx context.Context) ([]lembaga.LembagaResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {

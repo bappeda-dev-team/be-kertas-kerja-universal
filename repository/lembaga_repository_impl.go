@@ -50,6 +50,16 @@ func (repository *LembagaRepositoryImpl) FindById(ctx context.Context, tx *sql.T
 	return lembaga, nil
 }
 
+func (r *LembagaRepositoryImpl) FindByKode(ctx context.Context, tx *sql.Tx, kodeLembaga string) (domainmaster.Lembaga, error) {
+	script := "SELECT id, kode_lembaga, nama_lembaga, is_active FROM tb_lembaga WHERE kode_lembaga = ?"
+	var lembaga domainmaster.Lembaga
+	err := tx.QueryRowContext(ctx, script, kodeLembaga).Scan(&lembaga.Id, &lembaga.KodeLembaga, &lembaga.NamaLembaga, &lembaga.IsActive)
+	if err != nil {
+		return domainmaster.Lembaga{}, err
+	}
+	return lembaga, nil
+}
+
 func (repository *LembagaRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]domainmaster.Lembaga, error) {
 	script := "SELECT id, kode_lembaga, nama_lembaga, is_active FROM tb_lembaga"
 	rows, err := tx.QueryContext(ctx, script)

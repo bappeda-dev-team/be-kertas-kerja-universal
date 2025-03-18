@@ -208,6 +208,7 @@ func NewRouter(
 	router.GET("/lembaga/detail/:id", lembagaController.FindById)
 	router.DELETE("/lembaga/delete/:id", lembagaController.Delete)
 	router.GET("/lembaga/findall", lembagaController.FindAll)
+	router.GET("/lembaga/find/:kode_lembaga", lembagaController.FindByKode)
 
 	//jabatan
 	router.POST("/jabatan/create", jabatanController.Create)

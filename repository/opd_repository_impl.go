@@ -18,13 +18,17 @@ func NewOpdRepositoryImpl() *OpdRepositoryImpl {
 func (repository *OpdRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, opd domainmaster.Opd) (domainmaster.Opd, error) {
 	script := `INSERT INTO tb_operasional_daerah (
 		id, kode_opd, nama_opd, singkatan, alamat, telepon, fax, 
-		email, website, nama_kepala_opd, nip_kepala_opd, pangkat_kepala, id_lembaga
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		email, website, nama_kepala_opd, nip_kepala_opd, pangkat_kepala,
+nama_admin_opd, no_wa_admin_opd,
+id_lembaga
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	_, err := tx.ExecContext(ctx, script,
 		opd.Id, opd.KodeOpd, opd.NamaOpd, opd.Singkatan, opd.Alamat,
 		opd.Telepon, opd.Fax, opd.Email, opd.Website, opd.NamaKepalaOpd,
-		opd.NIPKepalaOpd, opd.PangkatKepala, opd.IdLembaga)
+		opd.NIPKepalaOpd, opd.PangkatKepala,
+		opd.NamaAdmin, opd.NoWaAdmin,
+		opd.IdLembaga)
 	if err != nil {
 		return opd, err
 	}
@@ -35,7 +39,8 @@ func (repository *OpdRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, opd
 	script := `UPDATE tb_operasional_daerah SET 
 		kode_opd = ?, nama_opd = ?, singkatan = ?, alamat = ?, 
 		telepon = ?, fax = ?, email = ?, website = ?, 
-		nama_kepala_opd = ?, nip_kepala_opd = ?, pangkat_kepala = ?, 
+		nama_kepala_opd = ?, nip_kepala_opd = ?, pangkat_kepala = ?,
+nama_admin_opd = ?, no_wa_admin_opd = ?,
 		id_lembaga = ? 
 		WHERE id = ?`
 
@@ -43,6 +48,7 @@ func (repository *OpdRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, opd
 		opd.KodeOpd, opd.NamaOpd, opd.Singkatan, opd.Alamat,
 		opd.Telepon, opd.Fax, opd.Email, opd.Website,
 		opd.NamaKepalaOpd, opd.NIPKepalaOpd, opd.PangkatKepala,
+		opd.NamaAdmin, opd.NoWaAdmin,
 		opd.IdLembaga, opd.Id)
 	if err != nil {
 		return opd, err
@@ -175,7 +181,11 @@ func (repository *OpdRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([
 }
 
 func (repository *OpdRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, opdId string) (domainmaster.Opd, error) {
-	script := "SELECT id, kode_opd, nama_opd, singkatan, alamat, telepon, fax, email, website, nama_kepala_opd, nip_kepala_opd, pangkat_kepala, id_lembaga FROM tb_operasional_daerah WHERE id = ?"
+	script := `SELECT id, kode_opd, nama_opd, singkatan, alamat,
+telepon, fax, email, website, nama_kepala_opd,
+nip_kepala_opd, pangkat_kepala,
+nama_admin_opd, no_wa_admin_opd,
+id_lembaga FROM tb_operasional_daerah WHERE id = ?`
 	rows, err := tx.QueryContext(ctx, script, opdId)
 	if err != nil {
 		return domainmaster.Opd{}, err
@@ -184,7 +194,15 @@ func (repository *OpdRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, o
 
 	var opd domainmaster.Opd
 	if rows.Next() {
-		err := rows.Scan(&opd.Id, &opd.KodeOpd, &opd.NamaOpd, &opd.Singkatan, &opd.Alamat, &opd.Telepon, &opd.Fax, &opd.Email, &opd.Website, &opd.NamaKepalaOpd, &opd.NIPKepalaOpd, &opd.PangkatKepala, &opd.IdLembaga)
+		err := rows.Scan(&opd.Id,
+			&opd.KodeOpd, &opd.NamaOpd, &opd.Singkatan, &opd.Alamat,
+			&opd.Telepon, &opd.Fax, &opd.Email, &opd.Website,
+			&opd.NamaKepalaOpd,
+			&opd.NIPKepalaOpd,
+			&opd.PangkatKepala,
+			&opd.NamaAdmin,
+			&opd.NoWaAdmin,
+			&opd.IdLembaga)
 		helper.PanicIfError(err)
 	}
 	return opd, nil

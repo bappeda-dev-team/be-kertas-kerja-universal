@@ -66,6 +66,8 @@ func (service *OpdServiceImpl) Create(ctx context.Context, request opdmaster.Opd
 		NamaKepalaOpd: request.NamaKepalaOpd,
 		NIPKepalaOpd:  request.NIPKepalaOpd,
 		PangkatKepala: request.PangkatKepala,
+		NamaAdmin:     helper.EmptyStringIfNull(request.NamaAdmin),
+		NoWaAdmin:     helper.EmptyStringIfNull(request.NoWaAdmin),
 		IdLembaga:     request.IdLembaga,
 	}
 
@@ -97,6 +99,8 @@ func (service *OpdServiceImpl) Create(ctx context.Context, request opdmaster.Opd
 		NamaKepalaOpd: result.NamaKepalaOpd,
 		NIPKepalaOpd:  result.NIPKepalaOpd,
 		PangkatKepala: result.PangkatKepala,
+		NamaAdmin:     result.NamaAdmin,
+		NoWaAdmin:     result.NoWaAdmin,
 		IdLembaga:     lembagaResponse,
 	}, nil
 }
@@ -131,6 +135,8 @@ func (service *OpdServiceImpl) Update(ctx context.Context, request opdmaster.Opd
 	opd.NamaKepalaOpd = request.NamaKepalaOpd
 	opd.NIPKepalaOpd = request.NIPKepalaOpd
 	opd.PangkatKepala = request.PangkatKepala
+	opd.NamaAdmin = request.NamaAdmin
+	opd.NoWaAdmin = request.NoWaAdmin
 	opd.IdLembaga = request.IdLembaga
 
 	result, err := service.OpdRepository.Update(ctx, tx, opd)
@@ -161,6 +167,8 @@ func (service *OpdServiceImpl) Update(ctx context.Context, request opdmaster.Opd
 		NamaKepalaOpd: result.NamaKepalaOpd,
 		NIPKepalaOpd:  result.NIPKepalaOpd,
 		PangkatKepala: result.PangkatKepala,
+		NamaAdmin:     result.NamaAdmin,
+		NoWaAdmin:     result.NoWaAdmin,
 		IdLembaga:     lembagaResponse,
 	}, nil
 }
@@ -182,29 +190,22 @@ func (service *OpdServiceImpl) Delete(ctx context.Context, opdId string) error {
 }
 
 func (service *OpdServiceImpl) FindById(ctx context.Context, opdId string) (opdmaster.OpdResponse, error) {
-	fmt.Println("=== Mulai FindById OPD ===")
-	fmt.Printf("Mencari OPD dengan ID: %s\n", opdId)
-
 	tx, err := service.DB.Begin()
 	if err != nil {
-		fmt.Printf("Error saat memulai transaksi: %v\n", err)
 		return opdmaster.OpdResponse{}, err
 	}
 	defer helper.CommitOrRollback(tx)
 
 	opd, err := service.OpdRepository.FindById(ctx, tx, opdId)
 	if err != nil {
-		fmt.Printf("Error saat mencari OPD: %v\n", err)
 		return opdmaster.OpdResponse{}, err
 	}
-	fmt.Printf("OPD ditemukan: %+v\n", opd)
 
 	lembagaDomain, err := service.LembagaRepository.FindById(ctx, tx, opd.IdLembaga)
 	if err != nil {
 		fmt.Printf("Error saat mencari Lembaga: %v\n", err)
 		return opdmaster.OpdResponse{}, err
 	}
-	fmt.Printf("Lembaga ditemukan: %+v\n", lembagaDomain)
 
 	// Konversi dari domain ke response
 	lembagaResponse := lembaga.LembagaResponse{
@@ -226,10 +227,11 @@ func (service *OpdServiceImpl) FindById(ctx context.Context, opdId string) (opdm
 		NamaKepalaOpd: opd.NamaKepalaOpd,
 		NIPKepalaOpd:  opd.NIPKepalaOpd,
 		PangkatKepala: opd.PangkatKepala,
+		NamaAdmin:     opd.NamaAdmin,
+		NoWaAdmin:     opd.NoWaAdmin,
 		IdLembaga:     lembagaResponse,
 	}
 
-	fmt.Println("=== Selesai FindById OPD ===")
 	return response, nil
 }
 
@@ -252,12 +254,12 @@ func (service *OpdServiceImpl) FindAll(ctx context.Context) ([]opdmaster.OpdWith
 			Id:                opd.Id,
 			KodeOpd:           opd.KodeOpd,
 			NamaOpd:           opd.NamaOpd,
-			KodeUrusan1: opd.KodeUrusan1,
-			NamaUrusan1: opd.NamaUrusan1,
-			KodeUrusan2: opd.KodeUrusan2,
-			NamaUrusan2: opd.NamaUrusan2,
-			KodeUrusan3: opd.KodeUrusan3,
-			NamaUrusan3: opd.NamaUrusan3,
+			KodeUrusan1:       opd.KodeUrusan1,
+			NamaUrusan1:       opd.NamaUrusan1,
+			KodeUrusan2:       opd.KodeUrusan2,
+			NamaUrusan2:       opd.NamaUrusan2,
+			KodeUrusan3:       opd.KodeUrusan3,
+			NamaUrusan3:       opd.NamaUrusan3,
 			KodeBidangUrusan1: opd.KodeBidangUrusan1,
 			NamaBidangUrusan1: opd.NamaBidangUrusan1,
 			KodeBidangUrusan2: opd.KodeBidangUrusan2,

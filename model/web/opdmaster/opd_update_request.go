@@ -13,5 +13,7 @@ type OpdUpdateRequest struct {
 	NamaKepalaOpd string `json:"nama_kepala_opd" validate:"required"`
 	NIPKepalaOpd  string `json:"nip_kepala_opd" validate:"required"`
 	PangkatKepala string `json:"pangkat_kepala" validate:"required"`
+	NamaAdmin     string `json:"nama_admin"`
+	NoWaAdmin     string `json:"no_wa_admin"`
 	IdLembaga     string `json:"id_lembaga" validate:"required"`
 }

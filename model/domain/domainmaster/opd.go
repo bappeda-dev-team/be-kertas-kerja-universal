@@ -13,6 +13,8 @@ type Opd struct {
 	NamaKepalaOpd string
 	NIPKepalaOpd  string
 	PangkatKepala string
+	NamaAdmin        string
+	NoWaAdmin        string
 	IdLembaga     string
 }
 

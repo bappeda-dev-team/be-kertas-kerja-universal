@@ -11,5 +11,5 @@ type OpdService interface {
 	Delete(ctx context.Context, opdId string) error
 	FindById(ctx context.Context, opdId string) (opdmaster.OpdResponse, error)
 	FindByKodeOpd(ctx context.Context, kodeOpd string) (opdmaster.OpdResponse, error)
-	FindAll(ctx context.Context) ([]opdmaster.OpdResponse, error)
+	FindAll(ctx context.Context) ([]opdmaster.OpdWithBidangUrusan, error)
 }

@@ -233,53 +233,36 @@ func (service *OpdServiceImpl) FindById(ctx context.Context, opdId string) (opdm
 	return response, nil
 }
 
-func (service *OpdServiceImpl) FindAll(ctx context.Context) ([]opdmaster.OpdResponse, error) {
+// TODO: add kode lembaga filter
+func (service *OpdServiceImpl) FindAll(ctx context.Context) ([]opdmaster.OpdWithBidangUrusan, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
-		return []opdmaster.OpdResponse{}, err
+		return []opdmaster.OpdWithBidangUrusan{}, err
 	}
 	defer helper.CommitOrRollback(tx)
 
 	opds, err := service.OpdRepository.FindAll(ctx, tx)
 	if err != nil {
-		return []opdmaster.OpdResponse{}, err
+		return []opdmaster.OpdWithBidangUrusan{}, err
 	}
 
-	var opdResponses []opdmaster.OpdResponse
+	var opdResponses []opdmaster.OpdWithBidangUrusan
 	for _, opd := range opds {
-		var lembagaResponse lembaga.LembagaResponse
-
-		lembagaDomain, err := service.LembagaRepository.FindById(ctx, tx, opd.IdLembaga)
-		if err != nil {
-			lembagaResponse = lembaga.LembagaResponse{
-				Id:          "",
-				KodeLembaga: "",
-				NamaLembaga: "",
-				IsActive:    false,
-			}
-		} else {
-			lembagaResponse = lembaga.LembagaResponse{
-				Id:          lembagaDomain.Id,
-				KodeLembaga: lembagaDomain.KodeLembaga,
-				NamaLembaga: lembagaDomain.NamaLembaga,
-				IsActive:    lembagaDomain.IsActive,
-			}
-		}
-
-		opdResponses = append(opdResponses, opdmaster.OpdResponse{
-			Id:            opd.Id,
-			KodeOpd:       opd.KodeOpd,
-			NamaOpd:       opd.NamaOpd,
-			Singkatan:     opd.Singkatan,
-			Alamat:        opd.Alamat,
-			Telepon:       opd.Telepon,
-			Fax:           opd.Fax,
-			Email:         opd.Email,
-			Website:       opd.Website,
-			NamaKepalaOpd: opd.NamaKepalaOpd,
-			NIPKepalaOpd:  opd.NIPKepalaOpd,
-			PangkatKepala: opd.PangkatKepala,
-			IdLembaga:     lembagaResponse,
+		opdResponses = append(opdResponses, opdmaster.OpdWithBidangUrusan{
+			Id:                opd.Id,
+			KodeOpd:           opd.KodeOpd,
+			NamaOpd:           opd.NamaOpd,
+			KodeBidangUrusan1: opd.KodeBidangUrusan1,
+			NamaBidangUrusan1: opd.NamaBidangUrusan1,
+			KodeBidangUrusan2: opd.KodeBidangUrusan2,
+			NamaBidangUrusan2: opd.NamaBidangUrusan2,
+			KodeBidangUrusan3: opd.KodeBidangUrusan3,
+			NamaBidangUrusan3: opd.NamaBidangUrusan3,
+			NamaAdmin:         opd.NamaAdmin,
+			NoWaAdmin:         opd.NoWaAdmin,
+			NamaKepalaOpd:     opd.NamaKepalaOpd,
+			NIPKepalaOpd:      opd.NIPKepalaOpd,
+			PangkatKepala:     opd.PangkatKepala,
 		})
 	}
 	return opdResponses, nil

@@ -72,6 +72,12 @@ func (repository *OpdRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([
     opd.id,
 	opd.kode_opd,
 	opd.nama_opd,
+	u1.kode_urusan AS kode_urusan_1,
+	u1.nama_urusan AS nama_urusan_1,
+	u2.kode_urusan AS kode_urusan_2,
+	u2.nama_urusan AS nama_urusan_2,
+	u3.kode_urusan AS kode_urusan_3,
+	u3.nama_urusan AS nama_urusan_3,
 	bu1.kode_bidang_urusan AS kode_bidang_urusan_1,
 	bu1.nama_bidang_urusan AS nama_bidang_urusan_1,
 	bu2.kode_bidang_urusan AS kode_bidang_urusan_2,
@@ -85,12 +91,18 @@ func (repository *OpdRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([
     opd.no_wa_admin_opd
 	FROM
 		tb_operasional_daerah opd
+    LEFT JOIN tb_urusan u1
+    ON u1.kode_urusan = LEFT(opd.kode_opd, LOCATE('.', opd.kode_opd) - 1)
+	LEFT JOIN tb_urusan u2
+    ON u2.kode_urusan = REGEXP_SUBSTR(opd.kode_opd, '(?<=\\.)(\\d+)', 1, 2)
+	LEFT JOIN tb_urusan u3
+    ON u3.kode_urusan = REGEXP_SUBSTR(opd.kode_opd, '(?<=\\.)(\\d+)', 1, 4)
 	LEFT JOIN tb_bidang_urusan bu1
-	ON bu1.kode_bidang_urusan = REGEXP_SUBSTR(opd.kode_opd, '^\\d+\\.\\d+')
+	ON bu1.kode_bidang_urusan = REGEXP_SUBSTR(opd.kode_opd, '(\\d+)\\.\\d{2}', 1, 1)
 	LEFT JOIN tb_bidang_urusan bu2
-	ON bu2.kode_bidang_urusan = REGEXP_SUBSTR(opd.kode_opd, '\\d+\\.\\d+', 1, 2)
+	ON bu2.kode_bidang_urusan = REGEXP_SUBSTR(opd.kode_opd, '(\\d+)\\.\\d{2}', 1, 2)
 	LEFT JOIN tb_bidang_urusan bu3
-	ON bu3.kode_bidang_urusan = REGEXP_SUBSTR(opd.kode_opd, '\\d+\\.\\d+', 1, 3);`
+	ON bu3.kode_bidang_urusan = REGEXP_SUBSTR(opd.kode_opd, '(\\d+)\\.\\d{2}', 1, 3);`
 
 	rows, err := tx.QueryContext(ctx, query)
 	if err != nil {
@@ -103,6 +115,9 @@ func (repository *OpdRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([
 		opd := domainmaster.OpdWithBidangUrusan{}
 
 		// Use sql.NullString for nullable string fields
+		var kodeUrusan1, namaUrusan1 sql.NullString
+		var kodeUrusan2, namaUrusan2 sql.NullString
+		var kodeUrusan3, namaUrusan3 sql.NullString
 		var kodeBidangUrusan1, namaBidangUrusan1 sql.NullString
 		var kodeBidangUrusan2, namaBidangUrusan2 sql.NullString
 		var kodeBidangUrusan3, namaBidangUrusan3 sql.NullString
@@ -113,6 +128,12 @@ func (repository *OpdRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([
 			&opd.Id,
 			&opd.KodeOpd,
 			&opd.NamaOpd,
+			&kodeUrusan1,
+			&namaUrusan1,
+			&kodeUrusan2,
+			&namaUrusan2,
+			&kodeUrusan3,
+			&namaUrusan3,
 			&kodeBidangUrusan1,
 			&namaBidangUrusan1,
 			&kodeBidangUrusan2,
@@ -130,6 +151,12 @@ func (repository *OpdRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([
 			return nil, err
 		}
 		// Convert NULL values to empty strings
+		opd.KodeUrusan1 = nullToEmpty(kodeUrusan1)
+		opd.NamaUrusan1 = nullToEmpty(namaUrusan1)
+		opd.KodeUrusan2 = nullToEmpty(kodeUrusan2)
+		opd.NamaUrusan2 = nullToEmpty(namaUrusan2)
+		opd.KodeUrusan3 = nullToEmpty(kodeUrusan3)
+		opd.NamaUrusan3 = nullToEmpty(namaUrusan3)
 		opd.KodeBidangUrusan1 = nullToEmpty(kodeBidangUrusan1)
 		opd.NamaBidangUrusan1 = nullToEmpty(namaBidangUrusan1)
 		opd.KodeBidangUrusan2 = nullToEmpty(kodeBidangUrusan2)

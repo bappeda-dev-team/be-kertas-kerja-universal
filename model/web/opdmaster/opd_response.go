@@ -24,6 +24,12 @@ type OpdWithBidangUrusan struct {
 	Id                string `json:"id"`
 	KodeOpd           string `json:"kode_opd"`
 	NamaOpd           string `json:"nama_opd"`
+	KodeUrusan1 string `json:"kode_urusan1"`
+	NamaUrusan1 string `json:"nama_urusan1"`
+	KodeUrusan2 string `json:"kode_urusan2"`
+	NamaUrusan2 string `json:"nama_urusan2"`
+	KodeUrusan3 string `json:"kode_urusan3"`
+	NamaUrusan3 string `json:"nama_urusan3"`
 	KodeBidangUrusan1 string `json:"kode_bidang_urusan1"`
 	NamaBidangUrusan1 string `json:"nama_bidang_urusan1"`
 	KodeBidangUrusan2 string `json:"kode_bidang_urusan2"`

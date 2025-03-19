@@ -20,6 +20,12 @@ type OpdWithBidangUrusan struct {
 	Id               string
 	KodeOpd          string
 	NamaOpd          string
+	KodeUrusan1 string
+	NamaUrusan1 string
+	KodeUrusan2 string
+	NamaUrusan2 string
+	KodeUrusan3 string
+	NamaUrusan3 string
 	KodeBidangUrusan1 string
 	NamaBidangUrusan1 string
 	KodeBidangUrusan2 string

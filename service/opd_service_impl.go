@@ -276,14 +276,14 @@ func (service *OpdServiceImpl) FindAll(ctx context.Context) ([]opdmaster.OpdWith
 	return opdResponses, nil
 }
 
-func (service *OpdServiceImpl) InfoOpd(ctx context.Context, opdId string) (opdmaster.OpdWithBidangUrusan, error) {
+func (service *OpdServiceImpl) InfoOpd(ctx context.Context, kodeOpd string, kodeLembaga string) (opdmaster.OpdWithBidangUrusan, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {
 		return opdmaster.OpdWithBidangUrusan{}, err
 	}
 	defer helper.CommitOrRollback(tx)
 
-	opd, err := service.OpdRepository.InfoOpd(ctx, tx, opdId)
+	opd, err := service.OpdRepository.InfoOpd(ctx, tx, kodeOpd, kodeLembaga)
 	if err != nil {
 		return opdmaster.OpdWithBidangUrusan{}, err
 	}

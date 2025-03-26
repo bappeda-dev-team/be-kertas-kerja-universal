@@ -208,8 +208,9 @@ id_lembaga FROM tb_operasional_daerah WHERE id = ?`
 	return opd, nil
 }
 
-func (repository *OpdRepositoryImpl) InfoOpd(ctx context.Context, tx *sql.Tx, opdId string) (domainmaster.OpdWithBidangUrusan, error) {
-	query := `SELECT
+func (repository *OpdRepositoryImpl) InfoOpd(ctx context.Context, tx *sql.Tx, kodeOpd string, kodeLembaga string) (domainmaster.OpdWithBidangUrusan, error) {
+	query := `
+    SELECT
     opd.id,
 	opd.kode_opd,
 	opd.nama_opd,
@@ -244,9 +245,11 @@ func (repository *OpdRepositoryImpl) InfoOpd(ctx context.Context, tx *sql.Tx, op
 	ON bu2.kode_bidang_urusan = REGEXP_SUBSTR(opd.kode_opd, '(\\d+)\\.\\d{2}', 1, 2)
 	LEFT JOIN tb_bidang_urusan bu3
 	ON bu3.kode_bidang_urusan = REGEXP_SUBSTR(opd.kode_opd, '(\\d+)\\.\\d{2}', 1, 3)
-    WHERE opd.id = ?`
+    LEFT JOIN tb_lembaga lem
+    ON lem.id = opd.id_lembaga
+    WHERE opd.kode_opd = ? AND lem.kode_lembaga = ?;`
 
-	rows, err := tx.QueryContext(ctx, query, opdId)
+	rows, err := tx.QueryContext(ctx, query, kodeOpd, kodeLembaga)
 	if err != nil {
 		return domainmaster.OpdWithBidangUrusan{}, err
 	}

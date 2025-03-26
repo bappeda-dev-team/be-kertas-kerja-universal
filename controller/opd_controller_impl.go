@@ -104,8 +104,9 @@ func (controller *OpdControllerImpl) FindById(writer http.ResponseWriter, reques
 }
 
 func (controller *OpdControllerImpl) InfoOpd(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	opdId := params.ByName("opdId")
-	opdResponses, err := controller.OpdService.InfoOpd(request.Context(), opdId)
+	kodeOpd := params.ByName("kodeOpd")
+	kodeLembaga := params.ByName("kodeLembaga")
+	opdResponses, err := controller.OpdService.InfoOpd(request.Context(), kodeOpd, kodeLembaga)
 	if err != nil {
 		helper.WriteToResponseBody(writer, web.WebResponse{
 			Code:   500,

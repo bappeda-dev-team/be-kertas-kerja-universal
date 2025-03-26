@@ -12,5 +12,5 @@ type OpdService interface {
 	FindById(ctx context.Context, opdId string) (opdmaster.OpdResponse, error)
 	FindByKodeOpd(ctx context.Context, kodeOpd string) (opdmaster.OpdResponse, error)
 	FindAll(ctx context.Context) ([]opdmaster.OpdWithBidangUrusan, error)
-	InfoOpd(ctx context.Context, opdId string) (opdmaster.OpdWithBidangUrusan, error)
+	InfoOpd(ctx context.Context, kodeOpd string, kodeLembaga string) (opdmaster.OpdWithBidangUrusan, error)
 }

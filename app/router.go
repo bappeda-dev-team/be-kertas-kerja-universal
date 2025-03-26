@@ -224,7 +224,7 @@ func NewRouter(
 	router.GET("/opd/detail/:opdId", opdController.FindById)
 	router.DELETE("/opd/delete/:opdId", opdController.Delete)
 	router.GET("/opd/findall", opdController.FindAll)
-	router.GET("/opd/info/:opdId", opdController.InfoOpd)
+	router.GET("/opd/info/:kodeOpd/:kodeLembaga", opdController.InfoOpd)
 
 	//program
 	router.POST("/program_kegiatan/create", programController.Create)

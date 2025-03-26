@@ -276,6 +276,44 @@ func (service *OpdServiceImpl) FindAll(ctx context.Context) ([]opdmaster.OpdWith
 	return opdResponses, nil
 }
 
+func (service *OpdServiceImpl) InfoOpd(ctx context.Context, opdId string) (opdmaster.OpdWithBidangUrusan, error) {
+	tx, err := service.DB.Begin()
+	if err != nil {
+		return opdmaster.OpdWithBidangUrusan{}, err
+	}
+	defer helper.CommitOrRollback(tx)
+
+	opd, err := service.OpdRepository.InfoOpd(ctx, tx, opdId)
+	if err != nil {
+		return opdmaster.OpdWithBidangUrusan{}, err
+	}
+
+	opdResponse := opdmaster.OpdWithBidangUrusan{
+		Id:                opd.Id,
+		KodeOpd:           opd.KodeOpd,
+		NamaOpd:           opd.NamaOpd,
+		KodeUrusan1:       opd.KodeUrusan1,
+		NamaUrusan1:       opd.NamaUrusan1,
+		KodeUrusan2:       opd.KodeUrusan2,
+		NamaUrusan2:       opd.NamaUrusan2,
+		KodeUrusan3:       opd.KodeUrusan3,
+		NamaUrusan3:       opd.NamaUrusan3,
+		KodeBidangUrusan1: opd.KodeBidangUrusan1,
+		NamaBidangUrusan1: opd.NamaBidangUrusan1,
+		KodeBidangUrusan2: opd.KodeBidangUrusan2,
+		NamaBidangUrusan2: opd.NamaBidangUrusan2,
+		KodeBidangUrusan3: opd.KodeBidangUrusan3,
+		NamaBidangUrusan3: opd.NamaBidangUrusan3,
+		NamaAdmin:         opd.NamaAdmin,
+		NoWaAdmin:         opd.NoWaAdmin,
+		NamaKepalaOpd:     opd.NamaKepalaOpd,
+		NIPKepalaOpd:      opd.NIPKepalaOpd,
+		PangkatKepala:     opd.PangkatKepala,
+	}
+
+	return opdResponse, nil
+}
+
 func (service *OpdServiceImpl) FindByKodeOpd(ctx context.Context, kodeOpd string) (opdmaster.OpdResponse, error) {
 	tx, err := service.DB.Begin()
 	if err != nil {

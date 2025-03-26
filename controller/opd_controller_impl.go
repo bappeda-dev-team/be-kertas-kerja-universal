@@ -103,6 +103,25 @@ func (controller *OpdControllerImpl) FindById(writer http.ResponseWriter, reques
 	})
 }
 
+func (controller *OpdControllerImpl) InfoOpd(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	opdId := params.ByName("opdId")
+	opdResponses, err := controller.OpdService.InfoOpd(request.Context(), opdId)
+	if err != nil {
+		helper.WriteToResponseBody(writer, web.WebResponse{
+			Code:   500,
+			Status: "error",
+			Data:   "Gagal mengambil data OPD. Silakan coba lagi.",
+		})
+		return
+	}
+
+	helper.WriteToResponseBody(writer, web.WebResponse{
+		Code:   200,
+		Status: "success",
+		Data:   opdResponses,
+	})
+}
+
 // FindAll - Mengambil semua data OPD
 func (controller *OpdControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	opdResponses, err := controller.OpdService.FindAll(request.Context())

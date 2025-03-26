@@ -194,15 +194,40 @@ id_lembaga FROM tb_operasional_daerah WHERE id = ?`
 
 	var opd domainmaster.Opd
 	if rows.Next() {
-		err := rows.Scan(&opd.Id,
-			&opd.KodeOpd, &opd.NamaOpd, &opd.Singkatan, &opd.Alamat,
-			&opd.Telepon, &opd.Fax, &opd.Email, &opd.Website,
-			&opd.NamaKepalaOpd,
-			&opd.NIPKepalaOpd,
-			&opd.PangkatKepala,
-			&opd.NamaAdmin,
-			&opd.NoWaAdmin,
+		var namaKepalaOpd, nipKepalaOpd sql.NullString
+		var pangkatKepala, namaAdmin, noWaAdmin sql.NullString
+		var singkatan, alamat, telepon sql.NullString
+		var fax, email, website sql.NullString
+
+		err := rows.Scan(
+			&opd.Id,
+			&opd.KodeOpd,
+			&opd.NamaOpd,
+			&singkatan,
+			&alamat,
+			&telepon,
+			&fax,
+			&email,
+			&website,
+			&namaKepalaOpd,
+			&nipKepalaOpd,
+			&pangkatKepala,
+			&namaAdmin,
+			&noWaAdmin,
 			&opd.IdLembaga)
+
+		opd.Singkatan = nullToEmpty(singkatan)
+		opd.Alamat = nullToEmpty(alamat)
+		opd.Telepon = nullToEmpty(telepon)
+		opd.Fax = nullToEmpty(fax)
+		opd.Email = nullToEmpty(email)
+		opd.Website = nullToEmpty(website)
+		opd.NamaKepalaOpd = nullToEmpty(namaKepalaOpd)
+		opd.NIPKepalaOpd = nullToEmpty(nipKepalaOpd)
+		opd.PangkatKepala = nullToEmpty(pangkatKepala)
+		opd.NamaAdmin = nullToEmpty(namaAdmin)
+		opd.NoWaAdmin = nullToEmpty(noWaAdmin)
+
 		helper.PanicIfError(err)
 	}
 	return opd, nil

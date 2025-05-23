@@ -13,7 +13,7 @@ var jwtSecretKey = []byte(os.Getenv("JWT_SECRET_KEY"))
 var jwtIssuer = os.Getenv("JWT_ISSUER")
 var jwtExpiration = os.Getenv("JWT_EXPIRATION")
 
-func CreateNewJWT(userId int, pegawaiId string, email string, nip string, kodeOpd string, kodeLembaga string, roles []string) string {
+func CreateNewJWT(userId int, pegawaiId string, email string, nip string, kodeOpd string, roles []string) string {
 	exp := 24 * time.Hour
 	if jwtExpiration != "" {
 		if duration, err := time.ParseDuration(jwtExpiration + "h"); err == nil {
@@ -28,7 +28,6 @@ func CreateNewJWT(userId int, pegawaiId string, email string, nip string, kodeOp
 		"email":      email,
 		"nip":        nip,
 		"kode_opd":   kodeOpd,
-		"kode_lembaga":   kodeLembaga,
 		"roles":      roles,
 		"iat":        time.Now().Unix(),
 		"exp":        time.Now().Add(exp).Unix(),

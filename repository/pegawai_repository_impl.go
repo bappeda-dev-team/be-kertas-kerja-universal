@@ -79,9 +79,9 @@ func (repository *PegawaiRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx
 }
 
 func (repository *PegawaiRepositoryImpl) FindByNip(ctx context.Context, tx *sql.Tx, nip string) (domainmaster.Pegawai, error) {
-	script := "SELECT id, nama, nip, kode_opd, kode_lembaga FROM tb_pegawai WHERE nip = ?"
+	script := "SELECT id, nama, nip, kode_opd FROM tb_pegawai WHERE nip = ?"
 	var pegawai domainmaster.Pegawai
-	err := tx.QueryRowContext(ctx, script, nip).Scan(&pegawai.Id, &pegawai.NamaPegawai, &pegawai.Nip, &pegawai.KodeOpd, &pegawai.KodeLembaga)
+	err := tx.QueryRowContext(ctx, script, nip).Scan(&pegawai.Id, &pegawai.NamaPegawai, &pegawai.Nip, &pegawai.KodeOpd)
 	if err != nil {
 		return domainmaster.Pegawai{}, err
 	}
